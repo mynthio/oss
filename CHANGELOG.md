@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3](https://github.com/mynthio/mynth-sdk/compare/sdk-v0.0.2...sdk-v0.0.3) (2026-03-06)
+
+
+### Features
+
+* add Seedream 5.0 Lite and Nano Banana 2 models, add 0.5k and 3k size scales ([b5f9cc6](https://github.com/mynthio/mynth-sdk/commit/b5f9cc6013974d071754f13b8845a7551f241fb1))
+
 ## [0.0.2](https://github.com/mynthio/mynth-sdk/compare/sdk-v0.0.2...sdk-v0.0.2) (2026-02-25)
 
 

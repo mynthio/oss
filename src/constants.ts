@@ -40,6 +40,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: [],
   },
   {
+    id: "bytedance/seedream-5.0-lite",
+    label: "Seedream 5.0 Lite",
+    capabilities: [],
+  },
+  {
     id: "black-forest-labs/flux.1-dev",
     label: "FLUX.1 Dev",
     capabilities: ["magic_prompt", "steps"],
@@ -68,6 +73,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     id: "john6666/bismuth-illustrious-mix",
     label: "Bismuth Illustrious Mix",
     capabilities: ["magic_prompt", "negative_prompt", "steps"],
+  },
+  {
+    id: "google/gemini-3.1-flash-image",
+    label: "Nano Banana 2",
+    capabilities: [],
   },
   {
     id: "google/gemini-3-pro-image-preview",

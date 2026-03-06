@@ -221,22 +221,22 @@ class Mynth {
 }
 
 export {
-  Mynth,
   AVAILABLE_MODELS,
+  Mynth,
   // Error classes
   MynthAPIError,
+  TaskAsyncFetchError,
+  TaskAsyncTaskFailedError,
+  TaskAsyncTaskFetchError,
   TaskAsyncTimeoutError,
   TaskAsyncUnauthorizedError,
-  TaskAsyncFetchError,
-  TaskAsyncTaskFetchError,
-  TaskAsyncTaskFailedError,
 };
 export type {
-  MynthSDKTypes,
-  MynthOptions,
-  GenerateOptions,
-  TaskAsyncAccess,
   AvailableModel,
+  GenerateOptions,
   ModelCapability,
+  MynthOptions,
+  MynthSDKTypes,
+  TaskAsyncAccess,
 };
 export default Mynth;

@@ -35,10 +35,12 @@ export namespace MynthSDKTypes {
 
   /** Available model identifiers */
   export type ImageGenerationModelId =
+    | "bytedance/seedream-5.0-lite"
     | "black-forest-labs/flux.1-dev"
     | "black-forest-labs/flux-1-schnell"
     | "black-forest-labs/flux.2-dev"
     | "black-forest-labs/flux.2-klein-4b"
+    | "google/gemini-3.1-flash-image"
     | "google/gemini-3-pro-image-preview"
     | "tongyi-mai/z-image-turbo"
     | "john6666/bismuth-illustrious-mix"
@@ -129,7 +131,7 @@ export namespace MynthSDKTypes {
   export type ImageGenerationRequestSizePreset = "instagram" | "square" | "portrait" | "landscape";
 
   /** Scale used by aspect ratio size mode */
-  export type ImageGenerationRequestSizeScale = "1k" | "2k" | "4k" | "8k";
+  export type ImageGenerationRequestSizeScale = "0.5k" | "1k" | "2k" | "3k" | "4k" | "8k";
 
   /** Aspect ratio string (for example: "16:9") */
   export type ImageGenerationRequestAspectRatio = string;

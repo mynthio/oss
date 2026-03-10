@@ -1,10 +1,11 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "separate-pull-requests": false,
   "packages": {
-    ".": {
+    "packages/sdk": {
       "release-type": "node",
       "package-name": "@mynthio/sdk",
-      "include-v-in-tag": true,
+      "component": "sdk",
       "changelog-path": "CHANGELOG.md"
     }
   }

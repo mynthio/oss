@@ -1,71 +1,24 @@
 {
-  "name": "@mynthio/sdk",
-  "version": "0.0.3",
-  "description": "Official Mynth SDK for image generation",
-  "keywords": [
-    "ai",
-    "image-generation",
-    "mynth",
-    "sdk"
+  "name": "oss",
+  "private": true,
+  "workspaces": [
+    "packages/*"
   ],
-  "homepage": "https://mynth.io",
-  "license": "MIT",
-  "author": "mynth.io",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/mynthio/mynth-sdk"
-  },
-  "files": [
-    "dist",
-    "README.md"
-  ],
-  "type": "module",
-  "sideEffects": false,
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "default": "./dist/index.js"
-    },
-    "./convex": {
-      "types": "./dist/convex/index.d.ts",
-      "import": "./dist/convex/index.js",
-      "default": "./dist/convex/index.js"
-    }
-  },
   "scripts": {
-    "build": "bun run build:clean && bun run build:js && bun run build:types",
-    "build:clean": "rm -rf dist",
-    "build:js": "bun build ./src/index.ts ./src/convex/index.ts --outdir ./dist --format esm --splitting --target bun --minify --packages external",
-    "build:types": "tsc --emitDeclarationOnly",
-    "prepublishOnly": "bun run build",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
     "lint": "oxlint -c .oxlintrc.json .",
     "lint:fix": "oxlint -c .oxlintrc.json --fix .",
     "format": "oxfmt --write --ignore-path .oxfmtignore",
-    "format:check": "oxfmt --check --ignore-path .oxfmtignore",
-    "typecheck": "tsc --noEmit",
-    "release": "bun run build && npm publish --access public"
+    "format:check": "oxfmt --check --ignore-path .oxfmtignore"
   },
   "devDependencies": {
     "@types/bun": "^1.3.9",
-    "convex": "^1.32.0",
     "oxfmt": "^0.36.0",
     "oxlint": "^1.51.0",
     "tsx": "^4.21.0",
-    "typescript": "5.9.3",
-    "vitest": "^4.0.18"
+    "turbo": "^2"
   },
-  "peerDependencies": {
-    "convex": "^1.27.3"
-  },
-  "peerDependenciesMeta": {
-    "convex": {
-      "optional": true
-    }
-  }
+  "packageManager": "bun@1.3.10"
 }

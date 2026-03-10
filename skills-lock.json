@@ -5,6 +5,11 @@
       "source": "github/awesome-copilot",
       "sourceType": "github",
       "computedHash": "2607fc60629b82b257136dd2a7a373f0a4466c0b49df7746d845d59313c99b21"
+    },
+    "turborepo": {
+      "source": "vercel/turborepo",
+      "sourceType": "github",
+      "computedHash": "5744001c4562a0fff84d2724f7ec4ecc21ee2e6c9af7f85187d80cd9d788a1ec"
     }
   }
 }

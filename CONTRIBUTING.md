@@ -1,14 +1,22 @@
 # Contributing
 
-This project uses GitHub Actions for CI, automated release PRs, GitHub Releases, and npm publishing.
+This is a Turborepo monorepo. CI, automated release PRs, GitHub Releases, and npm publishing are handled via GitHub Actions.
 
 ## Development
 
 ```bash
 bun install
-bun run lint
+bun run lint        # turbo run lint (all packages)
 bun run format:check
 bun run typecheck
+bun run test
+bun run build
+```
+
+To work on a specific package:
+
+```bash
+cd packages/sdk
 bun run test
 bun run build
 ```
@@ -55,11 +63,11 @@ How it works:
 
 1. Changes are merged into `main` with Conventional Commit messages.
 2. The `Release` workflow runs and updates/creates a Release Please PR with:
-   - version bump
-   - `CHANGELOG.md` updates
+   - version bumps for affected packages
+   - per-package `CHANGELOG.md` updates
    - release notes draft content
-3. When the Release Please PR is merged, the workflow creates a GitHub Release and tag.
-4. The workflow then publishes the package to npm from that release tag.
+3. When the Release Please PR is merged, the workflow creates GitHub Releases and tags (e.g. `sdk-v1.0.0`).
+4. Each released package is published to npm in a separate matrix job.
 
 Important:
 

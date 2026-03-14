@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.5](https://github.com/mynthio/oss/compare/sdk-v0.0.4...sdk-v0.0.5) (2026-03-14)
+
+
+### Bug Fixes
+
+* **sdk:** sync model capabilities and image response types ([1f503b6](https://github.com/mynthio/oss/commit/1f503b699d0083e2a420e55143c780c37aa68f60))
+
 ## [0.0.4](https://github.com/mynthio/mynth-sdk/compare/sdk-v0.0.3...sdk-v0.0.4) (2026-03-10)
 
 

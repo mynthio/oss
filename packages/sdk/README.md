@@ -1,200 +1,399 @@
 # @mynthio/sdk
 
-Official SDK for the [Mynth](https://mynth.io) AI image generation API.
+Official SDK for the [Mynth](https://mynth.io) image generation API.
+
+The SDK gives you a typed `Mynth` client, sync and async generation flows, model metadata, and a Convex webhook helper.
 
 ## Installation
 
 ```bash
-// Bun
+# Bun
 bun add @mynthio/sdk
 
-// PNPM
+# pnpm
 pnpm add @mynthio/sdk
 
-// NPM
+# npm
 npm install @mynthio/sdk
 
-// Yarn
+# yarn
 yarn add @mynthio/sdk
 ```
 
 ## Quick Start
 
-Add `MYNTH_API_KEY` to your environment variables:
+Set your API key:
 
 ```env
 MYNTH_API_KEY=mak_...
 ```
 
-Create mynth client. For example inside `/lib`
+Create a client:
 
-```typescript
-// lib/mynth.ts
+```ts
 import Mynth from "@mynthio/sdk";
 
-export const mynth = new Mynth();
+const mynth = new Mynth();
 ```
 
-Use client to generate images:
+Generate an image:
 
-```typescript
-import { mynth } from "./lib/mynth";
-
-// Generate an image (by default it waits for completion)
+```ts
 const task = await mynth.generate({
-  prompt: "A beautiful sunset over mountains",
-  model: "black-forest-labs/flux.1-dev",
+  prompt: "A fox in a neon-lit city at night",
 });
 
-console.log(task.result.images);
+console.log(task.id);
+console.log(task.urls);
+console.log(task.result?.model);
 ```
 
-Under the hood we poll for the status of the task, waiting until it's completed. When it's done, the `Task` instance is returned.
+If you omit `model` and `size`, Mynth resolves them automatically. By default, `generate()` waits for completion and returns a completed task.
 
-## Async Mode
+## Client Options
 
-Sometimes you don't want to wait for the task, and you just want to trigger generation. For example:
+```ts
+import Mynth from "@mynthio/sdk";
 
-- You use webhooks to save data, and you just trigger generation
-- You want to poll for images on client side
+const mynth = new Mynth({
+  apiKey: process.env.MYNTH_API_KEY,
+  baseUrl: "https://api.mynth.io",
+});
+```
 
-```typescript
-import { mynth } from "./lib/mynth";
+- `apiKey`: optional if `MYNTH_API_KEY` is set
+- `baseUrl`: optional override for proxies or tests
 
+## Sync vs Async
+
+### Sync Mode
+
+Sync mode is the default. It polls until the task is completed.
+
+```ts
+const task = await mynth.generate({
+  prompt: "Editorial product photo of a matte black coffee grinder",
+  model: "black-forest-labs/flux.2-dev",
+});
+
+console.log(task.status); // "completed"
+console.log(task.urls);
+```
+
+### Async Mode
+
+Use async mode when you want to trigger work now and fetch the final task later.
+
+```ts
 const taskAsync = await mynth.generate(
   {
-    prompt: "A futuristic cityscape",
-    model: "black-forest-labs/flux.1-dev",
+    prompt: "A cinematic fantasy castle on a cliff",
+    model: "google/gemini-3.1-flash-image",
   },
   { mode: "async" },
 );
 
-console.log("Task started:", taskAsync.id);
+console.log(taskAsync.id);
+console.log(taskAsync.access.publicAccessToken);
 
-// If you want to to get the result later, use .toTask()
 const completedTask = await taskAsync.toTask();
+console.log(completedTask.urls);
 ```
 
-Async mode is especially useful for a client side polling. We support public access tokens, and fetching statuses from client side:
+`taskAsync.access.publicAccessToken` is safe to send to the client. It is scoped to that single task, so you can poll task state from the browser without exposing your API key or building your own polling proxy.
 
-```typescript
-import { mynth } from "./lib/mynth";
+You can use it as a Bearer token against:
 
+- `GET /tasks/:id/status`
+- `GET /tasks/:id/results`
+
+Example:
+
+```ts
 const taskAsync = await mynth.generate(
   {
-    prompt: "A futuristic cityscape",
-    model: "black-forest-labs/flux.1-dev",
+    prompt: "A cinematic fantasy castle on a cliff",
+    model: "google/gemini-3.1-flash-image",
   },
   { mode: "async" },
 );
 
-return {
-  id: taskAsync.id,
-  access: taskAsync.access;
-}
+const taskId = taskAsync.id;
+const pat = taskAsync.access.publicAccessToken;
 
-// In frontend:
-// TODO: Do proper example for SWR
-const { data, error, isLoading } = useSWR(`/api/tasks/${response.id}/images`, fetcher, {
-  refreshInterval: 1000 // Poll every 1 second
-  // Token
-})
+const status = await fetch(`https://api.mynth.io/tasks/${taskId}/status`, {
+  headers: {
+    Authorization: `Bearer ${pat}`,
+  },
+}).then((res) => res.json());
+
+if (status.status === "completed") {
+  const results = await fetch(`https://api.mynth.io/tasks/${taskId}/results`, {
+    headers: {
+      Authorization: `Bearer ${pat}`,
+    },
+  }).then((res) => res.json());
+
+  console.log(results.images);
+}
 ```
+
+## Request Shape
+
+`generate()` accepts a typed `ImageGenerationRequest`. The simplest request is just a prompt:
+
+```ts
+await mynth.generate({
+  prompt: "A cozy cabin in a snowy pine forest",
+});
+```
+
+You can also pass structured options:
+
+```ts
+const task = await mynth.generate({
+  prompt: {
+    positive: "Studio portrait of a futuristic fashion model",
+    negative: "blurry, low detail",
+    enhance: "prefer_magic",
+  },
+  model: "john6666/bismuth-illustrious-mix",
+  size: {
+    type: "aspect_ratio",
+    aspectRatio: "4:5",
+    scale: "2k",
+  },
+  count: 2,
+  output: {
+    format: "webp",
+    quality: 80,
+  },
+  webhook: {
+    enabled: true,
+    custom: [{ url: "https://your-app.com/api/mynth-webhook" }],
+  },
+  content_rating: {
+    enabled: true,
+    levels: [
+      { value: "safe", description: "Safe for all audiences" },
+      { value: "sensitive", description: "Contains mature or suggestive content" },
+    ],
+  },
+  inputs: [
+    "https://example.com/reference-1.jpg",
+    {
+      type: "image",
+      role: "reference",
+      source: {
+        type: "url",
+        url: "https://example.com/reference-2.jpg",
+      },
+    },
+  ],
+  metadata: {
+    generationId: "gen_123",
+    userId: "user_123",
+  },
+});
+```
+
+## Prompt Options
+
+`prompt` can be:
+
+- a string
+- a structured object with `positive`, optional `negative`, and `enhance`
+
+```ts
+prompt: {
+  positive: "A luxury watch on a marble pedestal",
+  negative: "text, watermark",
+  enhance: false,
+}
+```
+
+`enhance` accepts:
+
+- `false`
+- `"prefer_magic"`
+- `"prefer_native"`
+
+## Size Options
+
+`size` supports:
+
+- presets: `"instagram"`, `"square"`, `"portrait"`, `"landscape"`
+- compact resolution strings like `"1536x1024"`
+- `"auto"`
+- structured objects
+
+Examples:
+
+```ts
+size: "landscape";
+size: "1024x1024";
+size: { type: "resolution", width: 1440, height: 960, mode: "strict" };
+size: { type: "aspect_ratio", aspectRatio: "16:9", scale: "2k" };
+size: { type: "auto", prefer: "native" };
+```
+
+## Input Images
+
+Use `inputs` to send reference, context, or init images:
+
+```ts
+inputs: [
+  "https://example.com/context-image.jpg",
+  {
+    type: "image",
+    role: "reference",
+    source: {
+      type: "url",
+      url: "https://example.com/reference-image.jpg",
+    },
+  },
+]
+```
+
+String URLs are a shorthand for image inputs. Structured inputs let you control the role explicitly with `"context"`, `"init"`, or `"reference"`.
+
+## Working With Results
+
+Completed tasks expose a few helpful accessors:
+
+```ts
+const task = await mynth.generate({
+  prompt: "An orange cat astronaut on the moon",
+  metadata: { source: "readme-example" },
+});
+
+console.log(task.id);
+console.log(task.status);
+console.log(task.isCompleted);
+console.log(task.urls);
+console.log(task.getImages());
+console.log(task.getImages({ includeFailed: true }));
+console.log(task.getMetadata());
+console.log(task.result?.prompt_enhance);
+```
+
+`task.urls` and `task.getImages()` return only successful images by default. `task.result?.images` may also include failed image entries.
 
 ## Available Models
 
-We provide a helpful object with all supported models, including display names and capabilities so you can use it for validation or generating UIs.
+The SDK exports `AVAILABLE_MODELS`, which mirrors the current model list and capability metadata shipped with the package.
 
-```typescript
+```ts
 import { AVAILABLE_MODELS } from "@mynthio/sdk";
 
-console.log(AVAILABLE_MODELS);
-// [
-//   {
-//     id: "black-forest-labs/flux.1-dev",
-//     label: "FLUX.1 Dev",
-//     capabilities: ["magic_prompt", "steps"],
-//   },
-//  ...
+const model = AVAILABLE_MODELS.find(
+  (item) => item.id === "google/gemini-3.1-flash-image",
+);
+
+console.log(model);
+// {
+//   id: "google/gemini-3.1-flash-image",
+//   label: "Nano Banana 2",
+//   capabilities: ["inputs", "enhance_prompt", "auto_size"]
+// }
 ```
 
-## Request Options
+Current model IDs include:
 
-```typescript
-const task = await mynth.generate({
-  prompt: {
-    positive: "A serene lake at dawn",
-    negative: "people, buildings", // Will be used only if supported by model
-    magic: false, // Default `true`
-  },
-  model: "black-forest-labs/flux.1-dev",
-  size: "landscape", //Default: "auto", Examples: "portrait", "square", "instagram", { width: 1024, height: 768 }
-  count: 1, // Default 1
-  output: {
-    format: "webp", // Default "webp", Examples: "png", "jpg", "webp"
-    quality: 80,
-    upscale: 2, // 2x or 4x upscaling
-  },
-  webhook: {
-    enabled: true, // Setting to false will disable webhooks set in dashboard and webhooks configured as `custom` in request
-    custom: [{ url: "https://your-webhook.com/endpoint" }],
-  },
-  /**
-   * Single level deep metadata you can attach. It will be send with webhook and returned with result.
-   */
-  metadata: {
-    internalGenerationId: "gen_123",
-    userId: "user_...",
-  },
-});
+- `auto`
+- `alibaba/qwen-image-2.0`
+- `alibaba/qwen-image-2.0-pro`
+- `bytedance/seedream-5.0-lite`
+- `black-forest-labs/flux.1-dev`
+- `black-forest-labs/flux-1-schnell`
+- `black-forest-labs/flux.2-dev`
+- `black-forest-labs/flux.2-klein-4b`
+- `google/gemini-3.1-flash-image`
+- `google/gemini-3-pro-image-preview`
+- `tongyi-mai/z-image-turbo`
+- `john6666/bismuth-illustrious-mix`
+- `wan/wan2.6-image`
+- `xai/grok-imagine-image`
+
+## TypeScript Types
+
+The SDK exports the request and payload types via `MynthSDKTypes`.
+
+```ts
+import type { MynthSDKTypes } from "@mynthio/sdk";
+
+const request: MynthSDKTypes.ImageGenerationRequest = {
+  prompt: "Minimal product shot of a glass bottle",
+  model: "auto",
+};
 ```
 
 ## Convex Integration
 
-The SDK includes a Convex webhook handler for easy integration:
+The package includes a Convex HTTP action helper for webhook verification and event routing.
 
-```typescript
+```ts
 import { mynthWebhookAction } from "@mynthio/sdk/convex";
 
 export const mynthWebhook = mynthWebhookAction({
   imageTaskCompleted: async (payload, { context }) => {
-    console.log("Image generated:", payload.result.images);
+    console.log("Completed task:", payload.task.id);
+    console.log(payload.result.images);
+  },
+  imageTaskFailed: async (payload) => {
+    console.error("Mynth task failed:", payload.task.id);
   },
 });
 ```
 
-Set `MYNTH_WEBHOOK_SECRET` in your environment variables.
+Set `MYNTH_WEBHOOK_SECRET` in your environment, or pass `webhookSecret` explicitly as the second argument to `mynthWebhookAction(...)`.
 
 ## Error Handling
 
-```typescript
+`generate()` may throw `MynthAPIError` if the initial request fails. Async polling can also throw task-specific errors:
+
+```ts
 import {
-  Mynth,
+  MynthAPIError,
+  TaskAsyncFetchError,
+  TaskAsyncTaskFailedError,
+  TaskAsyncTaskFetchError,
   TaskAsyncTimeoutError,
   TaskAsyncUnauthorizedError,
-  TaskAsyncFetchError,
 } from "@mynthio/sdk";
 
 try {
-  const task = await mynth.generate({ ... });
+  const taskAsync = await mynth.generate(
+    { prompt: "A watercolor landscape" },
+    { mode: "async" },
+  );
+
+  const task = await taskAsync.toTask();
+  console.log(task.urls);
 } catch (error) {
-  if (error instanceof TaskAsyncTimeoutError) {
+  if (error instanceof MynthAPIError) {
+    console.error(error.status, error.code, error.message);
+  } else if (error instanceof TaskAsyncTimeoutError) {
     console.error("Task polling timed out");
   } else if (error instanceof TaskAsyncUnauthorizedError) {
-    console.error("Invalid API key or access denied");
+    console.error("Task access was denied");
   } else if (error instanceof TaskAsyncFetchError) {
-    console.error("Network error while polling task status");
+    console.error("Repeated status fetch failures");
+  } else if (error instanceof TaskAsyncTaskFailedError) {
+    console.error("The generation task failed");
+  } else if (error instanceof TaskAsyncTaskFetchError) {
+    console.error("Fetching the completed task failed");
   }
 }
 ```
 
 ## Documentation
 
-For full documentation, visit [docs.mynth.io](https://docs.mynth.io).
+For product documentation and API guides, visit [docs.mynth.io](https://docs.mynth.io).
 
 ## Contributing
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup, commit message rules (Conventional Commits), and how the automated release process works.
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup, Conventional Commits guidance, and release process notes.
 
 ## License
 

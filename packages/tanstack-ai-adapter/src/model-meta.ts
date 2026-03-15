@@ -1,0 +1,24 @@
+/**
+ * All Mynth image model IDs as a const array.
+ */
+export const MYNTH_IMAGE_MODELS = [
+  "auto",
+  "alibaba/qwen-image-2.0",
+  "alibaba/qwen-image-2.0-pro",
+  "bytedance/seedream-5.0-lite",
+  "black-forest-labs/flux.1-dev",
+  "black-forest-labs/flux-1-schnell",
+  "tongyi-mai/z-image-turbo",
+  "black-forest-labs/flux.2-dev",
+  "black-forest-labs/flux.2-klein-4b",
+  "john6666/bismuth-illustrious-mix",
+  "google/gemini-3.1-flash-image",
+  "google/gemini-3-pro-image-preview",
+  "wan/wan2.6-image",
+  "xai/grok-imagine-image",
+] as const;
+
+/**
+ * Union of all Mynth image model IDs.
+ */
+export type MynthImageModel = (typeof MYNTH_IMAGE_MODELS)[number];

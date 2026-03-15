@@ -1,12 +1,21 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
-  "separate-pull-requests": false,
+  "separate-pull-requests": true,
   "packages": {
     "packages/sdk": {
       "release-type": "node",
       "versioning": "always-bump-patch",
       "package-name": "@mynthio/sdk",
       "component": "sdk",
+      "changelog-path": "CHANGELOG.md"
+    },
+    "packages/tanstack-ai-adapter": {
+      "release-type": "node",
+      "versioning": "always-bump-patch",
+      "package-name": "@mynthio/tanstack-ai-adapter",
+      "component": "tan-ai",
+      "include-v-in-tag": true,
+      "initial-version": "0.0.1",
       "changelog-path": "CHANGELOG.md"
     }
   }

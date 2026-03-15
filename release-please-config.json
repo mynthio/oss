@@ -4,6 +4,7 @@
   "packages": {
     "packages/sdk": {
       "release-type": "node",
+      "versioning": "always-bump-patch",
       "package-name": "@mynthio/sdk",
       "component": "sdk",
       "changelog-path": "CHANGELOG.md"

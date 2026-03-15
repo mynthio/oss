@@ -63,7 +63,7 @@ How it works:
 
 1. Changes are merged into `main` with Conventional Commit messages.
 2. The `Release` workflow runs and updates/creates a Release Please PR with:
-   - version bumps for affected packages
+   - patch version bumps for affected packages
    - per-package `CHANGELOG.md` updates
    - release notes draft content
 3. When the Release Please PR is merged, the workflow creates GitHub Releases and tags (e.g. `sdk-v1.0.0`).
@@ -72,7 +72,8 @@ How it works:
 Important:
 
 - npm publishing uses GitHub Actions OIDC (trusted publishing) and the `npm` environment in GitHub Actions
-- If commits do not follow Conventional Commits, versioning/changelog quality will be degraded
+- Release Please is configured to always publish patch bumps; Conventional Commits still drive changelog grouping and release notes
+- If commits do not follow Conventional Commits, changelog quality will be degraded
 
 ## Pull Request Checklist
 

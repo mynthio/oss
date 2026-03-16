@@ -71,7 +71,10 @@ jobs:
     name: Publish ${{ matrix.path }}
     runs-on: ubuntu-latest
     needs: release
-    if: ${{ needs.release.outputs.paths_released != '[]' && needs.release.outputs.paths_released != '' }}
+    # always() is required to work around GitHub Actions' transitive skip
+    # propagation (actions/runner#2205): when `verify` is skipped on release
+    # commits, descendants inherit that skip unless they opt out with always().
+    if: ${{ always() && needs.release.result == 'success' && needs.release.outputs.paths_released != '[]' && needs.release.outputs.paths_released != '' }}
     environment: npm
     permissions:
       contents: read

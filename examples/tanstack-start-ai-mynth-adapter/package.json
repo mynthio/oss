@@ -12,7 +12,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@mynthio/sdk": "workspace:",
     "@mynthio/tanstack-ai-adapter": "workspace:",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/ai": "^0.8.0",

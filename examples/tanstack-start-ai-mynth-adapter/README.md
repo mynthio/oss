@@ -18,7 +18,6 @@ This example installs the OSS packages from the local repo instead of npm:
 
 ```json
 {
-  "@mynthio/sdk": "file:../../packages/sdk",
   "@mynthio/tanstack-ai-adapter": "file:../../packages/tanstack-ai-adapter"
 }
 ```

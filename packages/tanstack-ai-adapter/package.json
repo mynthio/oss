@@ -19,13 +19,14 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@mynthio/sdk": "^0.0.5"
+  },
   "peerDependencies": {
-    "@tanstack/ai": ">=0.8.0",
-    "@mynthio/sdk": ">=0.0.4"
+    "@tanstack/ai": ">=0.8.0"
   },
   "devDependencies": {
     "@tanstack/ai": "^0.8.0",
-    "@mynthio/sdk": "^0.0.4",
     "@tanstack/vite-config": "^0.4.3",
     "@vitest/coverage-v8": "^4.0.18",
     "typescript": "5.9.3",

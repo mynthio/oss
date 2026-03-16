@@ -68,7 +68,7 @@
       "name": "@mynthio/tanstack-ai-adapter",
       "version": "0.0.2",
       "dependencies": {
-        "@mynthio/sdk": "^0.0.5",
+        "@mynthio/sdk": "0.0.6",
       },
       "devDependencies": {
         "@tanstack/ai": "^0.8.0",
@@ -1257,8 +1257,6 @@
     "@microsoft/api-extractor/source-map": ["source-map@0.6.1", "", {}, "sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g=="],
 
     "@microsoft/api-extractor/typescript": ["typescript@5.4.2", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-+2/g0Fds1ERlP6JsakQQDXjZdZMM+rqpamFZJEKh4kwTIn3iDkgKtby0CeNd5ATNZ4Ry1ax15TMx0W2V+miizQ=="],
-
-    "@mynthio/tanstack-ai-adapter/@mynthio/sdk": ["@mynthio/sdk@0.0.5", "", { "peerDependencies": { "convex": "^1.27.3" }, "optionalPeers": ["convex"] }, "sha512-X1Th0i4UsND4z5xM7K7QSINmfJ8ufseYI209PZ3jLoLBNJLcvtdFMaA38LsWvMwXuYvnAsXlK76N3GGAfc89YQ=="],
 
     "@rollup/pluginutils/estree-walker": ["estree-walker@2.0.2", "", {}, "sha512-Rfkk/Mp/DL7JVje3u18FxFujQlTNR2q6QfMSMB7AvCBx91NGj/ba3kCfza0f6dVDbw7YlRf/nDrn7pQrCCyQ/w=="],
 

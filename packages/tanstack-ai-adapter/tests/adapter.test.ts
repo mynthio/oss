@@ -1,199 +1,169 @@
-import type { ImageGenerationOptions } from "@tanstack/ai"
-import { beforeEach, describe, expect, it, vi } from "vitest"
-import type { MynthImageProviderOptions } from "../src/provider-options"
+import type { ImageGenerationOptions } from "@tanstack/ai";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@mynthio/sdk", () => {
-  const generate = vi.fn()
-  const MockMynth = vi.fn().mockImplementation(() => ({
-    generate,
-  }))
+import type { MynthImageProviderOptions, MynthImageShorthandSize } from "../src/provider-options";
+
+const { generateMock, MockMynth } = vi.hoisted(() => {
+  const generate = vi.fn();
+  const MockMynthConstructor = vi.fn(function MockMynth() {
+    return {
+      generate,
+    };
+  });
 
   return {
-    __generate: generate,
+    generateMock: generate,
+    MockMynth: MockMynthConstructor,
+  };
+});
+
+vi.mock("@mynthio/sdk", () => {
+  return {
     default: MockMynth,
     Mynth: MockMynth,
-  }
-})
+  };
+});
 
-const { MynthImageAdapter, createMynthImage, mynthImage } = await import("../src/adapter")
-const sdkMock = (await import("@mynthio/sdk")) as {
-  __generate: ReturnType<typeof vi.fn>
-  default: ReturnType<typeof vi.fn>
-}
-const { __generate: generateMock, default: MockMynth } = sdkMock
+const DEFAULT_MODEL = "black-forest-labs/flux.2-dev" as const;
 
-function createMockTask(overrides: {
-  id?: string
-  model?: string
-  images?: Array<{ status: string; url: string }>
-  promptEnhance?: { source: string; positive?: string }
-} = {}) {
+const { MynthImageAdapter, createMynthImage, mynthImage } = await import("../src/adapter");
+
+function createMockTask(
+  overrides: {
+    id?: string;
+    model?: string | undefined;
+    images?: Array<{ status: string; url: string }>;
+    promptEnhance?: { source: string; positive?: string } | undefined;
+  } = {},
+) {
   const images = overrides.images ?? [
     { status: "succeeded", url: "https://cdn.mynth.io/image1.webp" },
-  ]
+  ];
 
   return {
     id: overrides.id ?? "task-123",
     status: "completed",
     result: {
-      model: overrides.model ?? "black-forest-labs/flux.2-dev",
+      model: overrides.model,
       images,
       cost: { images: "0.01", total: "0.012", fee: "0.002" },
-      prompt_enhance: overrides.promptEnhance ?? undefined,
+      prompt_enhance: overrides.promptEnhance,
     },
     getImages: () => images.filter((img) => img.status === "succeeded"),
     urls: images.filter((img) => img.status === "succeeded").map((img) => img.url),
-  }
+  };
+}
+
+function createOptions(
+  overrides: Partial<
+    ImageGenerationOptions<MynthImageProviderOptions, MynthImageShorthandSize>
+  > = {},
+): ImageGenerationOptions<MynthImageProviderOptions, MynthImageShorthandSize> {
+  return {
+    model: DEFAULT_MODEL,
+    prompt: "A beautiful sunset",
+    ...overrides,
+  };
 }
 
 describe("MynthImageAdapter", () => {
   beforeEach(() => {
-    vi.clearAllMocks()
-  })
-
-  it("should have kind 'image' and name 'mynth'", () => {
-    const adapter = new MynthImageAdapter(
-      { apiKey: "mak_test" },
-      "black-forest-labs/flux.2-dev",
-    )
-
-    expect(adapter.kind).toBe("image")
-    expect(adapter.name).toBe("mynth")
-    expect(adapter.model).toBe("black-forest-labs/flux.2-dev")
-  })
+    vi.clearAllMocks();
+  });
 
   describe("generateImages", () => {
-    it("should generate images with basic prompt", async () => {
-      generateMock.mockResolvedValue(createMockTask())
+    it("uses the adapter-bound model in the SDK request", async () => {
+      // Arrange
+      generateMock.mockResolvedValue(createMockTask({ model: "auto" }));
+      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, "auto");
+      const options: ImageGenerationOptions<MynthImageProviderOptions, "auto"> = {
+        model: "auto",
+        prompt: "test",
+      };
 
-      const adapter = new MynthImageAdapter(
-        { apiKey: "mak_test" },
-        "black-forest-labs/flux.2-dev",
-      )
+      // Act
+      await adapter.generateImages(options);
 
-      const options: ImageGenerationOptions<MynthImageProviderOptions> = {
-        model: "black-forest-labs/flux.2-dev",
-        prompt: "A beautiful sunset",
-      }
+      // Assert
+      expect(generateMock).toHaveBeenCalledWith(expect.objectContaining({ model: "auto" }));
+    });
 
-      const result = await adapter.generateImages(options)
+    it("maps numberOfImages to count", async () => {
+      // Arrange
+      generateMock.mockResolvedValue(createMockTask());
+      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
 
-      expect(result.id).toBe("task-123")
-      expect(result.model).toBe("black-forest-labs/flux.2-dev")
-      expect(result.images).toHaveLength(1)
-      expect(result.images[0]!.url).toBe("https://cdn.mynth.io/image1.webp")
-    })
-
-    it("should pass numberOfImages as count", async () => {
-      generateMock.mockResolvedValue(
-        createMockTask({
-          images: [
-            { status: "succeeded", url: "https://cdn.mynth.io/img1.webp" },
-            { status: "succeeded", url: "https://cdn.mynth.io/img2.webp" },
-          ],
+      // Act
+      await adapter.generateImages(
+        createOptions({
+          numberOfImages: 2,
         }),
-      )
+      );
 
-      const adapter = new MynthImageAdapter(
-        { apiKey: "mak_test" },
-        "black-forest-labs/flux.2-dev",
-      )
+      // Assert
+      expect(generateMock).toHaveBeenCalledWith(expect.objectContaining({ count: 2 }));
+    });
 
-      await adapter.generateImages({
-        model: "black-forest-labs/flux.2-dev",
-        prompt: "test",
-        numberOfImages: 2,
-      })
-
-      expect(generateMock).toHaveBeenCalledWith(expect.objectContaining({ count: 2 }))
-    })
-
-    it("should pass size from TanStack options", async () => {
-      generateMock.mockResolvedValue(createMockTask())
-
-      const adapter = new MynthImageAdapter(
-        { apiKey: "mak_test" },
-        "black-forest-labs/flux.2-dev",
-      )
-
-      await adapter.generateImages({
-        model: "black-forest-labs/flux.2-dev",
-        prompt: "test",
-        size: "1024x1024",
-      })
-
-      expect(generateMock).toHaveBeenCalledWith(
-        expect.objectContaining({ size: "1024x1024" }),
-      )
-    })
-
-    it("should prefer modelOptions.size over TanStack size", async () => {
-      generateMock.mockResolvedValue(createMockTask())
-
-      const adapter = new MynthImageAdapter(
-        { apiKey: "mak_test" },
-        "black-forest-labs/flux.2-dev",
-      )
-
-      await adapter.generateImages({
-        model: "black-forest-labs/flux.2-dev",
-        prompt: "test",
-        size: "1024x1024",
-        modelOptions: {
-          size: "landscape",
-        },
-      })
-
-      expect(generateMock).toHaveBeenCalledWith(
-        expect.objectContaining({ size: "landscape" }),
-      )
-    })
-
-    it("should pass structured prompt from modelOptions", async () => {
-      generateMock.mockResolvedValue(createMockTask())
-
-      const adapter = new MynthImageAdapter(
-        { apiKey: "mak_test" },
-        "black-forest-labs/flux.2-dev",
-      )
-
-      const structured = {
+    it("prefers a structured prompt over the plain prompt", async () => {
+      // Arrange
+      generateMock.mockResolvedValue(createMockTask());
+      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
+      const promptStructured = {
         positive: "a cat",
         negative: "blurry",
         enhance: "prefer_magic" as const,
-      }
+      };
 
-      await adapter.generateImages({
-        model: "black-forest-labs/flux.2-dev",
-        prompt: "ignored when structured is set",
-        modelOptions: { promptStructured: structured },
-      })
+      // Act
+      await adapter.generateImages(
+        createOptions({
+          prompt: "ignored",
+          modelOptions: { promptStructured },
+        }),
+      );
 
+      // Assert
       expect(generateMock).toHaveBeenCalledWith(
-        expect.objectContaining({ prompt: structured }),
-      )
-    })
+        expect.objectContaining({ prompt: promptStructured }),
+      );
+    });
 
-    it("should pass all modelOptions to request", async () => {
-      generateMock.mockResolvedValue(createMockTask())
+    it("prefers provider size over top-level size", async () => {
+      // Arrange
+      generateMock.mockResolvedValue(createMockTask());
+      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
 
-      const adapter = new MynthImageAdapter(
-        { apiKey: "mak_test" },
-        "black-forest-labs/flux.2-dev",
-      )
+      // Act
+      await adapter.generateImages(
+        createOptions({
+          size: "1024x1024",
+          modelOptions: { size: "landscape" },
+        }),
+      );
 
-      await adapter.generateImages({
-        model: "black-forest-labs/flux.2-dev",
-        prompt: "test",
-        modelOptions: {
-          output: { format: "png", quality: 90 },
-          inputs: ["https://example.com/ref.jpg"],
-          webhook: { enabled: true },
-          contentRating: { enabled: true },
-          metadata: { userId: "u123" },
-        },
-      })
+      // Assert
+      expect(generateMock).toHaveBeenCalledWith(expect.objectContaining({ size: "landscape" }));
+    });
 
+    it("translates provider-only options to the SDK request shape", async () => {
+      // Arrange
+      generateMock.mockResolvedValue(createMockTask());
+      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
+
+      // Act
+      await adapter.generateImages(
+        createOptions({
+          modelOptions: {
+            output: { format: "png", quality: 90 },
+            inputs: ["https://example.com/ref.jpg"],
+            webhook: { enabled: true },
+            contentRating: { enabled: true },
+            metadata: { userId: "u123" },
+          },
+        }),
+      );
+
+      // Assert
       expect(generateMock).toHaveBeenCalledWith(
         expect.objectContaining({
           output: { format: "png", quality: 90 },
@@ -202,130 +172,140 @@ describe("MynthImageAdapter", () => {
           content_rating: { enabled: true },
           metadata: { userId: "u123" },
         }),
-      )
-    })
+      );
+    });
 
-    it("should include revisedPrompt when prompt was enhanced", async () => {
+    it("returns normalized images with the revised prompt when Mynth enhances it", async () => {
+      // Arrange
       generateMock.mockResolvedValue(
         createMockTask({
+          model: DEFAULT_MODEL,
           promptEnhance: { source: "mynth", positive: "An enhanced prompt" },
         }),
-      )
+      );
+      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
 
-      const adapter = new MynthImageAdapter(
-        { apiKey: "mak_test" },
-        "black-forest-labs/flux.2-dev",
-      )
+      // Act
+      const result = await adapter.generateImages(createOptions());
 
-      const result = await adapter.generateImages({
-        model: "black-forest-labs/flux.2-dev",
-        prompt: "test",
-      })
+      // Assert
+      expect(result).toEqual({
+        id: "task-123",
+        model: DEFAULT_MODEL,
+        images: [
+          {
+            url: "https://cdn.mynth.io/image1.webp",
+            revisedPrompt: "An enhanced prompt",
+          },
+        ],
+      });
+    });
 
-      expect(result.images[0]!.revisedPrompt).toBe("An enhanced prompt")
-    })
+    it("falls back to the requested model when the SDK omits it", async () => {
+      // Arrange
+      generateMock.mockResolvedValue(createMockTask({ model: undefined }));
+      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
 
-    it("should handle empty image results", async () => {
-      generateMock.mockResolvedValue(createMockTask({ images: [] }))
+      // Act
+      const result = await adapter.generateImages(createOptions());
 
-      const adapter = new MynthImageAdapter(
-        { apiKey: "mak_test" },
-        "black-forest-labs/flux.2-dev",
-      )
+      // Assert
+      expect(result.model).toBe(DEFAULT_MODEL);
+    });
 
-      const result = await adapter.generateImages({
-        model: "black-forest-labs/flux.2-dev",
-        prompt: "test",
-      })
-
-      expect(result.images).toHaveLength(0)
-    })
-
-    it("should filter out failed images", async () => {
+    it("filters out unsuccessful images from the normalized response", async () => {
+      // Arrange
       generateMock.mockResolvedValue(
         createMockTask({
+          model: DEFAULT_MODEL,
           images: [
             { status: "succeeded", url: "https://cdn.mynth.io/img1.webp" },
-            { status: "failed", url: "" },
+            { status: "failed", url: "https://cdn.mynth.io/failed.webp" },
           ],
         }),
-      )
+      );
+      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
 
-      const adapter = new MynthImageAdapter(
-        { apiKey: "mak_test" },
-        "black-forest-labs/flux.2-dev",
-      )
+      // Act
+      const result = await adapter.generateImages(createOptions());
 
-      const result = await adapter.generateImages({
-        model: "black-forest-labs/flux.2-dev",
-        prompt: "test",
-      })
+      // Assert
+      expect(result.images).toEqual([{ url: "https://cdn.mynth.io/img1.webp" }]);
+    });
 
-      expect(result.images).toHaveLength(1)
-      expect(result.images[0]!.url).toBe("https://cdn.mynth.io/img1.webp")
-    })
+    it("returns an empty image list when the task has no successful images", async () => {
+      // Arrange
+      generateMock.mockResolvedValue(createMockTask({ model: DEFAULT_MODEL, images: [] }));
+      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
 
-    it("should use model from adapter when not overridden", async () => {
-      generateMock.mockResolvedValue(createMockTask())
+      // Act
+      const result = await adapter.generateImages(createOptions());
 
-      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, "auto")
+      // Assert
+      expect(result.images).toEqual([]);
+    });
 
-      await adapter.generateImages({
-        model: "auto",
-        prompt: "test",
-      })
+    it("propagates SDK failures", async () => {
+      // Arrange
+      generateMock.mockRejectedValue(new Error("generate failed"));
+      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
 
-      expect(generateMock).toHaveBeenCalledWith(expect.objectContaining({ model: "auto" }))
-    })
+      // Act
+      const result = adapter.generateImages(createOptions());
 
-    it("should use modelOptions.model when provided", async () => {
-      generateMock.mockResolvedValue(createMockTask())
-
-      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, "auto")
-
-      await adapter.generateImages({
-        model: "auto",
-        prompt: "test",
-        modelOptions: { model: "black-forest-labs/flux.2-dev" },
-      })
-
-      expect(generateMock).toHaveBeenCalledWith(
-        expect.objectContaining({ model: "black-forest-labs/flux.2-dev" }),
-      )
-    })
-  })
-})
+      // Assert
+      await expect(result).rejects.toThrow("generate failed");
+    });
+  });
+});
 
 describe("createMynthImage", () => {
-  it("should create adapter with explicit API key", () => {
-    const adapter = createMynthImage("black-forest-labs/flux.2-dev", "mak_test123")
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
-    expect(adapter).toBeInstanceOf(MynthImageAdapter)
-    expect(adapter.model).toBe("black-forest-labs/flux.2-dev")
-    expect(adapter.kind).toBe("image")
-    expect(adapter.name).toBe("mynth")
-  })
+  it("uses shared config for created adapters", () => {
+    // Arrange
+    const mynth = createMynthImage({ apiKey: "mak_test", baseUrl: "https://custom.api" });
 
-  it("should pass config options", () => {
-    const adapter = createMynthImage("auto", "mak_test", { baseUrl: "https://custom.api" })
+    // Act
+    mynth("auto");
 
-    expect(adapter).toBeInstanceOf(MynthImageAdapter)
-    expect(MockMynth).toHaveBeenCalledWith({ apiKey: "mak_test", baseUrl: "https://custom.api" })
-  })
-})
+    // Assert
+    expect(MockMynth).toHaveBeenCalledWith({ apiKey: "mak_test", baseUrl: "https://custom.api" });
+  });
+
+  it("lets per-call config override shared config", () => {
+    // Arrange
+    const mynth = createMynthImage({ apiKey: "mak_test", baseUrl: "https://default.api" });
+
+    // Act
+    mynth("auto", { apiKey: "mak_override", baseUrl: "https://override.api" });
+
+    // Assert
+    expect(MockMynth).toHaveBeenCalledWith({
+      apiKey: "mak_override",
+      baseUrl: "https://override.api",
+    });
+  });
+});
 
 describe("mynthImage", () => {
-  it("should create adapter without explicit API key", () => {
-    const adapter = mynthImage("black-forest-labs/flux.2-dev")
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
-    expect(adapter).toBeInstanceOf(MynthImageAdapter)
-    expect(adapter.model).toBe("black-forest-labs/flux.2-dev")
-  })
+  it("passes config through the shorthand factory", () => {
+    // Arrange
+    const config = {
+      apiKey: "mak_test",
+      baseUrl: "https://custom.api",
+    };
 
-  it("should pass config options", () => {
-    const adapter = mynthImage("auto", { baseUrl: "https://custom.api" })
+    // Act
+    mynthImage("auto", config);
 
-    expect(adapter).toBeInstanceOf(MynthImageAdapter)
-    expect(MockMynth).toHaveBeenCalledWith({ baseUrl: "https://custom.api" })
-  })
-})
+    // Assert
+    expect(MockMynth).toHaveBeenCalledWith(config);
+  });
+});

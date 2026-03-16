@@ -1,5 +1,10 @@
+import type { MynthSDKTypes } from "@mynthio/sdk";
+
 /**
  * All Mynth image model IDs as a const array.
+ *
+ * Keeping this as a runtime array makes it easy for apps to build selectors
+ * while `satisfies` ensures every exported model ID remains valid for the SDK.
  */
 export const MYNTH_IMAGE_MODELS = [
   "auto",
@@ -16,7 +21,7 @@ export const MYNTH_IMAGE_MODELS = [
   "google/gemini-3-pro-image-preview",
   "wan/wan2.6-image",
   "xai/grok-imagine-image",
-] as const;
+] as const satisfies ReadonlyArray<MynthSDKTypes.ImageGenerationModel>;
 
 /**
  * Union of all Mynth image model IDs.

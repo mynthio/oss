@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.2](https://github.com/mynthio/oss/compare/tan-ai-v0.0.1...tan-ai-v0.0.2) (2026-03-16)
+
+
+### Features
+
+* **models:** add Recraft v4 image models ([efb61d6](https://github.com/mynthio/oss/commit/efb61d6e630c696249ce7f30740924dacd2a9a7e))
+
 ## 0.0.1 (2026-03-16)
 
 

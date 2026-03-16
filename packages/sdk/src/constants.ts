@@ -100,6 +100,16 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["steps", "negative_prompt", "cfg_scale", "scheduler", "mynth_magic_prompt"],
   },
   {
+    id: "recraft/recraft-v4",
+    label: "Recraft V4",
+    capabilities: [],
+  },
+  {
+    id: "recraft/recraft-v4-pro",
+    label: "Recraft V4 Pro",
+    capabilities: [],
+  },
+  {
     id: "google/gemini-3.1-flash-image",
     label: "Nano Banana 2",
     capabilities: ["inputs", "enhance_prompt", "auto_size"],

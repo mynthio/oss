@@ -252,7 +252,7 @@ inputs: [
       url: "https://example.com/reference-image.jpg",
     },
   },
-]
+];
 ```
 
 String URLs are a shorthand for image inputs. Structured inputs let you control the role explicitly with `"context"`, `"init"`, or `"reference"`.
@@ -286,9 +286,7 @@ The SDK exports `AVAILABLE_MODELS`, which mirrors the current model list and cap
 ```ts
 import { AVAILABLE_MODELS } from "@mynthio/sdk";
 
-const model = AVAILABLE_MODELS.find(
-  (item) => item.id === "google/gemini-3.1-flash-image",
-);
+const model = AVAILABLE_MODELS.find((item) => item.id === "google/gemini-3.1-flash-image");
 
 console.log(model);
 // {
@@ -363,10 +361,7 @@ import {
 } from "@mynthio/sdk";
 
 try {
-  const taskAsync = await mynth.generate(
-    { prompt: "A watercolor landscape" },
-    { mode: "async" },
-  );
+  const taskAsync = await mynth.generate({ prompt: "A watercolor landscape" }, { mode: "async" });
 
   const task = await taskAsync.toTask();
   console.log(task.urls);

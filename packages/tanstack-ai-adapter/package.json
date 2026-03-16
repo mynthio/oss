@@ -2,6 +2,24 @@
   "name": "@mynthio/tanstack-ai-adapter",
   "version": "0.0.1",
   "description": "Mynth image generation adapter for TanStack AI",
+  "keywords": [
+    "adapter",
+    "ai",
+    "image-generation",
+    "mynth",
+    "tanstack"
+  ],
+  "license": "MIT",
+  "author": "mynth.io",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mynthio/oss",
+    "directory": "packages/tanstack-ai-adapter"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
   "type": "module",
   "sideEffects": false,
   "module": "./dist/esm/index.js",
@@ -12,7 +30,6 @@
       "import": "./dist/esm/index.js"
     }
   },
-  "files": ["dist", "src"],
   "scripts": {
     "build": "vite build",
     "test": "vitest run",
@@ -22,9 +39,6 @@
   "dependencies": {
     "@mynthio/sdk": "^0.0.5"
   },
-  "peerDependencies": {
-    "@tanstack/ai": ">=0.8.0"
-  },
   "devDependencies": {
     "@tanstack/ai": "^0.8.0",
     "@tanstack/vite-config": "^0.4.3",
@@ -33,12 +47,7 @@
     "vite": "^7.3.1",
     "vitest": "^4.0.18"
   },
-  "keywords": ["ai", "image-generation", "mynth", "tanstack", "adapter"],
-  "license": "MIT",
-  "author": "mynth.io",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/mynthio/oss",
-    "directory": "packages/tanstack-ai-adapter"
+  "peerDependencies": {
+    "@tanstack/ai": ">=0.8.0"
   }
 }

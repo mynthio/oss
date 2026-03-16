@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.6](https://github.com/mynthio/oss/compare/sdk-v0.0.5...sdk-v0.0.6) (2026-03-16)
+
+
+### Features
+
+* **models:** add Recraft v4 image models ([efb61d6](https://github.com/mynthio/oss/commit/efb61d6e630c696249ce7f30740924dacd2a9a7e))
+
 ## [0.0.5](https://github.com/mynthio/oss/compare/sdk-v0.0.4...sdk-v0.0.5) (2026-03-14)
 
 

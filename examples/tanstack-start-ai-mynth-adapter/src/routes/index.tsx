@@ -8,11 +8,11 @@ import {
   SelectValue,
 } from "#/components/ui/select";
 import { Textarea } from "#/components/ui/textarea";
-import { useLocalStorage } from "#/lib/use-local-storage.hook";
 import { MYNTH_IMAGE_MODELS, type MynthImageModel } from "@mynthio/tanstack-ai-adapter";
 import type { ImageGenerationResult } from "@tanstack/ai";
 import { fetchServerSentEvents, useGenerateImage } from "@tanstack/ai-react";
 import { createFileRoute } from "@tanstack/react-router";
+import { useLocalStorage } from "@uidotdev/usehooks";
 import { LoaderCircle, Sparkles } from "lucide-react";
 import { useState, type SubmitEvent } from "react";
 
@@ -32,7 +32,7 @@ function App() {
   const [images, setImages] = useLocalStorage<Array<string>>("images", []);
 
   // https://tanstack.com/ai/latest/docs/guides/image-generation#full-stack-usage
-  const { error, generate, result, isLoading, reset, status } = useGenerateImage({
+  const { error, generate, isLoading } = useGenerateImage({
     connection: fetchServerSentEvents("/api/generate/image"),
 
     onResult: (result: ImageGenerationResult) => {

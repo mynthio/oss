@@ -47,8 +47,10 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     needs: verify
-    # Run even when verify is skipped (release-please commits)
-    if: "!failure() && !cancelled()"
+    # Release Please release commits intentionally skip `verify`.
+    # `always()` keeps this job runnable after a skipped dependency so tags,
+    # releases, and publish fan-out still happen on merged release PRs.
+    if: ${{ always() && !failure() && !cancelled() }}
     permissions:
       contents: write
       pull-requests: write

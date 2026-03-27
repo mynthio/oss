@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.4](https://github.com/mynthio/oss/compare/tan-ai-v0.0.3...tan-ai-v0.0.4) (2026-03-27)
+
+
+### Features
+
+* **examples:** update tanstack-start-ai-mynth-adapter with new UI components and dependencies ([32cf225](https://github.com/mynthio/oss/commit/32cf225e77c252db9a32d488c2138eac295860ca))
+* **tanstack-ai-adapter:** support PAT access and size overrides ([e885949](https://github.com/mynthio/oss/commit/e885949d89bad55fde28bb1eac78a1a3b48a1dde))
+
 ## [0.0.3](https://github.com/mynthio/oss/compare/tan-ai-v0.0.2...tan-ai-v0.0.3) (2026-03-16)
 
 

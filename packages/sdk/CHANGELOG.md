@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.7](https://github.com/mynthio/oss/compare/sdk-v0.0.6...sdk-v0.0.7) (2026-03-27)
+
+
+### Features
+
+* **sdk:** add PAT access and aspect-ratio request types ([9cb4fde](https://github.com/mynthio/oss/commit/9cb4fdebda1c5ae25d7a68683af593c1570eebcb))
+
 ## [0.0.6](https://github.com/mynthio/oss/compare/sdk-v0.0.5...sdk-v0.0.6) (2026-03-16)
 
 

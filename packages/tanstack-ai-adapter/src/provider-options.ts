@@ -9,9 +9,7 @@ import type { MynthImageModel } from "./model-meta";
  * Mynth size values that fit TanStack's top-level string size API.
  * Structured size objects remain available through modelOptions.size.
  */
-export type MynthImageShorthandSize =
-  | "auto"
-  | MynthSDKTypes.ImageGenerationRequestSizePreset;
+export type MynthImageShorthandSize = "auto" | MynthSDKTypes.ImageGenerationRequestSizePreset;
 
 // ============================================================================
 // Provider Options

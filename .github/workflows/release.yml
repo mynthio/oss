@@ -100,7 +100,9 @@ jobs:
           node-version: "24"
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        # Release Please bumps workspace package versions without syncing bun.lock.
+        # Use a non-frozen install here so publish can proceed from the release commit.
+        run: bun install
 
       - name: Build
         run: cd ${{ matrix.path }} && bun run build

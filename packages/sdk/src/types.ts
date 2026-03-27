@@ -98,6 +98,18 @@ export namespace MynthSDKTypes {
     url: string;
   };
 
+  /** Public Access Token configuration */
+  export type ImageGenerationRequestAccessPat = {
+    /** Include a short-lived Public Access Token in the create-task response */
+    enabled?: boolean;
+  };
+
+  /** Access-token configuration returned from the create-task response */
+  export type ImageGenerationRequestAccess = {
+    /** Controls whether the response includes a task-scoped Public Access Token */
+    pat: ImageGenerationRequestAccessPat;
+  };
+
   /** Webhook configuration */
   export type ImageGenerationRequestWebhook = {
     /** Enable/disable webhooks (disabling overrides dashboard settings) */
@@ -123,27 +135,60 @@ export namespace MynthSDKTypes {
   };
 
   /** Available shorthand size presets */
-  export type ImageGenerationRequestSizePreset = "instagram" | "square" | "portrait" | "landscape";
+  export type ImageGenerationRequestSizePreset =
+    | "square"
+    | "portrait"
+    | "landscape"
+    | "portrait_tall"
+    | "landscape_wide"
+    | "1:1"
+    | "2:3"
+    | "3:2"
+    | "3:4"
+    | "4:3"
+    | "4:5"
+    | "5:4"
+    | "9:16"
+    | "16:9"
+    | "21:9"
+    | "2:1"
+    | "1:2"
+    | "1:1_4k"
+    | "2:3_4k"
+    | "3:2_4k"
+    | "3:4_4k"
+    | "4:3_4k"
+    | "4:5_4k"
+    | "5:4_4k"
+    | "9:16_4k"
+    | "16:9_4k"
+    | "21:9_4k"
+    | "2:1_4k"
+    | "1:2_4k";
 
-  /** Scale used by aspect ratio size mode */
-  export type ImageGenerationRequestSizeScale = "0.5k" | "1k" | "2k" | "3k" | "4k" | "8k";
+  /** Optional 4k scale for aspect ratio size mode */
+  export type ImageGenerationRequestSizeScale = "4k";
 
-  /** Aspect ratio string (for example: "16:9") */
-  export type ImageGenerationRequestAspectRatio = string;
-
-  /** Structured resolution size configuration */
-  export type ImageGenerationRequestSizeResolution = {
-    type: "resolution";
-    width: number;
-    height: number;
-    mode?: "strict" | "preset" | "aligned";
-  };
+  /** Supported aspect ratio strings */
+  export type ImageGenerationRequestAspectRatio =
+    | "1:1"
+    | "2:3"
+    | "3:2"
+    | "3:4"
+    | "4:3"
+    | "4:5"
+    | "5:4"
+    | "9:16"
+    | "16:9"
+    | "21:9"
+    | "2:1"
+    | "1:2";
 
   /** Structured aspect ratio size configuration */
   export type ImageGenerationRequestSizeAspectRatio = {
     type: "aspect_ratio";
     aspectRatio: ImageGenerationRequestAspectRatio;
-    scale: ImageGenerationRequestSizeScale;
+    scale?: ImageGenerationRequestSizeScale;
   };
 
   /** Structured auto size configuration */
@@ -170,12 +215,10 @@ export namespace MynthSDKTypes {
 
   /**
    * Image size specification.
-   * Can be a preset name, compact resolution string, or structured size object.
+   * Can be a preset name, auto, or structured aspect-ratio size object with optional 4k scale.
    */
   export type ImageGenerationRequestSize =
     | ImageGenerationRequestSizePreset
-    | `${number}x${number}`
-    | ImageGenerationRequestSizeResolution
     | ImageGenerationRequestSizeAspectRatio
     | ImageGenerationRequestSizeAuto
     | "auto";
@@ -198,6 +241,8 @@ export namespace MynthSDKTypes {
     webhook?: ImageGenerationRequestWebhook;
     /** Content rating classification settings */
     content_rating?: ImageGenerationRequestContentRating;
+    /** Public Access Token response configuration */
+    access?: ImageGenerationRequestAccess;
     /** Optional input images as URL shortcuts or structured objects */
     inputs?: (string | ImageGenerationRequestInput)[];
     /** Custom metadata to attach (returned in results and webhooks). Max 2KB. */

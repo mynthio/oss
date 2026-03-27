@@ -157,11 +157,10 @@ const task = await mynth.generate({
     negative: "blurry, low detail",
     enhance: "prefer_magic",
   },
-  model: "john6666/bismuth-illustrious-mix",
+  model: "google/gemini-3-pro-image-preview",
   size: {
     type: "aspect_ratio",
     aspectRatio: "4:5",
-    scale: "2k",
   },
   count: 2,
   output: {
@@ -171,6 +170,11 @@ const task = await mynth.generate({
   webhook: {
     enabled: true,
     custom: [{ url: "https://your-app.com/api/mynth-webhook" }],
+  },
+  access: {
+    pat: {
+      enabled: true,
+    },
   },
   content_rating: {
     enabled: true,
@@ -197,6 +201,8 @@ const task = await mynth.generate({
 });
 ```
 
+`access.pat.enabled` controls whether the create-task response includes a short-lived Public Access Token for browser-side polling. It defaults to `true`.
+
 ## Prompt Options
 
 `prompt` can be:
@@ -222,18 +228,35 @@ prompt: {
 
 `size` supports:
 
-- presets: `"instagram"`, `"square"`, `"portrait"`, `"landscape"`
-- compact resolution strings like `"1536x1024"`
+- presets such as `"square"`, `"portrait"`, `"landscape"`, `"portrait_tall"`, `"landscape_wide"`, and the explicit aspect-ratio preset IDs
 - `"auto"`
-- structured objects
+- structured auto objects
+- structured aspect-ratio objects with an optional `scale: "4k"`
+
+Supported aspect ratios:
+
+- `"1:1"`
+- `"2:3"`
+- `"3:2"`
+- `"3:4"`
+- `"4:3"`
+- `"4:5"`
+- `"5:4"`
+- `"9:16"`
+- `"16:9"`
+- `"21:9"`
+- `"2:1"`
+- `"1:2"`
+
+Use `scale: "4k"` when you want the higher tier and the model supports it.
 
 Examples:
 
 ```ts
 size: "landscape";
-size: "1024x1024";
-size: { type: "resolution", width: 1440, height: 960, mode: "strict" };
-size: { type: "aspect_ratio", aspectRatio: "16:9", scale: "2k" };
+size: "auto";
+size: { type: "aspect_ratio", aspectRatio: "16:9" };
+size: { type: "aspect_ratio", aspectRatio: "4:5", scale: "4k" };
 size: { type: "auto", prefer: "native" };
 ```
 
@@ -292,7 +315,7 @@ console.log(model);
 // {
 //   id: "google/gemini-3.1-flash-image",
 //   label: "Nano Banana 2",
-//   capabilities: ["inputs", "enhance_prompt", "auto_size"]
+//   capabilities: ["inputs", "4k", "native_enhance_prompt", "native_auto_size"]
 // }
 ```
 
@@ -308,8 +331,10 @@ Current model IDs include:
 - `black-forest-labs/flux.2-klein-4b`
 - `google/gemini-3.1-flash-image`
 - `google/gemini-3-pro-image-preview`
-- `tongyi-mai/z-image-turbo`
 - `john6666/bismuth-illustrious-mix`
+- `recraft/recraft-v4`
+- `recraft/recraft-v4-pro`
+- `tongyi-mai/z-image-turbo`
 - `wan/wan2.6-image`
 - `xai/grok-imagine-image`
 

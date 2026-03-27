@@ -136,13 +136,55 @@ describe("MynthImageAdapter", () => {
       // Act
       await adapter.generateImages(
         createOptions({
-          size: "1024x1024",
-          modelOptions: { size: "landscape" },
+          size: "portrait",
+          modelOptions: {
+            size: {
+              type: "aspect_ratio",
+              aspectRatio: "4:5",
+            },
+          },
         }),
       );
 
       // Assert
-      expect(generateMock).toHaveBeenCalledWith(expect.objectContaining({ size: "landscape" }));
+      expect(generateMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          size: {
+            type: "aspect_ratio",
+            aspectRatio: "4:5",
+          },
+        }),
+      );
+    });
+
+    it("forwards an optional 4k scale when provided", async () => {
+      // Arrange
+      generateMock.mockResolvedValue(createMockTask());
+      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
+
+      // Act
+      await adapter.generateImages(
+        createOptions({
+          modelOptions: {
+            size: {
+              type: "aspect_ratio",
+              aspectRatio: "16:9",
+              scale: "4k",
+            },
+          },
+        }),
+      );
+
+      // Assert
+      expect(generateMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          size: {
+            type: "aspect_ratio",
+            aspectRatio: "16:9",
+            scale: "4k",
+          },
+        }),
+      );
     });
 
     it("translates provider-only options to the SDK request shape", async () => {
@@ -154,6 +196,7 @@ describe("MynthImageAdapter", () => {
       await adapter.generateImages(
         createOptions({
           modelOptions: {
+            access: { pat: { enabled: false } },
             output: { format: "png", quality: 90 },
             inputs: ["https://example.com/ref.jpg"],
             webhook: { enabled: true },
@@ -166,6 +209,7 @@ describe("MynthImageAdapter", () => {
       // Assert
       expect(generateMock).toHaveBeenCalledWith(
         expect.objectContaining({
+          access: { pat: { enabled: false } },
           output: { format: "png", quality: 90 },
           inputs: ["https://example.com/ref.jpg"],
           webhook: { enabled: true },

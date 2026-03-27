@@ -85,6 +85,10 @@ export class MynthImageAdapter<TModel extends MynthImageModel> extends BaseImage
       request.output = modelOptions.output;
     }
 
+    if (modelOptions?.access !== undefined) {
+      request.access = modelOptions.access;
+    }
+
     if (modelOptions?.inputs !== undefined) {
       request.inputs = modelOptions.inputs;
     }

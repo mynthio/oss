@@ -51,7 +51,7 @@ const result = await generateImage({
   adapter: mynthImage("black-forest-labs/flux.2-dev"),
   prompt: "Editorial product photo of a ceramic mug on a linen tablecloth",
   numberOfImages: 1,
-  size: "1024x1024",
+  size: "portrait",
 });
 
 console.log(result.id);
@@ -99,10 +99,10 @@ import { generateImage } from "@tanstack/ai";
 import { mynthImage } from "@mynthio/tanstack-ai-adapter";
 
 const result = await generateImage({
-  adapter: mynthImage("recraft/recraft-v4"),
+  adapter: mynthImage("google/gemini-3.1-flash-image"),
   prompt: "Ignored when promptStructured is provided",
   numberOfImages: 2,
-  size: "1024x1024",
+  size: "landscape",
   modelOptions: {
     promptStructured: {
       positive: "Modern poster design for a jazz festival",
@@ -112,7 +112,6 @@ const result = await generateImage({
     size: {
       type: "aspect_ratio",
       aspectRatio: "4:5",
-      scale: "2k",
     },
     output: {
       format: "png",
@@ -121,6 +120,11 @@ const result = await generateImage({
     inputs: ["https://example.com/reference-image.jpg"],
     webhook: {
       enabled: true,
+    },
+    access: {
+      pat: {
+        enabled: false,
+      },
     },
     contentRating: {
       enabled: true,
@@ -136,8 +140,11 @@ Notes:
 
 - `modelOptions.promptStructured` overrides the plain `prompt`
 - `modelOptions.size` overrides the top-level `size`
-- Top-level `size` is for shorthand values such as `"auto"`, preset strings, and `"1024x1024"`
-- Use `modelOptions.size` when you need structured Mynth size objects
+- Top-level `size` is for shorthand values such as `"auto"` and preset strings
+- Use `modelOptions.size` when you need structured request sizes, including aspect ratios and an optional `scale: "4k"`
+- `modelOptions.access` lets you disable the default Public Access Token response when you do not need browser-side polling
+
+Use `scale: "4k"` when you want the higher tier and the model supports it.
 
 ## Available Models
 

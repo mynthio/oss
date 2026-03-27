@@ -11,8 +11,7 @@ import type { MynthImageModel } from "./model-meta";
  */
 export type MynthImageShorthandSize =
   | "auto"
-  | MynthSDKTypes.ImageGenerationRequestSizePreset
-  | `${number}x${number}`;
+  | MynthSDKTypes.ImageGenerationRequestSizePreset;
 
 // ============================================================================
 // Provider Options
@@ -30,6 +29,8 @@ export interface MynthImageProviderOptions {
   output?: MynthSDKTypes.ImageGenerationRequestOutput;
   /** Structured prompt with negative/enhance */
   promptStructured?: MynthSDKTypes.PromptStructured;
+  /** Public Access Token response configuration */
+  access?: MynthSDKTypes.ImageGenerationRequestAccess;
   /** Image inputs (reference, init, context) */
   inputs?: (string | MynthSDKTypes.ImageGenerationRequestInput)[];
   /** Size config (presets, aspect ratio, auto) */
@@ -57,7 +58,7 @@ export type MynthImageModelProviderOptionsByName = {
 /**
  * Type-only map from model name to its supported size type.
  * Top-level TanStack size is limited to shorthand string values.
- * Use modelOptions.size for structured Mynth size objects.
+ * Use modelOptions.size for structured request sizes.
  */
 export type MynthImageModelSizeByName = {
   [K in MynthImageModel]: MynthImageShorthandSize;

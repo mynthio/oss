@@ -17,6 +17,7 @@ export const MYNTH_IMAGE_MODELS = [
   "black-forest-labs/flux.2-dev",
   "black-forest-labs/flux.2-klein-4b",
   "john6666/bismuth-illustrious-mix",
+  "purplesmartai/pony-diffusion-v6-xl",
   "recraft/recraft-v4",
   "recraft/recraft-v4-pro",
   "google/gemini-3.1-flash-image",

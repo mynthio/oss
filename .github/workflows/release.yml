@@ -104,6 +104,10 @@ jobs:
         # Use a non-frozen install here so publish can proceed from the release commit.
         run: bun install
 
+      - name: Build SDK dependency
+        if: matrix.path == 'packages/tanstack-ai-adapter'
+        run: cd packages/sdk && bun run build
+
       - name: Build
         run: cd ${{ matrix.path }} && bun run build
 

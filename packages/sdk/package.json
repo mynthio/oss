@@ -1,6 +1,6 @@
 {
   "name": "@mynthio/sdk",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Official Mynth SDK for image generation",
   "keywords": [
     "ai",

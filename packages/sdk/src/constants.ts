@@ -92,6 +92,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["mynth_magic_prompt"],
   },
   {
+    id: "purplesmartai/pony-diffusion-v6-xl",
+    label: "Pony Diffusion V6 XL",
+    capabilities: [],
+  },
+  {
     id: "recraft/recraft-v4",
     label: "Recraft V4",
     capabilities: [],

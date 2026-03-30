@@ -46,6 +46,7 @@ export namespace MynthSDKTypes {
     | "google/gemini-3-pro-image-preview"
     | "tongyi-mai/z-image-turbo"
     | "john6666/bismuth-illustrious-mix"
+    | "purplesmartai/pony-diffusion-v6-xl"
     | "recraft/recraft-v4"
     | "recraft/recraft-v4-pro"
     | "wan/wan2.6-image"

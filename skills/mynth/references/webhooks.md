@@ -81,7 +81,7 @@ Use `@mynthio/sdk/convex` for automatic signature verification — see [convex.m
 ```ts
 await mynth.generate({
   prompt: "A sunset",
-  webhook: { enabled: false },  // disables dashboard webhooks for this task
-  webhook: { custom: [{ url: "..." }] },  // still sends to custom endpoints
+  webhook: { enabled: false }, // disables dashboard webhooks for this task
+  webhook: { custom: [{ url: "..." }] }, // still sends to custom endpoints
 });
 ```

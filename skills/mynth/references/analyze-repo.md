@@ -6,14 +6,14 @@ When the user asks to analyze their repo for Mynth suitability, evaluate whether
 
 ## Migration Patterns
 
-| What user does | What Mynth provides | Savings |
-|----------------|-------------------|---------|
-| Multiple providers/models with per-model config (if/else, switch, config objects) | Single unified payload — just change `model` field | Removes provider abstraction and per-model config logic |
-| Manual retries on image generation | Mynth retries across providers internally | Retries likely unnecessary; at most handle 500 on initial call |
-| Content rating checks (manual or LLM-based) | Built-in `content_rating` with custom levels | Reduces LLM calls, removes rating logic |
-| Image post-processing (format conversion, quality, resize) | Built-in output formatting via sharp | Removes image processing code; included in service fee |
-| Manual image size determination per prompt | `size: "auto"` | Removes size selection logic |
-| Background jobs/queues (trigger.dev, BullMQ, custom workers) | Mynth is always async. PAT for client polling, webhooks to sync DB | Removes queue infra, polling proxies, status endpoints |
+| What user does                                                                    | What Mynth provides                                                | Savings                                                        |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------- |
+| Multiple providers/models with per-model config (if/else, switch, config objects) | Single unified payload — just change `model` field                 | Removes provider abstraction and per-model config logic        |
+| Manual retries on image generation                                                | Mynth retries across providers internally                          | Retries likely unnecessary; at most handle 500 on initial call |
+| Content rating checks (manual or LLM-based)                                       | Built-in `content_rating` with custom levels                       | Reduces LLM calls, removes rating logic                        |
+| Image post-processing (format conversion, quality, resize)                        | Built-in output formatting via sharp                               | Removes image processing code; included in service fee         |
+| Manual image size determination per prompt                                        | `size: "auto"`                                                     | Removes size selection logic                                   |
+| Background jobs/queues (trigger.dev, BullMQ, custom workers)                      | Mynth is always async. PAT for client polling, webhooks to sync DB | Removes queue infra, polling proxies, status endpoints         |
 
 ## Analysis Workflow
 

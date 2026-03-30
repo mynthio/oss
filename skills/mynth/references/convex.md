@@ -32,7 +32,11 @@ Set `MYNTH_WEBHOOK_SECRET` in your Convex environment. Or pass `webhookSecret` e
 
 ```ts
 export const mynthWebhook = mynthWebhookAction(
-  { imageTaskCompleted: async (payload) => { /* ... */ } },
+  {
+    imageTaskCompleted: async (payload) => {
+      /* ... */
+    },
+  },
   { webhookSecret: "wbs_..." },
 );
 ```

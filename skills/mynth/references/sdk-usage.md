@@ -25,7 +25,7 @@ const task = await mynth.generate({
 });
 
 console.log(task.id);
-console.log(task.urls);        // ["https://cdn.mynth.io/..."]
+console.log(task.urls); // ["https://cdn.mynth.io/..."]
 console.log(task.result?.model);
 console.log(task.getImages());
 ```
@@ -35,10 +35,7 @@ console.log(task.getImages());
 Returns immediately with a task ID and PAT (public access token):
 
 ```ts
-const taskAsync = await mynth.generate(
-  { prompt: "A sunset over mountains" },
-  { mode: "async" },
-);
+const taskAsync = await mynth.generate({ prompt: "A sunset over mountains" }, { mode: "async" });
 
 console.log(taskAsync.id);
 console.log(taskAsync.access.publicAccessToken);
@@ -53,7 +50,7 @@ console.log(task.urls);
 ```ts
 await mynth.generate({
   prompt: "A neon cityscape at night",
-  model: "black-forest-labs/flux.2-dev",  // or "auto"
+  model: "black-forest-labs/flux.2-dev", // or "auto"
   size: { type: "aspect_ratio", aspectRatio: "16:9" },
   count: 2,
   output: { format: "webp", quality: 80 },
@@ -101,22 +98,18 @@ Supported formats: `png`, `jpg`, `webp`.
 const task = await mynth.generate({ prompt: "A cat astronaut" });
 
 task.id;
-task.status;            // "pending" | "completed" | "failed"
+task.status; // "pending" | "completed" | "failed"
 task.isCompleted;
-task.urls;              // string[]
-task.getImages();       // detailed image objects
-task.result?.model;     // resolved model
-task.getMetadata();     // your metadata object
+task.urls; // string[]
+task.getImages(); // detailed image objects
+task.result?.model; // resolved model
+task.getMetadata(); // your metadata object
 ```
 
 ## Error Handling
 
 ```ts
-import {
-  MynthAPIError,
-  TaskAsyncTimeoutError,
-  TaskAsyncTaskFailedError,
-} from "@mynthio/sdk";
+import { MynthAPIError, TaskAsyncTimeoutError, TaskAsyncTaskFailedError } from "@mynthio/sdk";
 
 try {
   const task = await mynth.generate({ prompt: "..." });

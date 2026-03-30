@@ -58,9 +58,7 @@ Disable PAT generation: set `access.pat.enabled: false` in body.
 
 ```json
 {
-  "images": [
-    { "url": "https://cdn.mynth.io/...", "size": { "width": 1024, "height": 576 } }
-  ]
+  "images": [{ "url": "https://cdn.mynth.io/...", "size": { "width": 1024, "height": 576 } }]
 }
 ```
 

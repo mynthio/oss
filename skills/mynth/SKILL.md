@@ -14,16 +14,16 @@ Mynth is a unified API for image generation across multiple models and providers
 
 ## Guides
 
-| Task | Reference |
-|------|-----------|
-| Analyze a repo for Mynth migration | [analyze-repo.md](references/analyze-repo.md) |
-| Set up Mynth in a project | [setup.md](references/setup.md) |
-| Use the SDK (JS/TS with server) | [sdk-usage.md](references/sdk-usage.md) |
-| Use the REST API (non-JS, mobile) | [rest-api.md](references/rest-api.md) |
-| Use with Tanstack Start/AI | [tanstack-ai.md](references/tanstack-ai.md) |
-| Use with Convex | [convex.md](references/convex.md) |
-| Client-side polling with PATs | [public-access-tokens.md](references/public-access-tokens.md) |
-| Set up webhooks | [webhooks.md](references/webhooks.md) |
+| Task                               | Reference                                                     |
+| ---------------------------------- | ------------------------------------------------------------- |
+| Analyze a repo for Mynth migration | [analyze-repo.md](references/analyze-repo.md)                 |
+| Set up Mynth in a project          | [setup.md](references/setup.md)                               |
+| Use the SDK (JS/TS with server)    | [sdk-usage.md](references/sdk-usage.md)                       |
+| Use the REST API (non-JS, mobile)  | [rest-api.md](references/rest-api.md)                         |
+| Use with Tanstack Start/AI         | [tanstack-ai.md](references/tanstack-ai.md)                   |
+| Use with Convex                    | [convex.md](references/convex.md)                             |
+| Client-side polling with PATs      | [public-access-tokens.md](references/public-access-tokens.md) |
+| Set up webhooks                    | [webhooks.md](references/webhooks.md)                         |
 
 ## Choosing an Integration
 

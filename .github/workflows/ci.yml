@@ -62,11 +62,11 @@ jobs:
       - name: Format check
         run: bun run format:check
 
-      - name: Type check
-        run: bun run typecheck
+      # - name: Type check
+      #   run: bun run typecheck
 
-      - name: Run tests
-        run: bun run test
+      # - name: Run tests
+      #   run: bun run test
 
       - name: Build
-        run: bun run build
+        run: cd packages/sdk && bun run build

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.5](https://github.com/mynthio/oss/compare/tan-ai-v0.0.4...tan-ai-v0.0.5) (2026-03-30)
+
+
+### Features
+
+* **tan-ai:** add pony model and update sdk dependency ([9080a7f](https://github.com/mynthio/oss/commit/9080a7f64a9068732c3b6f6f399620515d2e1a52))
+
 ## [0.0.4](https://github.com/mynthio/oss/compare/tan-ai-v0.0.3...tan-ai-v0.0.4) (2026-03-27)
 
 

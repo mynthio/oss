@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.8](https://github.com/mynthio/oss/compare/sdk-v0.0.7...sdk-v0.0.8) (2026-03-30)
+
+
+### Features
+
+* **sdk:** add Pony Diffusion V6 XL model ([09a054b](https://github.com/mynthio/oss/commit/09a054b71a80eb07eac3bfcbeaf3d181d293124d))
+
 ## [0.0.7](https://github.com/mynthio/oss/compare/sdk-v0.0.6...sdk-v0.0.7) (2026-03-27)
 
 

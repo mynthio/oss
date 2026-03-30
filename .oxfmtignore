@@ -3,3 +3,4 @@ dist
 node_modules
 .agents
 .claude
+examples/tanstack-start-ai-mynth-adapter/src/routeTree.gen.ts

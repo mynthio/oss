@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.0.9](https://github.com/mynthio/oss/compare/sdk-v0.0.8...sdk-v0.0.9) (2026-04-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* **sdk:** `ImageResultCost.fee` removed, replaced by optional `magic_prompt`
+
+### Features
+
+* **sdk:** add negative_prompt capability and update cost metadata ([b1f329b](https://github.com/mynthio/oss/commit/b1f329be7da3489deb5169cfbec0f0ba8e5f8388))
+
+
+### Bug Fixes
+
+* **sdk:** update package dependencies ([ddd5387](https://github.com/mynthio/oss/commit/ddd5387f618ee6dd1f3c5f2f5689a7b17e92c44e))
+
 ## [0.0.8](https://github.com/mynthio/oss/compare/sdk-v0.0.7...sdk-v0.0.8) (2026-03-30)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.10](https://github.com/mynthio/oss/compare/sdk-v0.0.9...sdk-v0.0.10) (2026-04-01)
+
+
+### Features
+
+* **sdk:** add FLUX.2 Pro, Flex, and Max models ([b45abed](https://github.com/mynthio/oss/commit/b45abedf057a2b6820b01c1437e422eabac2d923))
+
 ## [0.0.9](https://github.com/mynthio/oss/compare/sdk-v0.0.8...sdk-v0.0.9) (2026-04-01)
 
 

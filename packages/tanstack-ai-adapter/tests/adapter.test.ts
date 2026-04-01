@@ -46,7 +46,7 @@ function createMockTask(
     result: {
       model: overrides.model,
       images,
-      cost: { images: "0.01", total: "0.012", fee: "0.002" },
+      cost: { images: "0.01", total: "0.012" },
       prompt_enhance: overrides.promptEnhance,
     },
     getImages: () => images.filter((img) => img.status === "succeeded"),

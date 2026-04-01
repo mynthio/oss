@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.7](https://github.com/mynthio/oss/compare/tan-ai-v0.0.6...tan-ai-v0.0.7) (2026-04-01)
+
+
+### Features
+
+* **tanstack-ai-adapter:** add FLUX.2 Pro, Flex, and Max models ([e9d9526](https://github.com/mynthio/oss/commit/e9d9526b2609cb36051e991deace8bceef61349d))
+
 ## [0.0.6](https://github.com/mynthio/oss/compare/tan-ai-v0.0.5...tan-ai-v0.0.6) (2026-03-30)
 
 

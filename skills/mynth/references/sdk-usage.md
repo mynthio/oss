@@ -84,7 +84,7 @@ See all models and capabilities: [mynth.io/models](https://mynth.io/models)
 
 ### Output
 
-Format and quality are processed via sharp. Included in the service fee:
+Format and quality are processed via sharp:
 
 ```ts
 output: { format: "webp", quality: 80 }

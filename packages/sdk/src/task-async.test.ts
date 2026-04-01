@@ -269,6 +269,45 @@ describe("TaskAsync", () => {
       expect(task.id).toBe("immediate-complete-task");
     });
 
+    test("preserves optional task cost metadata on the completed result", async () => {
+      // Arrange
+      const taskData = createMockTaskData({
+        id: "completed-with-cost-metadata",
+        result: {
+          model: "black-forest-labs/flux.2-dev",
+          images: [],
+          cost: {
+            images: "0.01",
+            total: "0.01",
+            magic_prompt: "0.001",
+          },
+        } as MynthSDKTypes.ImageResult,
+      });
+      const mockGet = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          data: { status: "completed" },
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          data: taskData,
+        });
+      const client = createMockClient({ get: mockGet });
+      const taskAsync = new TaskAsync("completed-with-cost-metadata", { client });
+
+      // Act
+      const taskPromise = taskAsync.toTask();
+      await vi.runAllTimersAsync();
+      const task = await taskPromise;
+
+      // Assert
+      expect(task.result?.cost.magic_prompt).toBe("0.001");
+      expect(task.result?.cost.total).toBe("0.01");
+    });
+
     test("returns same result on multiple toTask() calls (promise caching)", async () => {
       // Arrange
       const taskData = createMockTaskData({ id: "cached-promise-task" });

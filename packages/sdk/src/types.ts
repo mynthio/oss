@@ -293,10 +293,10 @@ export namespace MynthSDKTypes {
   export type ImageResultCost = {
     /** Cost of image generation */
     images: string;
-    /** Total cost including all fees */
+    /** Total task cost */
     total: string;
-    /** Platform fee */
-    fee: string;
+    /** Reserved for future prompt-enhancement pricing metadata */
+    magic_prompt?: string;
   };
 
   /** Auto size resolution info (when size was determined automatically) */

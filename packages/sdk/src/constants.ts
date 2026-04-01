@@ -12,6 +12,7 @@ export const TASK_STATUS_PATH = (id: string) => `${TASK_PATH}/${id}/status`;
 /**
  * Model capabilities that affect available generation options.
  * - `mynth_magic_prompt`: Supports Mynth-side prompt enhancement
+ * - `negative_prompt`: Supports structured negative prompts
  * - `inputs`: Supports reference/input images
  * - `4k`: Supports 4k resolution output
  * - `native_enhance_prompt`: Supports provider-native prompt enhancement
@@ -20,6 +21,7 @@ export const TASK_STATUS_PATH = (id: string) => `${TASK_PATH}/${id}/status`;
 export type ModelCapability =
   | "inputs"
   | "mynth_magic_prompt"
+  | "negative_prompt"
   | "4k"
   | "native_enhance_prompt"
   | "native_auto_size";
@@ -89,12 +91,12 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
   {
     id: "john6666/bismuth-illustrious-mix",
     label: "Bismuth Illustrious Mix",
-    capabilities: ["mynth_magic_prompt"],
+    capabilities: ["mynth_magic_prompt", "negative_prompt"],
   },
   {
     id: "purplesmartai/pony-diffusion-v6-xl",
     label: "Pony Diffusion V6 XL",
-    capabilities: [],
+    capabilities: ["negative_prompt"],
   },
   {
     id: "recraft/recraft-v4",

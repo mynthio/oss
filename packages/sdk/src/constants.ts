@@ -84,6 +84,21 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["mynth_magic_prompt"],
   },
   {
+    id: "black-forest-labs/flux.2-pro",
+    label: "FLUX.2 Pro",
+    capabilities: ["inputs"],
+  },
+  {
+    id: "black-forest-labs/flux.2-flex",
+    label: "FLUX.2 Flex",
+    capabilities: ["inputs"],
+  },
+  {
+    id: "black-forest-labs/flux.2-max",
+    label: "FLUX.2 Max",
+    capabilities: ["inputs"],
+  },
+  {
     id: "black-forest-labs/flux.2-klein-4b",
     label: "FLUX.2 Klein 4B",
     capabilities: ["inputs"],

@@ -31,7 +31,7 @@ function createMockTaskData(
   return {
     id: "test-task-id",
     status: "completed",
-    type: "image",
+    type: "image.generate",
     apiKeyId: "api-key-123",
     userId: "user-123",
     cost: "0.01",

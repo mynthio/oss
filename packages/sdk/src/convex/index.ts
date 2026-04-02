@@ -97,13 +97,13 @@ export const mynthWebhookAction = (
     const payload = JSON.parse(bodyRaw) as MynthSDKTypes.WebhookPayload;
 
     switch (payload.event) {
-      case "task.image.completed":
+      case "task.image.generate.completed":
         await eventHandlers.imageTaskCompleted?.(payload, {
           context: ctx,
           request,
         });
         break;
-      case "task.image.failed":
+      case "task.image.generate.failed":
         await eventHandlers.imageTaskFailed?.(payload, {
           context: ctx,
           request,

@@ -6,8 +6,8 @@ export namespace MynthSDKTypes {
   /** Status of a generation task */
   export type TaskStatus = "pending" | "completed" | "failed";
 
-  /** Type of task (currently only "image" is supported) */
-  export type TaskType = "image";
+  /** Type of task (currently only "image.generate" is supported) */
+  export type TaskType = "image.generate";
 
   /** Full task data returned from the API */
   export type TaskData = {
@@ -339,7 +339,7 @@ export namespace MynthSDKTypes {
    */
   export type WebhookTaskImageCompletedPayload = {
     task: { id: string };
-    event: "task.image.completed";
+    event: "task.image.generate.completed";
     result: ImageResult;
     request: ImageGenerationRequest;
   };
@@ -349,7 +349,7 @@ export namespace MynthSDKTypes {
    */
   export type WebhookTaskImageFailedPayload = {
     task: { id: string };
-    event: "task.image.failed";
+    event: "task.image.generate.failed";
     request: ImageGenerationRequest;
   };
 

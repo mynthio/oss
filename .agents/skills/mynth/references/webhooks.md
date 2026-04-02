@@ -26,7 +26,7 @@ await fetch("https://api.mynth.io/webhook/", {
   },
   body: JSON.stringify({
     url: "https://your-app.com/api/mynth-webhook",
-    events: ["task.image.completed", "task.image.failed"],
+    events: ["task.image.generate.completed", "task.image.generate.failed"],
     enabled: true,
   }),
 });
@@ -34,8 +34,8 @@ await fetch("https://api.mynth.io/webhook/", {
 
 ## Events
 
-- `task.image.completed` — generation succeeded
-- `task.image.failed` — generation failed
+- `task.image.generate.completed` — generation succeeded
+- `task.image.generate.failed` — generation failed
 - `task.completed` — any task completed
 - `task.failed` — any task failed
 - `all` — all events
@@ -46,7 +46,7 @@ On completion:
 
 ```json
 {
-  "event": "task.image.completed",
+  "event": "task.image.generate.completed",
   "task": { "id": "tsk_..." },
   "result": {
     "images": [{ "url": "https://cdn.mynth.io/..." }],
@@ -60,7 +60,7 @@ On failure:
 
 ```json
 {
-  "event": "task.image.failed",
+  "event": "task.image.generate.failed",
   "task": { "id": "tsk_..." },
   "request": { "prompt": "A sunset" }
 }

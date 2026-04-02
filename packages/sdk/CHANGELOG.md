@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.0.11](https://github.com/mynthio/oss/compare/sdk-v0.0.10...sdk-v0.0.11) (2026-04-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* **sdk:** async image task type and webhook event names now use the image.generate namespace.
+
+### Features
+
+* **sdk:** rename async image task event identifiers ([64290f3](https://github.com/mynthio/oss/commit/64290f31dc0700cfd9c91a84b1aae77543b0f930))
+
 ## [0.0.10](https://github.com/mynthio/oss/compare/sdk-v0.0.9...sdk-v0.0.10) (2026-04-01)
 
 

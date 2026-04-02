@@ -33,6 +33,6 @@ Mynth always processes tasks asynchronously:
 
 1. **Submit** — call `generate()` or `POST /image/generate`, receive task ID + PAT
 2. **Client-side** — send PAT to browser, poll `/tasks/:id/status` and `/tasks/:id/results` directly (CORS allows all origins on these endpoints, no proxy needed)
-3. **Server-side** — receive webhook (`task.image.completed`) to sync result to your database
+3. **Server-side** — receive webhook (`task.image.generate.completed`) to sync result to your database
 
 This replaces custom queue workers, custom status endpoints, and background job infrastructure.

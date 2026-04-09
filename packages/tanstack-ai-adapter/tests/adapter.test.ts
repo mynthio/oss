@@ -3,17 +3,25 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { MynthImageProviderOptions, MynthImageShorthandSize } from "../src/provider-options";
 
-const { generateMock, MockMynth } = vi.hoisted(() => {
+const { generateMock, MockMynth, MockMynthImage } = vi.hoisted(() => {
   const generate = vi.fn();
-  const MockMynthConstructor = vi.fn(function MockMynth() {
+  const MockMynthImageConstructor = vi.fn(function MockMynthImage() {
     return {
       generate,
+    };
+  });
+  const MockMynthConstructor = vi.fn(function MockMynth() {
+    return {
+      image: {
+        generate,
+      },
     };
   });
 
   return {
     generateMock: generate,
     MockMynth: MockMynthConstructor,
+    MockMynthImage: MockMynthImageConstructor,
   };
 });
 
@@ -21,6 +29,7 @@ vi.mock("@mynthio/sdk", () => {
   return {
     default: MockMynth,
     Mynth: MockMynth,
+    MynthImage: MockMynthImage,
   };
 });
 
@@ -316,7 +325,10 @@ describe("createMynthImage", () => {
     mynth("auto");
 
     // Assert
-    expect(MockMynth).toHaveBeenCalledWith({ apiKey: "mak_test", baseUrl: "https://custom.api" });
+    expect(MockMynthImage).toHaveBeenCalledWith({
+      apiKey: "mak_test",
+      baseUrl: "https://custom.api",
+    });
   });
 
   it("lets per-call config override shared config", () => {
@@ -327,7 +339,7 @@ describe("createMynthImage", () => {
     mynth("auto", { apiKey: "mak_override", baseUrl: "https://override.api" });
 
     // Assert
-    expect(MockMynth).toHaveBeenCalledWith({
+    expect(MockMynthImage).toHaveBeenCalledWith({
       apiKey: "mak_override",
       baseUrl: "https://override.api",
     });
@@ -350,6 +362,6 @@ describe("mynthImage", () => {
     mynthImage("auto", config);
 
     // Assert
-    expect(MockMynth).toHaveBeenCalledWith(config);
+    expect(MockMynthImage).toHaveBeenCalledWith(config);
   });
 });

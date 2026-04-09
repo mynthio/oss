@@ -1,5 +1,5 @@
 import type { MynthSDKTypes } from "@mynthio/sdk";
-import Mynth from "@mynthio/sdk";
+import { MynthImage } from "@mynthio/sdk";
 import type { GeneratedImage, ImageGenerationOptions, ImageGenerationResult } from "@tanstack/ai";
 import { BaseImageAdapter } from "@tanstack/ai/adapters";
 
@@ -38,12 +38,12 @@ export class MynthImageAdapter<TModel extends MynthImageModel> extends BaseImage
 > {
   readonly name = "mynth" as const;
 
-  private client: Mynth;
+  private client: MynthImage;
 
   constructor(config: MynthImageConfig, model: TModel) {
     super({}, model);
 
-    this.client = new Mynth({
+    this.client = new MynthImage({
       apiKey: config.apiKey,
       baseUrl: config.baseUrl,
     });
@@ -109,7 +109,7 @@ export class MynthImageAdapter<TModel extends MynthImageModel> extends BaseImage
   }
 
   private transformResponse(
-    task: Awaited<ReturnType<Mynth["generate"]>>,
+    task: Awaited<ReturnType<MynthImage["generate"]>>,
     fallbackModel: string,
   ): ImageGenerationResult {
     const revisedPrompt = task.result?.prompt_enhance?.positive;

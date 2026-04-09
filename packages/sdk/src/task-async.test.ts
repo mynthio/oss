@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import type { MynthClient } from "./client";
+import { ImageGenerationResult } from "./image-generation-result";
 import {
   TaskAsync,
   TaskAsyncFetchError,
@@ -41,6 +42,16 @@ function createMockTaskData(
     updatedAt: "2026-01-29T12:00:00Z",
     ...overrides,
   };
+}
+
+function createTaskAsync(
+  id: string,
+  options: { client: MynthClient; pat?: string },
+): TaskAsync<ImageGenerationResult> {
+  return new TaskAsync(id, {
+    ...options,
+    resultFactory: (data) => new ImageGenerationResult(data),
+  });
 }
 
 // ============================================================================
@@ -188,7 +199,7 @@ describe("TaskAsync", () => {
       const client = createMockClient();
 
       // Act
-      const taskAsync = new TaskAsync(taskId, { client });
+      const taskAsync = createTaskAsync(taskId, { client });
 
       // Assert
       expect(taskAsync.id).toBe(taskId);
@@ -199,7 +210,7 @@ describe("TaskAsync", () => {
       const client = createMockClient();
 
       // Act
-      const taskAsync = new TaskAsync("task-id", { client });
+      const taskAsync = createTaskAsync("task-id", { client });
 
       // Assert
       expect(taskAsync.access.publicAccessToken).toBeUndefined();
@@ -211,7 +222,7 @@ describe("TaskAsync", () => {
       const pat = "public-access-token-xyz";
 
       // Act
-      const taskAsync = new TaskAsync("task-id", { client, pat });
+      const taskAsync = createTaskAsync("task-id", { client, pat });
 
       // Assert
       expect(taskAsync.access.publicAccessToken).toBe(pat);
@@ -223,7 +234,7 @@ describe("TaskAsync", () => {
       const client = createMockClient();
 
       // Act
-      const taskAsync = new TaskAsync(taskId, { client });
+      const taskAsync = createTaskAsync(taskId, { client });
 
       // Assert
       expect(taskAsync.toString()).toBe(taskId);
@@ -231,10 +242,10 @@ describe("TaskAsync", () => {
   });
 
   // ==========================================================================
-  // Polling Behavior - toTask()
+  // Polling Behavior - wait()
   // ==========================================================================
 
-  describe("toTask() polling", () => {
+  describe("wait() polling", () => {
     beforeEach(() => {
       vi.useFakeTimers();
     });
@@ -243,7 +254,7 @@ describe("TaskAsync", () => {
       vi.useRealTimers();
     });
 
-    test("returns Task when status immediately reports completed", async () => {
+    test("returns result when status immediately reports completed", async () => {
       // Arrange
       const taskData = createMockTaskData({ id: "immediate-complete-task" });
       const mockGet = vi
@@ -260,13 +271,13 @@ describe("TaskAsync", () => {
         });
 
       const client = createMockClient({ get: mockGet });
-      const taskAsync = new TaskAsync("immediate-complete-task", { client });
+      const taskAsync = createTaskAsync("immediate-complete-task", { client });
 
       // Act
-      const task = await taskAsync.toTask();
+      const result = await taskAsync.wait();
 
       // Assert
-      expect(task.id).toBe("immediate-complete-task");
+      expect(result.id).toBe("immediate-complete-task");
     });
 
     test("preserves optional task cost metadata on the completed result", async () => {
@@ -296,19 +307,19 @@ describe("TaskAsync", () => {
           data: taskData,
         });
       const client = createMockClient({ get: mockGet });
-      const taskAsync = new TaskAsync("completed-with-cost-metadata", { client });
+      const taskAsync = createTaskAsync("completed-with-cost-metadata", { client });
 
       // Act
-      const taskPromise = taskAsync.toTask();
+      const resultPromise = taskAsync.wait();
       await vi.runAllTimersAsync();
-      const task = await taskPromise;
+      const result = await resultPromise;
 
       // Assert
-      expect(task.result?.cost.magic_prompt).toBe("0.001");
-      expect(task.result?.cost.total).toBe("0.01");
+      expect(result.result?.cost.magic_prompt).toBe("0.001");
+      expect(result.result?.cost.total).toBe("0.01");
     });
 
-    test("returns same result on multiple toTask() calls (promise caching)", async () => {
+    test("returns same result on multiple wait() calls (promise caching)", async () => {
       // Arrange
       const taskData = createMockTaskData({ id: "cached-promise-task" });
       const mockGet = vi
@@ -325,14 +336,14 @@ describe("TaskAsync", () => {
         });
 
       const client = createMockClient({ get: mockGet });
-      const taskAsync = new TaskAsync("cached-promise-task", { client });
+      const taskAsync = createTaskAsync("cached-promise-task", { client });
 
       // Act
-      const task1 = await taskAsync.toTask();
-      const task2 = await taskAsync.toTask();
+      const result1 = await taskAsync.wait();
+      const result2 = await taskAsync.wait();
 
-      // Assert - both calls should return the same Task instance (from cached promise)
-      expect(task1).toBe(task2);
+      // Assert - both calls should return the same instance (from cached promise)
+      expect(result1).toBe(result2);
     });
 
     test("polls until status becomes completed", async () => {
@@ -362,18 +373,18 @@ describe("TaskAsync", () => {
         });
 
       const client = createMockClient({ get: mockGet });
-      const taskAsync = new TaskAsync("polling-task", { client });
+      const taskAsync = createTaskAsync("polling-task", { client });
 
       // Act
-      const taskPromise = taskAsync.toTask();
+      const resultPromise = taskAsync.wait();
 
       // Advance through pending polls
       await vi.advanceTimersByTimeAsync(3000);
       await vi.advanceTimersByTimeAsync(3000);
-      const task = await taskPromise;
+      const result = await resultPromise;
 
       // Assert
-      expect(task.id).toBe("polling-task");
+      expect(result.id).toBe("polling-task");
     });
 
     test("throws TaskAsyncTaskFailedError when status is failed", async () => {
@@ -385,10 +396,10 @@ describe("TaskAsync", () => {
       });
 
       const client = createMockClient({ get: mockGet });
-      const taskAsync = new TaskAsync("failed-task", { client });
+      const taskAsync = createTaskAsync("failed-task", { client });
 
       // Act & Assert
-      await expect(taskAsync.toTask()).rejects.toThrow(TaskAsyncTaskFailedError);
+      await expect(taskAsync.wait()).rejects.toThrow(TaskAsyncTaskFailedError);
     });
 
     test("throws TaskAsyncUnauthorizedError on 401 response", async () => {
@@ -400,10 +411,10 @@ describe("TaskAsync", () => {
       });
 
       const client = createMockClient({ get: mockGet });
-      const taskAsync = new TaskAsync("unauthorized-task", { client });
+      const taskAsync = createTaskAsync("unauthorized-task", { client });
 
       // Act & Assert
-      await expect(taskAsync.toTask()).rejects.toThrow(TaskAsyncUnauthorizedError);
+      await expect(taskAsync.wait()).rejects.toThrow(TaskAsyncUnauthorizedError);
     });
 
     test("throws TaskAsyncUnauthorizedError on 403 response", async () => {
@@ -415,10 +426,10 @@ describe("TaskAsync", () => {
       });
 
       const client = createMockClient({ get: mockGet });
-      const taskAsync = new TaskAsync("forbidden-task", { client });
+      const taskAsync = createTaskAsync("forbidden-task", { client });
 
       // Act & Assert
-      await expect(taskAsync.toTask()).rejects.toThrow(TaskAsyncUnauthorizedError);
+      await expect(taskAsync.wait()).rejects.toThrow(TaskAsyncUnauthorizedError);
     });
 
     test("throws TaskAsyncUnauthorizedError on 404 response", async () => {
@@ -430,10 +441,10 @@ describe("TaskAsync", () => {
       });
 
       const client = createMockClient({ get: mockGet });
-      const taskAsync = new TaskAsync("notfound-task", { client });
+      const taskAsync = createTaskAsync("notfound-task", { client });
 
       // Act & Assert
-      await expect(taskAsync.toTask()).rejects.toThrow(TaskAsyncUnauthorizedError);
+      await expect(taskAsync.wait()).rejects.toThrow(TaskAsyncUnauthorizedError);
     });
 
     test("retries on 5xx server errors and succeeds after recovery", async () => {
@@ -463,16 +474,16 @@ describe("TaskAsync", () => {
         });
 
       const client = createMockClient({ get: mockGet });
-      const taskAsync = new TaskAsync("retry-success-task", { client });
+      const taskAsync = createTaskAsync("retry-success-task", { client });
 
       // Act
-      const taskPromise = taskAsync.toTask();
+      const resultPromise = taskAsync.wait();
       await vi.advanceTimersByTimeAsync(3000);
       await vi.advanceTimersByTimeAsync(3000);
-      const task = await taskPromise;
+      const result = await resultPromise;
 
       // Assert
-      expect(task.id).toBe("retry-success-task");
+      expect(result.id).toBe("retry-success-task");
     });
 
     test("throws TaskAsyncFetchError after exceeding max retry count on persistent 5xx errors", async () => {
@@ -484,12 +495,12 @@ describe("TaskAsync", () => {
       });
 
       const client = createMockClient({ get: mockGet });
-      const taskAsync = new TaskAsync("persistent-error-task", { client });
+      const taskAsync = createTaskAsync("persistent-error-task", { client });
 
       // Act - start the task promise and set up the rejection expectation together
       // to avoid unhandled rejection warnings
-      const taskPromise = taskAsync.toTask();
-      const rejectionExpectation = expect(taskPromise).rejects.toThrow(TaskAsyncFetchError);
+      const resultPromise = taskAsync.wait();
+      const rejectionExpectation = expect(resultPromise).rejects.toThrow(TaskAsyncFetchError);
 
       // Advance timers to trigger all retries (7 retries max)
       for (let i = 0; i < 8; i++) {
@@ -518,15 +529,15 @@ describe("TaskAsync", () => {
         });
 
       const client = createMockClient({ get: mockGet });
-      const taskAsync = new TaskAsync("network-recovery-task", { client });
+      const taskAsync = createTaskAsync("network-recovery-task", { client });
 
       // Act
-      const taskPromise = taskAsync.toTask();
+      const resultPromise = taskAsync.wait();
       await vi.advanceTimersByTimeAsync(3000);
-      const task = await taskPromise;
+      const result = await resultPromise;
 
       // Assert
-      expect(task.id).toBe("network-recovery-task");
+      expect(result.id).toBe("network-recovery-task");
     });
 
     test("falls back to API key when PAT returns unauthorized", async () => {
@@ -553,17 +564,14 @@ describe("TaskAsync", () => {
         });
 
       const client = createMockClient({ get: mockGet });
-      const taskAsync = new TaskAsync("pat-fallback-task", {
-        client,
-        pat: "invalid-pat-token",
-      });
+      const taskAsync = createTaskAsync("pat-fallback-task", { client, pat: "invalid-pat-token" });
 
       // Act
-      const task = await taskAsync.toTask();
+      const result = await taskAsync.wait();
 
       // Assert - Check that the second call used API key (no accessToken)
       expect(mockGet).toHaveBeenCalledTimes(3);
-      expect(task.id).toBe("pat-fallback-task");
+      expect(result.id).toBe("pat-fallback-task");
     });
 
     test("throws TaskAsyncUnauthorizedError when both PAT and API key fail", async () => {
@@ -584,13 +592,13 @@ describe("TaskAsync", () => {
         });
 
       const client = createMockClient({ get: mockGet });
-      const taskAsync = new TaskAsync("both-auth-fail-task", {
+      const taskAsync = createTaskAsync("both-auth-fail-task", {
         client,
         pat: "invalid-pat-token",
       });
 
       // Act & Assert
-      await expect(taskAsync.toTask()).rejects.toThrow(TaskAsyncUnauthorizedError);
+      await expect(taskAsync.wait()).rejects.toThrow(TaskAsyncUnauthorizedError);
     });
 
     test("throws TaskAsyncTimeoutError after polling timeout exceeded", async () => {
@@ -602,12 +610,12 @@ describe("TaskAsync", () => {
       });
 
       const client = createMockClient({ get: mockGet });
-      const taskAsync = new TaskAsync("timeout-task", { client });
+      const taskAsync = createTaskAsync("timeout-task", { client });
 
       // Act - start the task promise and set up the rejection expectation together
       // to avoid unhandled rejection warnings
-      const taskPromise = taskAsync.toTask();
-      const rejectionExpectation = expect(taskPromise).rejects.toThrow(TaskAsyncTimeoutError);
+      const resultPromise = taskAsync.wait();
+      const rejectionExpectation = expect(resultPromise).rejects.toThrow(TaskAsyncTimeoutError);
 
       // Advance time past the 5-minute timeout
       await vi.advanceTimersByTimeAsync(1000 * 60 * 6); // 6 minutes
@@ -646,10 +654,10 @@ describe("TaskAsync", () => {
         });
 
       const client = createMockClient({ get: mockGet });
-      const taskAsync = new TaskAsync("fetch-401-task", { client });
+      const taskAsync = createTaskAsync("fetch-401-task", { client });
 
       // Act & Assert
-      await expect(taskAsync.toTask()).rejects.toThrow(TaskAsyncUnauthorizedError);
+      await expect(taskAsync.wait()).rejects.toThrow(TaskAsyncUnauthorizedError);
     });
 
     test("throws TaskAsyncTaskFetchError when task fetch returns unexpected error", async () => {
@@ -668,10 +676,10 @@ describe("TaskAsync", () => {
         });
 
       const client = createMockClient({ get: mockGet });
-      const taskAsync = new TaskAsync("fetch-500-task", { client });
+      const taskAsync = createTaskAsync("fetch-500-task", { client });
 
       // Act & Assert
-      await expect(taskAsync.toTask()).rejects.toThrow(TaskAsyncTaskFetchError);
+      await expect(taskAsync.wait()).rejects.toThrow(TaskAsyncTaskFetchError);
     });
 
     test("throws TaskAsyncUnauthorizedError when task fetch returns 403", async () => {
@@ -690,10 +698,10 @@ describe("TaskAsync", () => {
         });
 
       const client = createMockClient({ get: mockGet });
-      const taskAsync = new TaskAsync("fetch-403-task", { client });
+      const taskAsync = createTaskAsync("fetch-403-task", { client });
 
       // Act & Assert
-      await expect(taskAsync.toTask()).rejects.toThrow(TaskAsyncUnauthorizedError);
+      await expect(taskAsync.wait()).rejects.toThrow(TaskAsyncUnauthorizedError);
     });
 
     test("throws TaskAsyncUnauthorizedError when task fetch returns 404", async () => {
@@ -712,10 +720,10 @@ describe("TaskAsync", () => {
         });
 
       const client = createMockClient({ get: mockGet });
-      const taskAsync = new TaskAsync("fetch-404-task", { client });
+      const taskAsync = createTaskAsync("fetch-404-task", { client });
 
       // Act & Assert
-      await expect(taskAsync.toTask()).rejects.toThrow(TaskAsyncUnauthorizedError);
+      await expect(taskAsync.wait()).rejects.toThrow(TaskAsyncUnauthorizedError);
     });
   });
 
@@ -809,21 +817,21 @@ describe("TaskAsync", () => {
         });
 
       const client = createMockClient({ get: mockGet });
-      const taskAsync = new TaskAsync("retry-reset-task", { client });
+      const taskAsync = createTaskAsync("retry-reset-task", { client });
 
       // Act
-      const taskPromise = taskAsync.toTask();
+      const resultPromise = taskAsync.wait();
 
       // Advance through all the polls (12 polls * 6 seconds max)
       for (let i = 0; i < 12; i++) {
         await vi.advanceTimersByTimeAsync(6000);
       }
 
-      const task = await taskPromise;
+      const result = await resultPromise;
 
       // Assert - if retry count wasn't reset, we would have hit max retries
       // after 7 consecutive errors and thrown TaskAsyncFetchError
-      expect(task.id).toBe("retry-reset-task");
+      expect(result.id).toBe("retry-reset-task");
       expect(mockGet).toHaveBeenCalledTimes(13); // 12 polls + 1 fetch
     });
   });

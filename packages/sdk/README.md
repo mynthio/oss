@@ -39,7 +39,7 @@ const mynth = new Mynth();
 Generate an image:
 
 ```ts
-const task = await mynth.generate({
+const task = await mynth.image.generate({
   prompt: "A fox in a neon-lit city at night",
 });
 
@@ -71,7 +71,7 @@ const mynth = new Mynth({
 Sync mode is the default. It polls until the task is completed.
 
 ```ts
-const task = await mynth.generate({
+const task = await mynth.image.generate({
   prompt: "Editorial product photo of a matte black coffee grinder",
   model: "black-forest-labs/flux.2-dev",
 });
@@ -85,7 +85,7 @@ console.log(task.urls);
 Use async mode when you want to trigger work now and fetch the final task later.
 
 ```ts
-const taskAsync = await mynth.generate(
+const taskAsync = await mynth.image.generate(
   {
     prompt: "A cinematic fantasy castle on a cliff",
     model: "google/gemini-3.1-flash-image",
@@ -96,7 +96,7 @@ const taskAsync = await mynth.generate(
 console.log(taskAsync.id);
 console.log(taskAsync.access.publicAccessToken);
 
-const completedTask = await taskAsync.toTask();
+const completedTask = await taskAsync.wait();
 console.log(completedTask.urls);
 ```
 
@@ -110,7 +110,7 @@ You can use it as a Bearer token against:
 Example:
 
 ```ts
-const taskAsync = await mynth.generate(
+const taskAsync = await mynth.image.generate(
   {
     prompt: "A cinematic fantasy castle on a cliff",
     model: "google/gemini-3.1-flash-image",
@@ -143,7 +143,7 @@ if (status.status === "completed") {
 `generate()` accepts a typed `ImageGenerationRequest`. The simplest request is just a prompt:
 
 ```ts
-await mynth.generate({
+await mynth.image.generate({
   prompt: "A cozy cabin in a snowy pine forest",
 });
 ```
@@ -151,7 +151,7 @@ await mynth.generate({
 You can also pass structured options:
 
 ```ts
-const task = await mynth.generate({
+const task = await mynth.image.generate({
   prompt: {
     positive: "Studio portrait of a futuristic fashion model",
     negative: "blurry, low detail",
@@ -285,7 +285,7 @@ String URLs are a shorthand for image inputs. Structured inputs let you control 
 Completed tasks expose a few helpful accessors:
 
 ```ts
-const task = await mynth.generate({
+const task = await mynth.image.generate({
   prompt: "An orange cat astronaut on the moon",
   metadata: { source: "readme-example" },
 });
@@ -390,9 +390,12 @@ import {
 } from "@mynthio/sdk";
 
 try {
-  const taskAsync = await mynth.generate({ prompt: "A watercolor landscape" }, { mode: "async" });
+  const taskAsync = await mynth.image.generate(
+    { prompt: "A watercolor landscape" },
+    { mode: "async" },
+  );
 
-  const task = await taskAsync.toTask();
+  const task = await taskAsync.wait();
   console.log(task.urls);
 } catch (error) {
   if (error instanceof MynthAPIError) {

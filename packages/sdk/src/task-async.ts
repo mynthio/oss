@@ -1,6 +1,5 @@
 import type { MynthClient } from "./client";
 import { TASK_DETAILS_PATH, TASK_STATUS_PATH } from "./constants";
-import { Task } from "./task";
 import type { MynthSDKTypes } from "./types";
 
 const POLLING_TIMEOUT_MS = 1000 * 60 * 5; // 5 minutes
@@ -75,15 +74,11 @@ export type TaskAsyncAccess = {
 
 /**
  * Represents an async task that can be polled for completion.
- * Use `toTask()` to wait for completion and get the full task result.
+ * Use `wait()` to poll until completion and get the typed result.
  *
- * @template MetadataT - Type of the metadata attached to the request
- * @template ContentRatingT - Type of the content rating response
+ * @template ResultT - The result type returned once the task completes
  */
-export class TaskAsync<
-  MetadataT = Record<string, unknown> | undefined,
-  ContentRatingT = MynthSDKTypes.ImageResultContentRating | undefined,
-> {
+export class TaskAsync<ResultT> {
   /** The unique identifier for this task */
   public readonly id: string;
 
@@ -91,13 +86,22 @@ export class TaskAsync<
 
   private readonly _access: TaskAsyncAccess;
 
-  private _completionPromise: Promise<Task<MetadataT, ContentRatingT>> | null = null;
+  private readonly resultFactory: (data: MynthSDKTypes.TaskData) => ResultT;
 
-  constructor(id: string, options: { client: MynthClient; pat?: string }) {
+  private _completionPromise: Promise<ResultT> | null = null;
+
+  constructor(
+    id: string,
+    options: {
+      client: MynthClient;
+      pat?: string;
+      resultFactory: (data: MynthSDKTypes.TaskData) => ResultT;
+    },
+  ) {
     this.id = id;
-
     this.client = options.client;
     this._access = { publicAccessToken: options.pat };
+    this.resultFactory = options.resultFactory;
   }
 
   /**
@@ -113,7 +117,7 @@ export class TaskAsync<
   }
 
   /**
-   * Polls the task until completion and returns the full Task object.
+   * Polls the task until completion and returns the typed result.
    * Multiple calls to this method return the same promise.
    *
    * @throws {TaskAsyncTimeoutError} If polling exceeds the timeout
@@ -121,7 +125,7 @@ export class TaskAsync<
    * @throws {TaskAsyncFetchError} If fetching status fails repeatedly
    * @throws {TaskAsyncTaskFailedError} If the task fails during generation
    */
-  public async toTask(): Promise<Task<MetadataT, ContentRatingT>> {
+  public async wait(): Promise<ResultT> {
     // Lazy init - only start polling when explicitly requested
     if (!this._completionPromise) {
       this._completionPromise = this.pollUntilCompleted();
@@ -130,7 +134,7 @@ export class TaskAsync<
     return this._completionPromise;
   }
 
-  private async pollUntilCompleted(): Promise<Task<MetadataT, ContentRatingT>> {
+  private async pollUntilCompleted(): Promise<ResultT> {
     const startTime = Date.now();
     let retryCount = 0;
     let useApiKeyFallback = false;
@@ -150,7 +154,7 @@ export class TaskAsync<
 
         if (result.status === "completed") {
           const taskData = await this.fetchTask();
-          return new Task(taskData);
+          return this.resultFactory(taskData);
         }
 
         if (result.status === "failed") {

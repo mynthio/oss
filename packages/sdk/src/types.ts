@@ -6,8 +6,8 @@ export namespace MynthSDKTypes {
   /** Status of a generation task */
   export type TaskStatus = "pending" | "completed" | "failed";
 
-  /** Type of task (currently only "image.generate" is supported) */
-  export type TaskType = "image.generate";
+  /** Type of task */
+  export type TaskType = "image.generate" | "image.rate";
 
   /** Full task data returned from the API */
   export type TaskData = {
@@ -357,4 +357,48 @@ export namespace MynthSDKTypes {
    * Webhook payload union
    */
   export type WebhookPayload = WebhookTaskImageCompletedPayload | WebhookTaskImageFailedPayload;
+
+  // ============================================================
+  // Image Rate
+  // ============================================================
+
+  /** Custom rating level definition */
+  export type ImageRateRequestLevel<T extends string = string> = {
+    /** Level value returned in results */
+    value: T;
+    /** Human-readable description for the rating model */
+    description: string;
+  };
+
+  /** Request body for the image rate endpoint */
+  export type ImageRateRequest = {
+    /** Image URLs to rate (1–10) */
+    urls: string[];
+    /** Custom rating levels (uses default sfw/nsfw if not provided) */
+    levels?: readonly ImageRateRequestLevel[];
+  };
+
+  /** A successfully rated image */
+  export type ImageRateResponseItemSuccess<LevelT extends string = string> = {
+    /** The submitted image URL */
+    url: string;
+    /** The assigned rating level */
+    rating: LevelT;
+  };
+
+  /** An image that could not be rated */
+  export type ImageRateResponseItemError = {
+    error_code: string;
+  };
+
+  /** Individual rating result item */
+  export type ImageRateResponseItem<LevelT extends string = string> =
+    | ImageRateResponseItemSuccess<LevelT>
+    | ImageRateResponseItemError;
+
+  /** API response from the image rate endpoint */
+  export type ImageRateResponse<LevelT extends string = string> = {
+    taskId: string;
+    results: ImageRateResponseItem<LevelT>[];
+  };
 }

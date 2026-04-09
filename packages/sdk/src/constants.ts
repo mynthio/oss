@@ -5,6 +5,7 @@ export const API_URL = "https://api.mynth.io";
 export const API_KEY_ENV_VAR = "MYNTH_API_KEY";
 
 export const GENERATE_IMAGE_PATH = "/image/generate";
+export const RATE_IMAGE_PATH = "/image/rate";
 export const TASK_PATH = "/tasks";
 export const TASK_DETAILS_PATH = (id: string) => `${TASK_PATH}/${id}`;
 export const TASK_STATUS_PATH = (id: string) => `${TASK_PATH}/${id}/status`;
@@ -81,7 +82,7 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
   {
     id: "black-forest-labs/flux.2-dev",
     label: "FLUX.2 Dev",
-    capabilities: ["mynth_magic_prompt"],
+    capabilities: ["inputs", "mynth_magic_prompt"],
   },
   {
     id: "black-forest-labs/flux.2-pro",
@@ -141,6 +142,6 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
   {
     id: "xai/grok-imagine-image",
     label: "Grok Imagine Image",
-    capabilities: ["native_auto_size"],
+    capabilities: ["inputs", "native_auto_size"],
   },
 ];

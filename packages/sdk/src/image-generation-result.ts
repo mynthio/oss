@@ -25,7 +25,7 @@ type TypedImageResult<ContentRatingT> = Omit<MynthSDKTypes.ImageResult, "images"
  * @template MetadataT - Type of the metadata attached to the request
  * @template ContentRatingT - Type of the content rating response
  */
-export class Task<
+export class ImageGenerationResult<
   MetadataT = Record<string, unknown> | undefined,
   ContentRatingT = MynthSDKTypes.ImageResultContentRating | undefined,
 > {

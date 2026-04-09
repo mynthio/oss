@@ -15,7 +15,7 @@ Short-lived JWTs scoped to a single task. Safe to send to the browser — cannot
 ```ts
 import { mynth } from "./mynth";
 
-const taskAsync = await mynth.generate({ prompt: "A sunset" }, { mode: "async" });
+const taskAsync = await mynth.image.generate({ prompt: "A sunset" }, { mode: "async" });
 
 // Send both to the client
 const taskId = taskAsync.id;
@@ -53,7 +53,7 @@ if (status.status === "completed") {
 The SDK handles PAT generation and polling internally:
 
 ```ts
-const taskAsync = await mynth.generate({ prompt: "..." }, { mode: "async" });
+const taskAsync = await mynth.image.generate({ prompt: "..." }, { mode: "async" });
 console.log(taskAsync.access.publicAccessToken); // send this to client
-const task = await taskAsync.toTask(); // polls until done
+const task = await taskAsync.wait(); // polls until done
 ```

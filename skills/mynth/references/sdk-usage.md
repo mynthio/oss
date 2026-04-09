@@ -20,7 +20,7 @@ const mynth = new Mynth({
 Waits for completion, returns a completed task:
 
 ```ts
-const task = await mynth.generate({
+const task = await mynth.image.generate({
   prompt: "A sunset over mountains",
 });
 
@@ -35,20 +35,23 @@ console.log(task.getImages());
 Returns immediately with a task ID and PAT (public access token):
 
 ```ts
-const taskAsync = await mynth.generate({ prompt: "A sunset over mountains" }, { mode: "async" });
+const taskAsync = await mynth.image.generate(
+  { prompt: "A sunset over mountains" },
+  { mode: "async" },
+);
 
 console.log(taskAsync.id);
 console.log(taskAsync.access.publicAccessToken);
 
 // Poll until done
-const task = await taskAsync.toTask();
+const task = await taskAsync.wait();
 console.log(task.urls);
 ```
 
 ## Request Shape
 
 ```ts
-await mynth.generate({
+await mynth.image.generate({
   prompt: "A neon cityscape at night",
   model: "black-forest-labs/flux.2-dev", // or "auto"
   size: { type: "aspect_ratio", aspectRatio: "16:9" },
@@ -95,7 +98,7 @@ Supported formats: `png`, `jpg`, `webp`.
 ## Working With Results
 
 ```ts
-const task = await mynth.generate({ prompt: "A cat astronaut" });
+const task = await mynth.image.generate({ prompt: "A cat astronaut" });
 
 task.id;
 task.status; // "pending" | "completed" | "failed"
@@ -112,7 +115,7 @@ task.getMetadata(); // your metadata object
 import { MynthAPIError, TaskAsyncTimeoutError, TaskAsyncTaskFailedError } from "@mynthio/sdk";
 
 try {
-  const task = await mynth.generate({ prompt: "..." });
+  const task = await mynth.image.generate({ prompt: "..." });
 } catch (error) {
   if (error instanceof MynthAPIError) {
     console.error(error.status, error.code, error.message);

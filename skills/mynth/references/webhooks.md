@@ -7,7 +7,7 @@
 Pass directly in the generate request. No signing. Up to 5 endpoints.
 
 ```ts
-await mynth.generate({
+await mynth.image.generate({
   prompt: "A sunset",
   webhook: { custom: [{ url: "https://your-app.com/api/mynth-webhook" }] },
 });
@@ -79,7 +79,7 @@ Use `@mynthio/sdk/convex` for automatic signature verification — see [convex.m
 ## Disable Dashboard Webhooks per Request
 
 ```ts
-await mynth.generate({
+await mynth.image.generate({
   prompt: "A sunset",
   webhook: { enabled: false }, // disables dashboard webhooks for this task
   webhook: { custom: [{ url: "..." }] }, // still sends to custom endpoints

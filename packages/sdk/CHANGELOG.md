@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.0.12](https://github.com/mynthio/oss/compare/sdk-v0.0.11...sdk-v0.0.12) (2026-04-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* **sdk:** image generation now lives under mynth.image.generate(), TaskAsync#toTask() is now wait(), and Task has been renamed to ImageGenerationResult.
+
+### Features
+
+* **sdk:** split image client and add rating API ([4fa4185](https://github.com/mynthio/oss/commit/4fa4185700bad98cd65bba1898df006c69b6c663))
+
 ## [0.0.11](https://github.com/mynthio/oss/compare/sdk-v0.0.10...sdk-v0.0.11) (2026-04-02)
 
 

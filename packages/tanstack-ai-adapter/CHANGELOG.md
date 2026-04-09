@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.8](https://github.com/mynthio/oss/compare/tan-ai-v0.0.7...tan-ai-v0.0.8) (2026-04-09)
+
+
+### Bug Fixes
+
+* **tanstack-ai-adapter:** support the MynthImage SDK client ([2b7856d](https://github.com/mynthio/oss/commit/2b7856d6453ee01c7912ef585fde6437fbed76e0))
+
 ## [0.0.7](https://github.com/mynthio/oss/compare/tan-ai-v0.0.6...tan-ai-v0.0.7) (2026-04-01)
 
 

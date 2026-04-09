@@ -40,6 +40,6 @@ MYNTH_API_KEY=mak_...
 ```ts
 import { mynth } from "./mynth";
 
-const task = await mynth.generate({ prompt: "a test image" });
+const task = await mynth.image.generate({ prompt: "a test image" });
 console.log(task.urls); // should print image URLs
 ```

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.9](https://github.com/mynthio/oss/compare/tan-ai-v0.0.8...tan-ai-v0.0.9) (2026-04-12)
+
+
+### Features
+
+* **tanstack-ai-adapter:** add ImagineArt 1.5 Pro model ([93f9eeb](https://github.com/mynthio/oss/commit/93f9eeb1c5bf7ceb916364e1800f7a6db22cc8df))
+
 ## [0.0.8](https://github.com/mynthio/oss/compare/tan-ai-v0.0.7...tan-ai-v0.0.8) (2026-04-09)
 
 

@@ -25,6 +25,7 @@ export const MYNTH_IMAGE_MODELS = [
   "recraft/recraft-v4-pro",
   "google/gemini-3.1-flash-image",
   "google/gemini-3-pro-image-preview",
+  "imagineart/imagineart-1.5-pro",
   "wan/wan2.6-image",
   "xai/grok-imagine-image",
 ] as const satisfies ReadonlyArray<MynthSDKTypes.ImageGenerationModel>;

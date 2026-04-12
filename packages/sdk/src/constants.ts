@@ -135,6 +135,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["4k", "native_enhance_prompt"],
   },
   {
+    id: "imagineart/imagineart-1.5-pro",
+    label: "ImagineArt 1.5 Pro",
+    capabilities: ["4k"],
+  },
+  {
     id: "wan/wan2.6-image",
     label: "Wan 2.6 Image",
     capabilities: [],

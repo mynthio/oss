@@ -47,6 +47,7 @@ export namespace MynthSDKTypes {
     | "black-forest-labs/flux.2-klein-4b"
     | "google/gemini-3.1-flash-image"
     | "google/gemini-3-pro-image-preview"
+    | "imagineart/imagineart-1.5-pro"
     | "tongyi-mai/z-image-turbo"
     | "john6666/bismuth-illustrious-mix"
     | "purplesmartai/pony-diffusion-v6-xl"

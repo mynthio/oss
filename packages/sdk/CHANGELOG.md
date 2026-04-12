@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.13](https://github.com/mynthio/oss/compare/sdk-v0.0.12...sdk-v0.0.13) (2026-04-12)
+
+
+### Features
+
+* **sdk:** add ImagineArt 1.5 Pro model ([76061aa](https://github.com/mynthio/oss/commit/76061aae7a39579f39cc6618ee30af891395ba3e))
+
 ## [0.0.12](https://github.com/mynthio/oss/compare/sdk-v0.0.11...sdk-v0.0.12) (2026-04-09)
 
 

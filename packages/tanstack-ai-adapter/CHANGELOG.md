@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.11](https://github.com/mynthio/oss/compare/tan-ai-v0.0.10...tan-ai-v0.0.11) (2026-04-21)
+
+
+### Bug Fixes
+
+* **tanstack-ai-adapter:** point types at declarations ([9b18839](https://github.com/mynthio/oss/commit/9b188396945535454798262d26b0edc5d0326442))
+
 ## [0.0.10](https://github.com/mynthio/oss/compare/tan-ai-v0.0.9...tan-ai-v0.0.10) (2026-04-21)
 
 

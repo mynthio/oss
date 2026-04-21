@@ -8,11 +8,12 @@
   "scripts": {
     "dev": "vite dev --port 3000",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.8",
-    "@mynthio/tanstack-ai-adapter": "^0.0.8",
+    "@mynthio/tanstack-ai-adapter": "^0.0.11",
     "@tabler/icons-react": "^3.41.1",
     "@tailwindcss/vite": "^4.2.2",
     "@tanstack/ai": "^0.9.2",

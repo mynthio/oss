@@ -3,6 +3,7 @@ import type { AvailableModel, ModelCapability } from "./constants";
 import {
   API_KEY_ENV_VAR,
   AVAILABLE_MODELS,
+  DESTINATION_ENV_VAR,
   GENERATE_IMAGE_PATH,
   RATE_IMAGE_PATH,
 } from "./constants";
@@ -39,6 +40,12 @@ type MynthOptions = {
    * Custom base URL for the API. Useful for proxies or testing.
    */
   baseUrl?: string;
+  /**
+   * Default destination name (slug) to deliver generated images to.
+   * If not provided, reads from MYNTH_DESTINATION environment variable.
+   * Can be overridden on a per-request basis via `request.destination`.
+   */
+  destination?: string;
 };
 
 // Extract metadata type from ImageGenerationRequest
@@ -103,6 +110,17 @@ function getApiKeyFromEnv(): string | undefined {
 }
 
 /**
+ * Attempts to read the default destination from environment variables.
+ * Works in Node.js, Bun, Deno, and edge runtimes that support process.env.
+ */
+function getDestinationFromEnv(): string | undefined {
+  if (typeof process !== "undefined" && process.env) {
+    return process.env[DESTINATION_ENV_VAR];
+  }
+  return undefined;
+}
+
+/**
  * Client for interacting with the Mynth image generation and rating APIs.
  *
  * @example
@@ -124,6 +142,7 @@ function getApiKeyFromEnv(): string | undefined {
  */
 class MynthImage {
   private readonly client: MynthClient;
+  private readonly defaultDestination?: string;
 
   /**
    * Creates a new MynthImage client instance.
@@ -131,6 +150,7 @@ class MynthImage {
    * @param options - Configuration options
    * @param options.apiKey - Your API key (defaults to MYNTH_API_KEY env var)
    * @param options.baseUrl - Custom API base URL
+   * @param options.destination - Default destination name (defaults to MYNTH_DESTINATION env var)
    * @throws {Error} If no API key is provided and MYNTH_API_KEY is not set
    */
   constructor(options: MynthOptions = {}) {
@@ -141,6 +161,8 @@ class MynthImage {
         `Mynth API key is required. Either pass it as an option or set the ${API_KEY_ENV_VAR} environment variable.`,
       );
     }
+
+    this.defaultDestination = options.destination ?? getDestinationFromEnv();
 
     this.client = new MynthClient({
       apiKey,
@@ -220,7 +242,10 @@ class MynthImage {
       access?: {
         publicAccessToken: string;
       };
-    }>(GENERATE_IMAGE_PATH, request);
+    }>(GENERATE_IMAGE_PATH, {
+      ...request,
+      destination: request.destination ?? this.defaultDestination,
+    });
 
     type Result = ImageGenerationResult<ExtractMetadata<T>, ExtractContentRatingResponse<T>>;
 

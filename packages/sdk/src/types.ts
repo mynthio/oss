@@ -252,6 +252,8 @@ export namespace MynthSDKTypes {
     inputs?: (string | ImageGenerationRequestInput)[];
     /** Custom metadata to attach (returned in results and webhooks). Max 2KB. */
     metadata?: Record<string, unknown>;
+    /** Name (slug) of a user-configured destination to deliver the result to */
+    destination?: string;
   };
 
   /** Default content rating levels */
@@ -273,8 +275,13 @@ export namespace MynthSDKTypes {
     status: "succeeded";
     /** Image ID */
     id: string;
-    /** CDN URL of the generated image */
-    url: string;
+    /**
+     * Delivery URL of the generated image.
+     * `null` when the image was delivered only to a user destination and no public URL is exposed.
+     */
+    url: string | null;
+    /** Mynth CDN URL of the generated image (always present on success) */
+    mynth_url: string;
     /** Resolved output image size (for example: "1024x1024") */
     size?: string;
     /** Cost for this image in string format */
@@ -288,6 +295,8 @@ export namespace MynthSDKTypes {
     status: "failed";
     /** Error message describing the failure */
     error: string;
+    /** Mynth CDN URL, if the image was produced before the failure */
+    mynth_url?: string;
   };
 
   /** Individual image result (success or failure) */
@@ -321,10 +330,18 @@ export namespace MynthSDKTypes {
     negative?: string;
   };
 
+  /** Destination delivery info (present when a destination was used) */
+  export type ImageResultDestination = {
+    /** Destination name (slug) that images were delivered to */
+    name: string;
+  };
+
   /** Complete generation result */
   export type ImageResult = {
     /** Array of generated images (may include failures) */
     images: ImageResultImage[];
+    /** Destination info, present when generation was delivered to a user destination */
+    destination?: ImageResultDestination;
     /** Cost breakdown */
     cost: ImageResultCost;
     /** Model that was used */

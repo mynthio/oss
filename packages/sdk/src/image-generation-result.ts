@@ -67,12 +67,15 @@ export class ImageGenerationResult<
   /**
    * Get all successfully generated image URLs.
    * Convenience method that extracts just the URLs from successful images.
+   * Images delivered only to a user destination may have a `null` url and are omitted here;
+   * use `getImages()` and read `mynth_url` to access the CDN URL directly.
    */
   get urls(): string[] {
     return (
       this.data.result?.images
         .filter((img): img is MynthSDKTypes.ImageResultImageSuccess => img.status === "succeeded")
-        .map((img) => img.url) ?? []
+        .map((img) => img.url)
+        .filter((url): url is string => url !== null) ?? []
     );
   }
 

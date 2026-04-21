@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.10](https://github.com/mynthio/oss/compare/tan-ai-v0.0.9...tan-ai-v0.0.10) (2026-04-21)
+
+
+### Features
+
+* **tanstack-ai-adapter:** add destination support ([779cf1a](https://github.com/mynthio/oss/commit/779cf1a84d33f9bcc9198105d2091d0f8f923f50))
+
 ## [0.0.9](https://github.com/mynthio/oss/compare/tan-ai-v0.0.8...tan-ai-v0.0.9) (2026-04-12)
 
 

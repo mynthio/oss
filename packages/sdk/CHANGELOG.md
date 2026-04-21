@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.14](https://github.com/mynthio/oss/compare/sdk-v0.0.13...sdk-v0.0.14) (2026-04-21)
+
+
+### Features
+
+* **sdk:** add destination delivery support ([ec2a575](https://github.com/mynthio/oss/commit/ec2a57555549abff9cbff687ce72c4e66d79b088))
+
 ## [0.0.13](https://github.com/mynthio/oss/compare/sdk-v0.0.12...sdk-v0.0.13) (2026-04-12)
 
 

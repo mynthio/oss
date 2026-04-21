@@ -1,6 +1,6 @@
 {
   "name": "@mynthio/tanstack-ai-adapter",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "description": "Mynth image generation adapter for TanStack AI",
   "keywords": [
     "adapter",

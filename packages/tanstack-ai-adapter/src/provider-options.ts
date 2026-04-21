@@ -39,6 +39,8 @@ export interface MynthImageProviderOptions {
   contentRating?: MynthSDKTypes.ImageGenerationRequestContentRating;
   /** Custom metadata */
   metadata?: Record<string, unknown>;
+  /** Destination name (slug) for delivering this generation. Overrides any adapter-level or env default. */
+  destination?: string;
 }
 
 // ============================================================================

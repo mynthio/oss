@@ -9,4 +9,10 @@ export interface MynthImageConfig {
   apiKey?: string;
   /** Custom base URL for the Mynth API. */
   baseUrl?: string;
+  /**
+   * Default destination name (slug) for generated images.
+   * If not provided, reads from MYNTH_DESTINATION env var.
+   * Can be overridden per-request via provider options.
+   */
+  destination?: string;
 }

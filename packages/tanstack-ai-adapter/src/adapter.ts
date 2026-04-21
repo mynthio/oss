@@ -46,6 +46,7 @@ export class MynthImageAdapter<TModel extends MynthImageModel> extends BaseImage
     this.client = new MynthImage({
       apiKey: config.apiKey,
       baseUrl: config.baseUrl,
+      destination: config.destination,
     });
   }
 
@@ -105,6 +106,10 @@ export class MynthImageAdapter<TModel extends MynthImageModel> extends BaseImage
       request.metadata = modelOptions.metadata;
     }
 
+    if (modelOptions?.destination !== undefined) {
+      request.destination = modelOptions.destination;
+    }
+
     return request;
   }
 
@@ -113,10 +118,13 @@ export class MynthImageAdapter<TModel extends MynthImageModel> extends BaseImage
     fallbackModel: string,
   ): ImageGenerationResult {
     const revisedPrompt = task.result?.prompt_enhance?.positive;
-    const images: Array<GeneratedImage> = task.getImages().map((img) => ({
-      url: img.url,
-      ...(revisedPrompt ? { revisedPrompt } : {}),
-    }));
+    const images: Array<GeneratedImage> = task
+      .getImages()
+      .filter((img): img is typeof img & { url: string } => img.url !== null)
+      .map((img) => ({
+        url: img.url,
+        ...(revisedPrompt ? { revisedPrompt } : {}),
+      }));
 
     return {
       id: task.id,

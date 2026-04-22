@@ -1,0 +1,51 @@
+{
+  "name": "@mynthio/cli",
+  "version": "0.0.3",
+  "description": "Official Mynth CLI",
+  "keywords": [
+    "ai",
+    "cli",
+    "image-generation",
+    "mynth"
+  ],
+  "homepage": "https://mynth.io",
+  "license": "MIT",
+  "author": "mynth.io",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mynthio/oss",
+    "directory": "packages/cli"
+  },
+  "bin": {
+    "mynth": "dist/bin.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "type": "module",
+  "scripts": {
+    "build": "bun run build:clean && tsup",
+    "build:clean": "rm -rf dist",
+    "dev": "bun run ./src/bin.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@effect/cli": "^0.69.0",
+    "@effect/platform": "^0.90.3",
+    "@effect/platform-node": "^0.96.0",
+    "cross-keychain": "^1.1.0",
+    "effect": "^3.17.7"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "tsup": "^8.5.0",
+    "typescript": "6.0.2",
+    "vitest": "^4.1.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

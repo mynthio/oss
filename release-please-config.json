@@ -17,6 +17,15 @@
       "include-v-in-tag": true,
       "initial-version": "0.0.1",
       "changelog-path": "CHANGELOG.md"
+    },
+    "packages/cli": {
+      "release-type": "node",
+      "versioning": "always-bump-patch",
+      "package-name": "@mynthio/cli",
+      "component": "cli",
+      "include-v-in-tag": true,
+      "initial-version": "0.0.1",
+      "changelog-path": "CHANGELOG.md"
     }
   }
 }

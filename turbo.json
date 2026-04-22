@@ -3,6 +3,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
+      "env": ["MYNTH_WORKOS_CLIENT_ID"],
       "outputs": ["dist/**"]
     },
     "test": {

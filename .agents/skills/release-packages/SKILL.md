@@ -13,6 +13,7 @@ Release packages in this monorepo in the correct dependency order. The SDK (`pac
 | --- | --- | --- |
 | `packages/sdk/` | `@mynthio/sdk` | nothing |
 | `packages/tanstack-ai-adapter/` | `@mynthio/tanstack-ai-adapter` | `@mynthio/sdk` |
+| `packages/cli/` | `@mynthio/cli` | nothing |
 | `examples/` | non-packages | — |
 
 ## Pre-Release Checks
@@ -130,7 +131,55 @@ If dirty:
 
 After pushing the adapter commit, **stop and tell the user to finish the release in GitHub**. Wait for confirmation before continuing.
 
-### 5. Release other directories (if dirty)
+### 5. Release CLI (if dirty)
+
+The CLI (`@mynthio/cli`) has no dependencies on other workspace packages, so it could technically be released at any time. However, to keep release-please changelogs clean and avoid confusion with concurrent releases, always release it **last** among the packages — after SDK and tanstack-ai-adapter are done.
+
+Do not release CLI in parallel with other packages.
+
+Check if `packages/cli/` has uncommitted changes:
+
+```bash
+git status --porcelain packages/cli/
+```
+
+If dirty:
+
+1. **Fetch and pull** to get the latest state:
+   ```bash
+   git fetch origin
+   git pull origin $(git branch --show-current)
+   ```
+2. **Sync in-code version with the next published version** — the CLI version is also declared in code (`packages/cli/src/Cli.ts`, the `version` field of the `Command.run` options). It must match the version in `packages/cli/package.json` that will be published by release-please. Before committing, read `packages/cli/package.json` and update `version` in `Cli.ts` to match. If release-please will bump the version, update `Cli.ts` to the expected next version so the shipped CLI reports the correct version at runtime.
+3. **Run repo-level preparation**:
+   ```bash
+   bun install
+   bun run format
+   ```
+4. **Run pre-release checks** for `@mynthio/cli`:
+   ```bash
+   bun run --filter @mynthio/cli build
+   bun run --filter @mynthio/cli test
+   bun run --filter @mynthio/cli typecheck
+   bun run lint
+   ```
+   All must pass. If any fail, stop and report the failure.
+5. Stage all changes in `packages/cli/` (both the user's code changes and the version sync), plus `bun.lock` if it changed:
+   ```bash
+   git add packages/cli/
+   git add bun.lock
+   ```
+6. Create a commit using the [git-commit skill](../git-commit/SKILL.md) with `cli` scope (e.g. `feat(cli): add image generation command`).
+7. Push:
+   ```bash
+   git push
+   ```
+
+### 6. Wait for CLI GitHub Release
+
+After pushing the CLI commit, **stop and tell the user to finish the release in GitHub**. Wait for confirmation before continuing.
+
+### 7. Release other directories (if dirty)
 
 For any other directories with uncommitted changes (e.g. `examples/`), commit each sub-project separately. Use the [git-commit skill](../git-commit/SKILL.md) with an appropriate scope matching the directory name.
 

@@ -306,8 +306,9 @@ const parseInputSpec = (raw: string): Effect.Effect<ParsedInput, MynthApiError> 
     ),
   );
 
-const promptArg = Args.text({ name: "prompt" }).pipe(
-  Args.withDescription("Text prompt describing the image to generate"),
+const promptOption = Options.text("prompt").pipe(
+  Options.withAlias("p"),
+  Options.withDescription("Text prompt describing the image to generate"),
 );
 
 const negativeOption = Options.text("negative").pipe(
@@ -424,7 +425,7 @@ const parseMetadata = (raw: string): Effect.Effect<Record<string, unknown>, Mynt
 const generate = Command.make(
   "generate",
   {
-    prompt: promptArg,
+    prompt: promptOption,
     negative: negativeOption,
     enhance: enhanceOption,
     model: modelOption,

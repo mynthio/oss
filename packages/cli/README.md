@@ -21,7 +21,8 @@ npx @mynthio/cli --help
 ## Usage
 
 ```bash
-mynth image generate   # not implemented yet
+mynth image generate --prompt "A cinematic product photo of a glass keyboard"
+mynth image generate -p "A watercolor city skyline" --size 16:9 --count 2
 ```
 
 Run `mynth --help` for the full command list.

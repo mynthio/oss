@@ -6,6 +6,11 @@
       "sourceType": "github",
       "computedHash": "c931a8c22160e8925400778fcb2266b5d1df762f3052edba65f72479f79f2d6c"
     },
+    "effect-ts": {
+      "source": "paulrberg/agent-skills",
+      "sourceType": "github",
+      "computedHash": "273eb6d71f6b7732aaed3b6b61330be3ea56894223339aee4a294bd43cb61d0b"
+    },
     "git-commit": {
       "source": "github/awesome-copilot",
       "sourceType": "github",

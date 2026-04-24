@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.15](https://github.com/mynthio/oss/compare/sdk-v0.0.14...sdk-v0.0.15) (2026-04-24)
+
+
+### Features
+
+* **sdk:** add gpt-image-2 model support ([b5cb14e](https://github.com/mynthio/oss/commit/b5cb14ed2aab94fa9ec23875696bd5d255752a38))
+
 ## [0.0.14](https://github.com/mynthio/oss/compare/sdk-v0.0.13...sdk-v0.0.14) (2026-04-21)
 
 

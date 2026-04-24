@@ -335,6 +335,7 @@ Current model IDs include:
 - `google/gemini-3.1-flash-image`
 - `google/gemini-3-pro-image-preview`
 - `imagineart/imagineart-1.5-pro`
+- `openai/gpt-image-2`
 - `john6666/bismuth-illustrious-mix`
 - `purplesmartai/pony-diffusion-v6-xl`
 - `recraft/recraft-v4`

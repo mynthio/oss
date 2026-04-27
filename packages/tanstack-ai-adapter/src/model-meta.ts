@@ -26,6 +26,7 @@ export const MYNTH_IMAGE_MODELS = [
   "google/gemini-3.1-flash-image",
   "google/gemini-3-pro-image-preview",
   "imagineart/imagineart-1.5-pro",
+  "openai/gpt-image-2",
   "wan/wan2.6-image",
   "xai/grok-imagine-image",
 ] as const satisfies ReadonlyArray<MynthSDKTypes.ImageGenerationModel>;

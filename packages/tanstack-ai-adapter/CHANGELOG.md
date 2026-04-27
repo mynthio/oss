@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.12](https://github.com/mynthio/oss/compare/tan-ai-v0.0.11...tan-ai-v0.0.12) (2026-04-27)
+
+
+### Features
+
+* **tanstack-ai-adapter:** add GPT Image 2 model ([b15d688](https://github.com/mynthio/oss/commit/b15d688000228ae3258f072af67a8526979da6df))
+
 ## [0.0.11](https://github.com/mynthio/oss/compare/tan-ai-v0.0.10...tan-ai-v0.0.11) (2026-04-21)
 
 

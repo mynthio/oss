@@ -1,38 +1,36 @@
 import type { MynthSDKTypes } from "./types";
 
-/** Typed image result with custom content rating type */
-type TypedImageResultImageSuccess<ContentRatingT> = Omit<
+type TypedImageResultImageSuccess<RatingT> = Omit<
   MynthSDKTypes.ImageResultImageSuccess,
-  "content_rating"
+  "rating"
 > & {
-  content_rating?: ContentRatingT;
+  rating?: RatingT;
 };
 
 type TypedImageResultImageFailure = MynthSDKTypes.ImageResultImageFailure;
 
-type TypedImageResultImage<ContentRatingT> =
-  | TypedImageResultImageSuccess<ContentRatingT>
+type TypedImageResultImage<RatingT> =
+  | TypedImageResultImageSuccess<RatingT>
   | TypedImageResultImageFailure;
 
-/** Typed result with custom content rating type on images */
-type TypedImageResult<ContentRatingT> = Omit<MynthSDKTypes.ImageResult, "images"> & {
-  images: TypedImageResultImage<ContentRatingT>[];
+type TypedImageResult<RatingT> = Omit<MynthSDKTypes.ImageResult, "images"> & {
+  images: TypedImageResultImage<RatingT>[];
 };
 
 /**
  * Represents a completed image generation task.
  *
  * @template MetadataT - Type of the metadata attached to the request
- * @template ContentRatingT - Type of the content rating response
+ * @template RatingT - Type of the rating response
  */
 export class ImageGenerationResult<
   MetadataT = Record<string, unknown> | undefined,
-  ContentRatingT = MynthSDKTypes.ImageResultContentRating | undefined,
+  RatingT = MynthSDKTypes.ImageResultRating | undefined,
 > {
   /** Raw task data from the API */
-  public readonly data: MynthSDKTypes.TaskData;
+  public readonly data: MynthSDKTypes.ImageGenerationTaskData;
 
-  constructor(data: MynthSDKTypes.TaskData) {
+  constructor(data: MynthSDKTypes.ImageGenerationTaskData) {
     this.data = data;
   }
 
@@ -50,8 +48,8 @@ export class ImageGenerationResult<
    * The generation result containing images, cost, and model info.
    * Returns `null` if the task hasn't completed yet.
    */
-  get result(): TypedImageResult<ContentRatingT> | null {
-    return this.data.result as TypedImageResult<ContentRatingT> | null;
+  get result(): TypedImageResult<RatingT> | null {
+    return this.data.result as TypedImageResult<RatingT> | null;
   }
 
   /** Whether the task completed successfully */
@@ -73,7 +71,7 @@ export class ImageGenerationResult<
   get urls(): string[] {
     return (
       this.data.result?.images
-        .filter((img): img is MynthSDKTypes.ImageResultImageSuccess => img.status === "succeeded")
+        .filter((img): img is MynthSDKTypes.ImageResultImageSuccess => img.status === "success")
         .map((img) => img.url)
         .filter((url): url is string => url !== null) ?? []
     );
@@ -85,16 +83,16 @@ export class ImageGenerationResult<
    * @param options.includeFailed - If true, includes failed image results
    * @returns Array of image results
    */
-  getImages(options: { includeFailed: true }): TypedImageResultImage<ContentRatingT>[];
-  getImages(options?: { includeFailed?: false }): TypedImageResultImageSuccess<ContentRatingT>[];
+  getImages(options: { includeFailed: true }): TypedImageResultImage<RatingT>[];
+  getImages(options?: { includeFailed?: false }): TypedImageResultImageSuccess<RatingT>[];
   getImages(
     options: { includeFailed?: boolean } = {},
-  ): TypedImageResultImage<ContentRatingT>[] | TypedImageResultImageSuccess<ContentRatingT>[] {
+  ): TypedImageResultImage<RatingT>[] | TypedImageResultImageSuccess<RatingT>[] {
     if (options.includeFailed)
-      return (this.data.result?.images ?? []) as TypedImageResultImage<ContentRatingT>[];
+      return (this.data.result?.images ?? []) as TypedImageResultImage<RatingT>[];
 
-    return (this.data.result?.images.filter((image) => image.status === "succeeded") ??
-      []) as TypedImageResultImageSuccess<ContentRatingT>[];
+    return (this.data.result?.images.filter((image) => image.status === "success") ??
+      []) as TypedImageResultImageSuccess<RatingT>[];
   }
 
   /**

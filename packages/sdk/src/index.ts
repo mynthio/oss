@@ -21,14 +21,6 @@ import {
 import type { MynthSDKTypes } from "./types";
 
 /**
- * Options for the generate method.
- */
-type GenerateOptions = {
-  /** Whether to wait for completion ("sync") or return immediately ("async") */
-  mode?: "sync" | "async";
-};
-
-/**
  * Configuration options for the Mynth client.
  */
 type MynthOptions = {
@@ -51,52 +43,48 @@ type MynthOptions = {
 // Extract metadata type from ImageGenerationRequest
 type ExtractMetadata<T extends MynthSDKTypes.ImageGenerationRequest> = T["metadata"];
 
-// Extract content rating configuration from ImageGenerationRequest
-type ExtractContentRatingConfig<T extends MynthSDKTypes.ImageGenerationRequest> =
-  T["content_rating"];
+type ExtractRatingConfig<T extends MynthSDKTypes.ImageGenerationRequest> = T["rating"];
 
-// Extract content rating levels for custom mode - handle both mutable and readonly arrays
-type ExtractContentRatingLevels<T extends MynthSDKTypes.ImageGenerationRequest> =
-  ExtractContentRatingConfig<T> extends { levels: readonly (infer L)[] }
+type ExtractRatingLevels<T extends MynthSDKTypes.ImageGenerationRequest> =
+  ExtractRatingConfig<T> extends { levels: readonly (infer L)[] }
     ? L
-    : ExtractContentRatingConfig<T> extends { levels: (infer L)[] }
+    : ExtractRatingConfig<T> extends { levels: (infer L)[] }
       ? L
       : never;
 
-// Extract content rating level values as union type
-type ExtractContentRatingLevelValues<T extends MynthSDKTypes.ImageGenerationRequest> =
-  ExtractContentRatingLevels<T> extends { value: infer V } ? (V extends string ? V : never) : never;
+type ExtractRatingLevelValues<T extends MynthSDKTypes.ImageGenerationRequest> =
+  ExtractRatingLevels<T> extends { value: infer V } ? (V extends string ? V : never) : never;
 
-// Determine if content rating is custom (has levels defined)
-type IsContentRatingCustom<T extends MynthSDKTypes.ImageGenerationRequest> =
+type IsRatingCustom<T extends MynthSDKTypes.ImageGenerationRequest> =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Required for type inference
-  ExtractContentRatingConfig<T> extends { levels: readonly any[] | any[] } ? true : false;
+  ExtractRatingConfig<T> extends { mode: "custom"; levels: readonly any[] | any[] } ? true : false;
 
-// Create the appropriate content rating response type based on request config
-type ExtractContentRatingResponse<T extends MynthSDKTypes.ImageGenerationRequest> =
-  IsContentRatingCustom<T> extends true
-    ? {
-        mode: "custom";
-        level: ExtractContentRatingLevelValues<T>;
-      }
-    : ExtractContentRatingConfig<T> extends { enabled?: true }
-      ? {
-          mode: "default";
-          level: MynthSDKTypes.ImageResultContentRatingDefaultLevel;
-        }
-      : MynthSDKTypes.ImageResultContentRating | undefined;
+type ExtractRatingResponse<T extends MynthSDKTypes.ImageGenerationRequest> =
+  IsRatingCustom<T> extends true
+    ?
+        | {
+            status: "success";
+            level: ExtractRatingLevelValues<T>;
+          }
+        | MynthSDKTypes.ImageResultRatingFailure
+    : ExtractRatingConfig<T> extends true | { mode: "nsfw_sfw" }
+      ?
+          | {
+              status: "success";
+              level: MynthSDKTypes.ImageResultRatingDefaultLevel;
+            }
+          | MynthSDKTypes.ImageResultRatingFailure
+      : MynthSDKTypes.ImageResultRating | undefined;
 
 // Extract rate level values from the levels array
-type ExtractRateLevelValues<T extends MynthSDKTypes.ImageRateRequest> =
-  T["levels"] extends readonly { value: infer V }[]
-    ? V extends string
-      ? V
-      : string
-    : T["levels"] extends { value: infer V }[]
-      ? V extends string
-        ? V
-        : string
-      : "sfw" | "nsfw";
+type ExtractRateLevelValues<T extends MynthSDKTypes.ImageRateRequest> = T extends {
+  mode: "custom";
+  levels: readonly { value: infer V }[];
+}
+  ? V extends string
+    ? V
+    : string
+  : MynthSDKTypes.ImageResultRatingDefaultLevel;
 
 /**
  * Attempts to read the API key from environment variables.
@@ -187,56 +175,36 @@ class MynthImage {
    */
   public async generate<const T extends MynthSDKTypes.ImageGenerationRequest>(
     request: T,
-  ): Promise<ImageGenerationResult<ExtractMetadata<T>, ExtractContentRatingResponse<T>>>;
+  ): Promise<ImageGenerationResult<ExtractMetadata<T>, ExtractRatingResponse<T>>> {
+    const taskAsync = await this.createGenerationTask(request);
+
+    return taskAsync.wait();
+  }
 
   /**
-   * Generate images asynchronously without waiting for completion.
+   * Start image generation without waiting for completion.
    *
    * @param request - Image generation request parameters
-   * @param opts - Options with mode set to "async"
    * @returns A TaskAsync that can be polled for completion via `.wait()`
    *
    * @example
    * ```typescript
-   * const taskAsync = await image.generate(
-   *   { prompt: "A futuristic cityscape" },
-   *   { mode: "async" }
-   * );
+   * const taskAsync = await image.generateAsync({
+   *   prompt: "A futuristic cityscape",
+   * });
    *
-   * // Return task ID for client-side polling
    * return { id: taskAsync.id, access: taskAsync.access };
-   *
-   * // Or wait for completion later
-   * const result = await taskAsync.wait();
    * ```
    */
-  public async generate<const T extends MynthSDKTypes.ImageGenerationRequest>(
+  public async generateAsync<const T extends MynthSDKTypes.ImageGenerationRequest>(
     request: T,
-    opts: { mode: "async" },
-  ): Promise<TaskAsync<ImageGenerationResult<ExtractMetadata<T>, ExtractContentRatingResponse<T>>>>;
+  ): Promise<TaskAsync<ImageGenerationResult<ExtractMetadata<T>, ExtractRatingResponse<T>>>> {
+    return this.createGenerationTask(request);
+  }
 
-  /**
-   * Generate images synchronously, waiting for completion.
-   *
-   * @param request - Image generation request parameters
-   * @param opts - Options with mode set to "sync"
-   * @returns A completed ImageGenerationResult with the generation results
-   */
-  public async generate<const T extends MynthSDKTypes.ImageGenerationRequest>(
+  private async createGenerationTask<const T extends MynthSDKTypes.ImageGenerationRequest>(
     request: T,
-    opts: { mode: "sync" },
-  ): Promise<ImageGenerationResult<ExtractMetadata<T>, ExtractContentRatingResponse<T>>>;
-
-  // Implementation
-  public async generate<const T extends MynthSDKTypes.ImageGenerationRequest>(
-    request: T,
-    opts: GenerateOptions = {},
-  ): Promise<
-    | ImageGenerationResult<ExtractMetadata<T>, ExtractContentRatingResponse<T>>
-    | TaskAsync<ImageGenerationResult<ExtractMetadata<T>, ExtractContentRatingResponse<T>>>
-  > {
-    const mode = opts.mode ?? "sync";
-
+  ): Promise<TaskAsync<ImageGenerationResult<ExtractMetadata<T>, ExtractRatingResponse<T>>>> {
     const json = await this.client.post<{
       taskId: string;
       access?: {
@@ -247,19 +215,16 @@ class MynthImage {
       destination: request.destination ?? this.defaultDestination,
     });
 
-    type Result = ImageGenerationResult<ExtractMetadata<T>, ExtractContentRatingResponse<T>>;
+    type Result = ImageGenerationResult<ExtractMetadata<T>, ExtractRatingResponse<T>>;
 
     const taskAsync = new TaskAsync<Result>(json.taskId, {
       client: this.client,
       pat: json.access?.publicAccessToken,
-      resultFactory: (data) => new ImageGenerationResult(data) as Result,
+      resultFactory: (data) =>
+        new ImageGenerationResult(data as MynthSDKTypes.ImageGenerationTaskData) as Result,
     });
 
-    if (mode === "async") {
-      return taskAsync;
-    }
-
-    return taskAsync.wait();
+    return taskAsync;
   }
 
   /**
@@ -275,19 +240,20 @@ class MynthImage {
    * @example
    * ```typescript
    * // Default sfw/nsfw
-   * const result = await image.rate({ urls: ["https://..."] });
-   * console.log(result.getRatings()); // [{ url: "...", rating: "sfw" }]
+   * const result = await image.rate({ urls: ["https://..."], mode: "nsfw_sfw" });
+   * console.log(result.getRatings()); // [{ status: "success", url: "...", level: "sfw" }]
    *
    * // Custom levels
    * const result = await image.rate({
    *   urls: ["https://..."],
+   *   mode: "custom",
    *   levels: [
    *     { value: "safe", description: "No explicit content" },
    *     { value: "mature", description: "Adult themes, no nudity" },
    *     { value: "explicit", description: "Contains nudity or graphic content" },
    *   ] as const,
    * });
-   * result.getRatings(); // [{ url: "...", rating: "safe" | "mature" | "explicit" }]
+   * result.getRatings(); // [{ status: "success", url: "...", level: "safe" | "mature" | "explicit" }]
    * ```
    */
   public async rate<const T extends MynthSDKTypes.ImageRateRequest>(
@@ -339,6 +305,7 @@ export {
   ImageRateResult,
   Mynth,
   MynthImage,
+  TaskAsync,
   // Error classes
   MynthAPIError,
   TaskAsyncFetchError,
@@ -347,12 +314,5 @@ export {
   TaskAsyncTimeoutError,
   TaskAsyncUnauthorizedError,
 };
-export type {
-  AvailableModel,
-  GenerateOptions,
-  ModelCapability,
-  MynthOptions,
-  MynthSDKTypes,
-  TaskAsyncAccess,
-};
+export type { AvailableModel, ModelCapability, MynthOptions, MynthSDKTypes, TaskAsyncAccess };
 export default Mynth;

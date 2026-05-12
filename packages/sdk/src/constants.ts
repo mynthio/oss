@@ -11,6 +11,7 @@ export const GENERATE_IMAGE_PATH = "/image/generate";
 export const RATE_IMAGE_PATH = "/image/rate";
 export const TASK_PATH = "/tasks";
 export const TASK_DETAILS_PATH = (id: string) => `${TASK_PATH}/${id}`;
+export const TASK_RESULT_PATH = (id: string) => `${TASK_PATH}/${id}/result`;
 export const TASK_STATUS_PATH = (id: string) => `${TASK_PATH}/${id}/status`;
 
 /**

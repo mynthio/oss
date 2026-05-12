@@ -27,8 +27,8 @@ function createMockClient(
 }
 
 function createMockTaskData(
-  overrides: Partial<MynthSDKTypes.TaskData> = {},
-): MynthSDKTypes.TaskData {
+  overrides: Partial<MynthSDKTypes.ImageGenerationTaskData> = {},
+): MynthSDKTypes.ImageGenerationTaskData {
   return {
     id: "test-task-id",
     status: "completed",
@@ -37,11 +37,13 @@ function createMockTaskData(
     userId: "user-123",
     cost: "0.01",
     result: null,
-    request: null,
+    request: {
+      prompt: "test prompt",
+    },
     createdAt: "2026-01-29T12:00:00Z",
     updatedAt: "2026-01-29T12:00:00Z",
     ...overrides,
-  };
+  } as MynthSDKTypes.ImageGenerationTaskData;
 }
 
 function createTaskAsync(
@@ -50,7 +52,8 @@ function createTaskAsync(
 ): TaskAsync<ImageGenerationResult> {
   return new TaskAsync(id, {
     ...options,
-    resultFactory: (data) => new ImageGenerationResult(data),
+    resultFactory: (data) =>
+      new ImageGenerationResult(data as MynthSDKTypes.ImageGenerationTaskData),
   });
 }
 
@@ -280,17 +283,16 @@ describe("TaskAsync", () => {
       expect(result.id).toBe("immediate-complete-task");
     });
 
-    test("preserves optional task cost metadata on the completed result", async () => {
+    test("preserves magic prompt metadata on the completed result", async () => {
       // Arrange
       const taskData = createMockTaskData({
-        id: "completed-with-cost-metadata",
+        id: "completed-with-magic-prompt",
         result: {
           model: "black-forest-labs/flux.2-dev",
           images: [],
-          cost: {
-            images: "0.01",
-            total: "0.01",
-            magic_prompt: "0.001",
+          magic_prompt: {
+            positive: "enhanced prompt",
+            negative: "enhanced negative prompt",
           },
         } as MynthSDKTypes.ImageResult,
       });
@@ -307,7 +309,7 @@ describe("TaskAsync", () => {
           data: taskData,
         });
       const client = createMockClient({ get: mockGet });
-      const taskAsync = createTaskAsync("completed-with-cost-metadata", { client });
+      const taskAsync = createTaskAsync("completed-with-magic-prompt", { client });
 
       // Act
       const resultPromise = taskAsync.wait();
@@ -315,8 +317,8 @@ describe("TaskAsync", () => {
       const result = await resultPromise;
 
       // Assert
-      expect(result.result?.cost.magic_prompt).toBe("0.001");
-      expect(result.result?.cost.total).toBe("0.01");
+      expect(result.result?.magic_prompt?.positive).toBe("enhanced prompt");
+      expect(result.result?.magic_prompt?.negative).toBe("enhanced negative prompt");
     });
 
     test("returns same result on multiple wait() calls (promise caching)", async () => {

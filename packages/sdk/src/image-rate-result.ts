@@ -2,15 +2,17 @@ import type { MynthSDKTypes } from "./types";
 
 /** A successfully rated image */
 type ImageRateResultItemSuccess<LevelT extends string> = {
-  /** The submitted image URL */
+  status: "success";
   url: string;
-  /** The assigned rating level */
-  rating: LevelT;
+  level: LevelT;
 };
 
-/** An image that could not be rated */
 type ImageRateResultItemError = {
-  error_code: string;
+  status: "failed";
+  url: string;
+  error: {
+    code: string;
+  };
 };
 
 /** Individual rating result — success or error */
@@ -27,11 +29,15 @@ export class ImageRateResult<LevelT extends string = "sfw" | "nsfw"> {
   /** The task ID created for this rating request */
   public readonly taskId: string;
 
+  /** Task metadata returned by the API */
+  public readonly task: MynthSDKTypes.ImageRateResponse<LevelT>["task"];
+
   /** Raw results array from the API */
   public readonly results: ImageRateResultItem<LevelT>[];
 
   constructor(data: MynthSDKTypes.ImageRateResponse<LevelT>) {
-    this.taskId = data.taskId;
+    this.task = data.task;
+    this.taskId = data.task.id;
     this.results = data.results;
   }
 
@@ -39,13 +45,15 @@ export class ImageRateResult<LevelT extends string = "sfw" | "nsfw"> {
    * Get only the successfully rated images.
    */
   getRatings(): ImageRateResultItemSuccess<LevelT>[] {
-    return this.results.filter((r): r is ImageRateResultItemSuccess<LevelT> => "url" in r);
+    return this.results.filter(
+      (r): r is ImageRateResultItemSuccess<LevelT> => r.status === "success",
+    );
   }
 
   /**
    * Get only the images that failed to be rated.
    */
   getErrors(): ImageRateResultItemError[] {
-    return this.results.filter((r): r is ImageRateResultItemError => "error_code" in r);
+    return this.results.filter((r): r is ImageRateResultItemError => r.status === "failed");
   }
 }

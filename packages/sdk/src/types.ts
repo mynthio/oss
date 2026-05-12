@@ -3,37 +3,39 @@
  * Import as `import type { MynthSDKTypes } from "@mynthio/sdk"`.
  */
 export namespace MynthSDKTypes {
-  /** Status of a generation task */
   export type TaskStatus = "pending" | "completed" | "failed";
 
-  /** Type of task */
   export type TaskType = "image.generate" | "image.rate";
 
-  /** Full task data returned from the API */
-  export type TaskData = {
-    /** Unique task identifier */
+  export type TaskBase = {
     id: string;
-    /** Current status of the task */
     status: TaskStatus;
-    /** Type of task */
-    type: TaskType;
-    /** ID of the API key used (null for public access) */
     apiKeyId: string | null;
-    /** ID of the user who created the task */
     userId: string;
-    /** Total cost in string format (null if not yet calculated) */
     cost: string | null;
-    /** Generation result (null if not completed) */
-    result: ImageResult | null;
-    /** Original generation request (null if not available) */
-    request: ImageGenerationRequest;
-    /** ISO 8601 timestamp of creation */
     createdAt: string;
-    /** ISO 8601 timestamp of last update */
     updatedAt: string;
+    errors?: TaskError[];
   };
 
-  /** Available model identifiers */
+  export type TaskError = {
+    code: string;
+  };
+
+  export type TaskData =
+    | (TaskBase & {
+        type: "image.generate";
+        request: ImageGenerationRequest;
+        result: ImageResult | null;
+      })
+    | (TaskBase & {
+        type: "image.rate";
+        request: ImageRateRequest;
+        result: ImageRateTaskResult | null;
+      });
+
+  export type ImageGenerationTaskData = Extract<TaskData, { type: "image.generate" }>;
+
   export type ImageGenerationModelId =
     | "alibaba/qwen-image-2.0"
     | "alibaba/qwen-image-2.0-pro"
@@ -57,88 +59,54 @@ export namespace MynthSDKTypes {
     | "wan/wan2.6-image"
     | "xai/grok-imagine-image";
 
-  /** Model to use for generation ("auto" lets the system choose) */
   export type ImageGenerationModel = ImageGenerationModelId | "auto";
 
-  /** Prompt enhancement mode for structured prompts */
-  export type ImageGenerationRequestEnhance = false | "prefer_magic" | "prefer_native";
-
-  /** Structured prompt with positive and optional negative text */
-  export type PromptStructured = {
-    /** Main prompt describing what to generate */
-    positive: string;
-    /** Elements to exclude from the generation */
-    negative?: string;
-    /** Prompt enhancement mode */
-    enhance: ImageGenerationRequestEnhance;
-  };
-
   export type GenerateImageOptionsIn = {
-    prompt: string | PromptStructured;
+    prompt: string;
   };
 
   export type GenerateImageOptions = {
-    prompt: PromptStructured;
+    prompt: string;
   };
 
-  /**
-   * Prompt input for image generation.
-   * Can be a simple string or structured with positive/negative prompts.
-   */
   export type ImageGenerationRequestPrompt = GenerateImageOptionsIn["prompt"];
 
-  /** Output image format */
   export type ImageGenerationRequestOutputFormat = "png" | "jpg" | "webp";
 
-  /** Output configuration for generated images */
   export type ImageGenerationRequestOutput = {
-    /** Image format (default: "webp") */
-    format?: ImageGenerationRequestOutputFormat;
-    /** Quality 0-100 (default: 80) */
-    quality?: number;
+    format: ImageGenerationRequestOutputFormat;
+    quality: number;
   };
 
-  /** Custom webhook endpoint configuration */
   export type ImageGenerationRequestCustomWebhook = {
-    /** URL to receive webhook notifications */
     url: string;
-  };
+  }[];
 
-  /** Public Access Token configuration */
   export type ImageGenerationRequestAccessPat = {
-    /** Include a short-lived Public Access Token in the create-task response */
     enabled?: boolean;
   };
 
-  /** Access-token configuration returned from the create-task response */
   export type ImageGenerationRequestAccess = {
-    /** Controls whether the response includes a task-scoped Public Access Token */
     pat: ImageGenerationRequestAccessPat;
   };
 
-  /** Webhook configuration */
   export type ImageGenerationRequestWebhook = {
-    /** Enable/disable webhooks (disabling overrides dashboard settings) */
-    enabled?: boolean;
-    /** Additional custom webhook endpoints */
-    custom?: ImageGenerationRequestCustomWebhook[];
+    dashboard?: false;
+    custom?: ImageGenerationRequestCustomWebhook;
   };
 
-  /** Custom content rating level definition */
-  export type ImageGenerationRequestContentRatingLevel<T extends string = string> = {
-    /** Level identifier returned in the result */
+  export type ImageGenerationRequestRatingLevel<T extends string = string> = {
     value: T;
-    /** Human-readable description for the AI classifier */
     description: string;
   };
 
-  /** Content rating configuration */
-  export type ImageGenerationRequestContentRating = {
-    /** Enable content rating classification */
-    enabled?: boolean;
-    /** Custom rating levels (uses default sfw/nsfw if not provided) */
-    levels?: readonly ImageGenerationRequestContentRatingLevel[];
-  };
+  export type ImageGenerationRequestRating =
+    | true
+    | ImageRateRequestRatingDefault
+    | {
+        mode: "custom";
+        levels: readonly ImageGenerationRequestRatingLevel[];
+      };
 
   /** Available shorthand size presets */
   export type ImageGenerationRequestSizePreset =
@@ -147,6 +115,11 @@ export namespace MynthSDKTypes {
     | "landscape"
     | "portrait_tall"
     | "landscape_wide"
+    | "square_4k"
+    | "portrait_4k"
+    | "landscape_4k"
+    | "portrait_tall_4k"
+    | "landscape_wide_4k"
     | "1:1"
     | "2:3"
     | "3:2"
@@ -172,8 +145,7 @@ export namespace MynthSDKTypes {
     | "2:1_4k"
     | "1:2_4k";
 
-  /** Optional 4k scale for aspect ratio size mode */
-  export type ImageGenerationRequestSizeScale = "4k";
+  export type ImageGenerationRequestSizeScale = "base" | "4k";
 
   /** Supported aspect ratio strings */
   export type ImageGenerationRequestAspectRatio =
@@ -200,7 +172,7 @@ export namespace MynthSDKTypes {
   /** Structured auto size configuration */
   export type ImageGenerationRequestSizeAuto = {
     type: "auto";
-    prefer: "mynth" | "native";
+    provider?: "mynth" | "native";
   };
 
   /** Image input source */
@@ -209,8 +181,7 @@ export namespace MynthSDKTypes {
     url: string;
   };
 
-  /** Supported input roles */
-  export type ImageGenerationRequestInputRole = "context" | "init" | "reference";
+  export type ImageGenerationRequestInputRole = "auto" | "init" | "reference";
 
   /** Structured image input */
   export type ImageGenerationRequestInput = {
@@ -233,124 +204,86 @@ export namespace MynthSDKTypes {
    * Image generation request parameters.
    */
   export type ImageGenerationRequest = {
-    /** Text prompt or structured prompt object */
     prompt: ImageGenerationRequestPrompt;
-    /** Model to use (default: "auto") */
+    negative_prompt?: string;
+    magic_prompt?: true;
     model?: ImageGenerationModel;
-    /** Image size/dimensions (default: "auto") */
     size?: ImageGenerationRequestSize;
-    /** Number of images to generate (default: 1) */
     count?: number;
-    /** Output format and quality settings */
     output?: ImageGenerationRequestOutput;
-    /** Webhook notification settings */
     webhook?: ImageGenerationRequestWebhook;
-    /** Content rating classification settings */
-    content_rating?: ImageGenerationRequestContentRating;
-    /** Public Access Token response configuration */
+    rating?: ImageGenerationRequestRating;
     access?: ImageGenerationRequestAccess;
-    /** Optional input images as URL shortcuts or structured objects */
     inputs?: (string | ImageGenerationRequestInput)[];
-    /** Custom metadata to attach (returned in results and webhooks). Max 2KB. */
     metadata?: Record<string, unknown>;
-    /** Name (slug) of a user-configured destination to deliver the result to */
     destination?: string;
   };
 
-  /** Default content rating levels */
-  export type ImageResultContentRatingDefaultLevel = "sfw" | "nsfw";
+  export type ImageResultRatingDefaultLevel = "sfw" | "nsfw";
 
-  /** Content rating result */
-  export type ImageResultContentRating =
+  export type ImageResultRatingFailure = {
+    status: "failed";
+    error: {
+      code: string;
+    };
+  };
+
+  export type ImageResultRating =
     | {
-        mode: "default";
-        level: ImageResultContentRatingDefaultLevel;
+        status: "success";
+        level: ImageResultRatingDefaultLevel;
       }
     | {
-        mode: "custom";
+        status: "success";
         level: string;
+      }
+    | ImageResultRatingFailure;
+
+  export type ImageResultDestination =
+    | {
+        status: "success";
+        name: string;
+      }
+    | {
+        status: "failed";
+        name: string;
+        error: {
+          code: string;
+          message?: string;
+          provider_response?: string;
+        };
       };
 
-  /** Successfully generated image */
   export type ImageResultImageSuccess = {
-    status: "succeeded";
-    /** Image ID */
+    status: "success";
     id: string;
-    /**
-     * Delivery URL of the generated image.
-     * `null` when the image was delivered only to a user destination and no public URL is exposed.
-     */
     url: string | null;
-    /** Mynth CDN URL of the generated image (always present on success) */
     mynth_url: string;
-    /** Resolved output image size (for example: "1024x1024") */
-    size?: string;
-    /** Cost for this image in string format */
+    size: string;
     cost: string;
-    /** Content rating if classification was enabled */
-    content_rating?: ImageResultContentRating;
+    destination?: ImageResultDestination;
+    rating?: ImageResultRating;
   };
 
-  /** Failed image generation */
   export type ImageResultImageFailure = {
     status: "failed";
-    /** Error message describing the failure */
-    error: string;
-    /** Mynth CDN URL, if the image was produced before the failure */
-    mynth_url?: string;
+    error: {
+      code: string;
+      message?: string;
+    };
   };
 
-  /** Individual image result (success or failure) */
   export type ImageResultImage = ImageResultImageSuccess | ImageResultImageFailure;
 
-  /** Cost breakdown for the generation */
-  export type ImageResultCost = {
-    /** Cost of image generation */
-    images: string;
-    /** Total task cost */
-    total: string;
-    /** Reserved for future prompt-enhancement pricing metadata */
-    magic_prompt?: string;
-  };
-
-  /** Auto size resolution info (when size was determined automatically) */
-  export type ImageResultSizeAuto = {
-    /** Source that determined the size */
-    source: "native" | "mynth";
-    /** Resolved size value (e.g. "1024x1024") */
-    value?: string;
-  };
-
-  /** Prompt enhancement info (when prompt was enhanced) */
-  export type ImageResultPromptEnhance = {
-    /** Source that performed the enhancement */
-    source: "native" | "mynth";
-    /** Enhanced positive prompt */
-    positive?: string;
-    /** Enhanced negative prompt */
+  export type ImageResultMagicPrompt = {
+    positive: string;
     negative?: string;
   };
 
-  /** Destination delivery info (present when a destination was used) */
-  export type ImageResultDestination = {
-    /** Destination name (slug) that images were delivered to */
-    name: string;
-  };
-
-  /** Complete generation result */
   export type ImageResult = {
-    /** Array of generated images (may include failures) */
-    images: ImageResultImage[];
-    /** Destination info, present when generation was delivered to a user destination */
-    destination?: ImageResultDestination;
-    /** Cost breakdown */
-    cost: ImageResultCost;
-    /** Model that was used */
     model: ImageGenerationModelId;
-    /** Auto size resolution info (present when size was determined automatically) */
-    size_auto?: ImageResultSizeAuto;
-    /** Prompt enhancement info (present when prompt was enhanced) */
-    prompt_enhance?: ImageResultPromptEnhance;
+    images: ImageResultImage[];
+    magic_prompt?: ImageResultMagicPrompt;
   };
 
   /**
@@ -390,24 +323,38 @@ export namespace MynthSDKTypes {
   };
 
   /** Request body for the image rate endpoint */
-  export type ImageRateRequest = {
+  export type ImageRateRequestBase = {
     /** Image URLs to rate (1–10) */
     urls: string[];
-    /** Custom rating levels (uses default sfw/nsfw if not provided) */
-    levels?: readonly ImageRateRequestLevel[];
   };
+
+  export type ImageRateRequestRatingDefault = {
+    /** Default sfw/nsfw classifier */
+    mode: "nsfw_sfw";
+  };
+
+  export type ImageRateRequestRatingCustom = {
+    /** Custom classifier levels */
+    mode: "custom";
+    levels: readonly ImageRateRequestLevel[];
+  };
+
+  export type ImageRateRequest = ImageRateRequestBase &
+    (ImageRateRequestRatingDefault | ImageRateRequestRatingCustom);
 
   /** A successfully rated image */
   export type ImageRateResponseItemSuccess<LevelT extends string = string> = {
-    /** The submitted image URL */
+    status: "success";
     url: string;
-    /** The assigned rating level */
-    rating: LevelT;
+    level: LevelT;
   };
 
-  /** An image that could not be rated */
   export type ImageRateResponseItemError = {
-    error_code: string;
+    status: "failed";
+    url: string;
+    error: {
+      code: string;
+    };
   };
 
   /** Individual rating result item */
@@ -417,7 +364,14 @@ export namespace MynthSDKTypes {
 
   /** API response from the image rate endpoint */
   export type ImageRateResponse<LevelT extends string = string> = {
-    taskId: string;
+    task: {
+      id: string;
+      cost: string;
+    };
+    results: ImageRateResponseItem<LevelT>[];
+  };
+
+  export type ImageRateTaskResult<LevelT extends string = string> = {
     results: ImageRateResponseItem<LevelT>[];
   };
 }

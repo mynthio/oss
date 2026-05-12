@@ -48,7 +48,7 @@ console.log(task.urls);
 console.log(task.result?.model);
 ```
 
-If you omit `model` and `size`, Mynth resolves them automatically. By default, `generate()` waits for completion and returns a completed task.
+If you omit `model` and `size`, Mynth resolves them automatically. `generate()` waits for completion and returns a completed task.
 
 ## Client Options
 
@@ -64,11 +64,11 @@ const mynth = new Mynth({
 - `apiKey`: optional if `MYNTH_API_KEY` is set
 - `baseUrl`: optional override for proxies or tests
 
-## Sync vs Async
+## Generate vs Generate Async
 
-### Sync Mode
+### Generate
 
-Sync mode is the default. It polls until the task is completed.
+`generate()` polls until the task is completed.
 
 ```ts
 const task = await mynth.image.generate({
@@ -80,18 +80,15 @@ console.log(task.status); // "completed"
 console.log(task.urls);
 ```
 
-### Async Mode
+### Generate Async
 
-Use async mode when you want to trigger work now and fetch the final task later.
+Use `generateAsync()` when you want to trigger work now and fetch the final task later.
 
 ```ts
-const taskAsync = await mynth.image.generate(
-  {
-    prompt: "A cinematic fantasy castle on a cliff",
-    model: "google/gemini-3.1-flash-image",
-  },
-  { mode: "async" },
-);
+const taskAsync = await mynth.image.generateAsync({
+  prompt: "A cinematic fantasy castle on a cliff",
+  model: "google/gemini-3.1-flash-image",
+});
 
 console.log(taskAsync.id);
 console.log(taskAsync.access.publicAccessToken);
@@ -105,18 +102,15 @@ console.log(completedTask.urls);
 You can use it as a Bearer token against:
 
 - `GET /tasks/:id/status`
-- `GET /tasks/:id/results`
+- `GET /tasks/:id/result`
 
 Example:
 
 ```ts
-const taskAsync = await mynth.image.generate(
-  {
-    prompt: "A cinematic fantasy castle on a cliff",
-    model: "google/gemini-3.1-flash-image",
-  },
-  { mode: "async" },
-);
+const taskAsync = await mynth.image.generateAsync({
+  prompt: "A cinematic fantasy castle on a cliff",
+  model: "google/gemini-3.1-flash-image",
+});
 
 const taskId = taskAsync.id;
 const pat = taskAsync.access.publicAccessToken;
@@ -128,13 +122,13 @@ const status = await fetch(`https://api.mynth.io/tasks/${taskId}/status`, {
 }).then((res) => res.json());
 
 if (status.status === "completed") {
-  const results = await fetch(`https://api.mynth.io/tasks/${taskId}/results`, {
+  const taskResult = await fetch(`https://api.mynth.io/tasks/${taskId}/result`, {
     headers: {
       Authorization: `Bearer ${pat}`,
     },
   }).then((res) => res.json());
 
-  console.log(results.images);
+  console.log(taskResult.result.images);
 }
 ```
 
@@ -152,11 +146,9 @@ You can also pass structured options:
 
 ```ts
 const task = await mynth.image.generate({
-  prompt: {
-    positive: "Studio portrait of a futuristic fashion model",
-    negative: "blurry, low detail",
-    enhance: "prefer_magic",
-  },
+  prompt: "Studio portrait of a futuristic fashion model",
+  negative_prompt: "blurry, low detail",
+  magic_prompt: true,
   model: "google/gemini-3-pro-image-preview",
   size: {
     type: "aspect_ratio",
@@ -168,7 +160,7 @@ const task = await mynth.image.generate({
     quality: 80,
   },
   webhook: {
-    enabled: true,
+    dashboard: false,
     custom: [{ url: "https://your-app.com/api/mynth-webhook" }],
   },
   access: {
@@ -176,8 +168,8 @@ const task = await mynth.image.generate({
       enabled: true,
     },
   },
-  content_rating: {
-    enabled: true,
+  rating: {
+    mode: "custom",
     levels: [
       { value: "safe", description: "Safe for all audiences" },
       { value: "sensitive", description: "Contains mature or suggestive content" },
@@ -205,24 +197,15 @@ const task = await mynth.image.generate({
 
 ## Prompt Options
 
-`prompt` can be:
-
-- a string
-- a structured object with `positive`, optional `negative`, and `enhance`
+`prompt` is the positive text prompt. Use `negative_prompt` for exclusions and `magic_prompt: true` to ask Mynth to enhance the prompt before generation.
 
 ```ts
-prompt: {
-  positive: "A luxury watch on a marble pedestal",
-  negative: "text, watermark",
-  enhance: false,
-}
+await mynth.image.generate({
+  prompt: "A luxury watch on a marble pedestal",
+  negative_prompt: "text, watermark",
+  magic_prompt: true,
+});
 ```
-
-`enhance` accepts:
-
-- `false`
-- `"prefer_magic"`
-- `"prefer_native"`
 
 ## Size Options
 
@@ -257,16 +240,16 @@ size: "landscape";
 size: "auto";
 size: { type: "aspect_ratio", aspectRatio: "16:9" };
 size: { type: "aspect_ratio", aspectRatio: "4:5", scale: "4k" };
-size: { type: "auto", prefer: "native" };
+size: { type: "auto", provider: "native" };
 ```
 
 ## Input Images
 
-Use `inputs` to send reference, context, or init images:
+Use `inputs` to send reference or init images:
 
 ```ts
 inputs: [
-  "https://example.com/context-image.jpg",
+  "https://example.com/input-image.jpg",
   {
     type: "image",
     role: "reference",
@@ -278,7 +261,50 @@ inputs: [
 ];
 ```
 
-String URLs are a shorthand for image inputs. Structured inputs let you control the role explicitly with `"context"`, `"init"`, or `"reference"`.
+String URLs are a shorthand for image inputs. Structured inputs let you control the role explicitly with `"auto"`, `"init"`, or `"reference"`.
+
+## Rating
+
+Enable per-image content rating during generation with `rating`.
+
+```ts
+const task = await mynth.image.generate({
+  prompt: "A fashion editorial image",
+  rating: true, // same result levels as { mode: "nsfw_sfw" }
+});
+
+console.log(task.getImages()[0]?.rating?.level); // "sfw" | "nsfw"
+```
+
+For custom labels, pass at least two and at most seven levels:
+
+```ts
+const task = await mynth.image.generate({
+  prompt: "A movie poster",
+  rating: {
+    mode: "custom",
+    levels: [
+      { value: "general", description: "Appropriate for all audiences" },
+      { value: "teen", description: "Mild mature themes" },
+      { value: "adult", description: "Adult-oriented content" },
+    ] as const,
+  },
+});
+
+console.log(task.getImages()[0]?.rating?.level); // "general" | "teen" | "adult"
+```
+
+You can also rate existing image URLs:
+
+```ts
+const result = await mynth.image.rate({
+  mode: "nsfw_sfw",
+  urls: ["https://example.com/image.webp"],
+});
+
+console.log(result.task.id);
+console.log(result.getRatings());
+```
 
 ## Working With Results
 
@@ -297,7 +323,7 @@ console.log(task.urls);
 console.log(task.getImages());
 console.log(task.getImages({ includeFailed: true }));
 console.log(task.getMetadata());
-console.log(task.result?.prompt_enhance);
+console.log(task.result?.magic_prompt);
 ```
 
 `task.urls` and `task.getImages()` return only successful images by default. `task.result?.images` may also include failed image entries.
@@ -379,7 +405,7 @@ Set `MYNTH_WEBHOOK_SECRET` in your environment, or pass `webhookSecret` explicit
 
 ## Error Handling
 
-`generate()` may throw `MynthAPIError` if the initial request fails. Async polling can also throw task-specific errors:
+`generate()` and `generateAsync()` may throw `MynthAPIError` if the initial request fails. Polling can also throw task-specific errors:
 
 ```ts
 import {
@@ -392,10 +418,7 @@ import {
 } from "@mynthio/sdk";
 
 try {
-  const taskAsync = await mynth.image.generate(
-    { prompt: "A watercolor landscape" },
-    { mode: "async" },
-  );
+  const taskAsync = await mynth.image.generateAsync({ prompt: "A watercolor landscape" });
 
   const task = await taskAsync.wait();
   console.log(task.urls);

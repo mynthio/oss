@@ -6,7 +6,7 @@ Short-lived JWTs scoped to a single task. Safe to send to the browser — cannot
 
 ## How They Work
 
-1. **Server**: generate a task with async mode, receive a PAT
+1. **Server**: start a task with `generateAsync()`, receive a PAT
 2. **Client**: use the PAT to poll task status and results directly from the browser
 3. CORS is enabled on `/tasks/:id/status` and `/tasks/:id/results` — no proxy needed
 
@@ -15,7 +15,7 @@ Short-lived JWTs scoped to a single task. Safe to send to the browser — cannot
 ```ts
 import { mynth } from "./mynth";
 
-const taskAsync = await mynth.image.generate({ prompt: "A sunset" }, { mode: "async" });
+const taskAsync = await mynth.image.generateAsync({ prompt: "A sunset" });
 
 // Send both to the client
 const taskId = taskAsync.id;
@@ -48,12 +48,12 @@ if (status.status === "completed") {
 - CORS allows all origins on status/results endpoints
 - Short-lived (1 hour when auto-generated)
 
-## SDK Async Mode
+## SDK Generate Async
 
 The SDK handles PAT generation and polling internally:
 
 ```ts
-const taskAsync = await mynth.image.generate({ prompt: "..." }, { mode: "async" });
+const taskAsync = await mynth.image.generateAsync({ prompt: "..." });
 console.log(taskAsync.access.publicAccessToken); // send this to client
 const task = await taskAsync.wait(); // polls until done
 ```

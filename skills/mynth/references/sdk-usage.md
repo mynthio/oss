@@ -15,7 +15,7 @@ const mynth = new Mynth({
 });
 ```
 
-## Sync Generation (default)
+## Generate
 
 Waits for completion, returns a completed task:
 
@@ -30,15 +30,12 @@ console.log(task.result?.model);
 console.log(task.getImages());
 ```
 
-## Async Generation
+## Generate Async
 
 Returns immediately with a task ID and PAT (public access token):
 
 ```ts
-const taskAsync = await mynth.image.generate(
-  { prompt: "A sunset over mountains" },
-  { mode: "async" },
-);
+const taskAsync = await mynth.image.generateAsync({ prompt: "A sunset over mountains" });
 
 console.log(taskAsync.id);
 console.log(taskAsync.access.publicAccessToken);

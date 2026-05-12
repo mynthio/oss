@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.16](https://github.com/mynthio/oss/compare/sdk-v0.0.15...sdk-v0.0.16) (2026-05-12)
+
+
+### Features
+
+* **sdk:** align image APIs with task schema ([f1e494e](https://github.com/mynthio/oss/commit/f1e494e528b8de3821f675bdc432727904d91250))
+
 ## [0.0.15](https://github.com/mynthio/oss/compare/sdk-v0.0.14...sdk-v0.0.15) (2026-04-24)
 
 

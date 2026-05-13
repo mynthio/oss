@@ -1,22 +1,13 @@
 # REST API
 
-## Base URL
+Use REST for non-JS apps, mobile backends, or runtimes where the SDK is not appropriate.
 
-```
-https://api.mynth.io
-```
+- Base URL: `https://api.mynth.io`
+- OpenAPI: [https://api.mynth.io/openapi](https://api.mynth.io/openapi)
+- API key auth: `Authorization: Bearer mak_...`
+- PAT auth for task polling: `Authorization: Bearer pat_...`
 
-OpenAPI spec: [https://api.mynth.io/openapi](https://api.mynth.io/openapi)
-
-## Authentication
-
-```
-Authorization: Bearer mak_...
-```
-
-PATs use: `Authorization: Bearer pat_...`
-
-## Generate Image
+## Submit
 
 `POST /image/generate`
 
@@ -42,9 +33,13 @@ Response (201):
 }
 ```
 
-Disable PAT generation: set `access.pat.enabled: false` in body.
+PAT generation is enabled by default. Disable it with:
 
-## Task Status
+```json
+{ "access": { "pat": { "enabled": false } } }
+```
+
+## Poll
 
 `GET /tasks/:id/status` — API key or PAT
 
@@ -52,22 +47,21 @@ Disable PAT generation: set `access.pat.enabled: false` in body.
 { "status": "completed" }
 ```
 
-## Task Results
-
-`GET /tasks/:id/results` — API key or PAT
+`GET /tasks/:id/result` — API key or PAT
 
 ```json
 {
-  "images": [{ "url": "https://cdn.mynth.io/...", "size": { "width": 1024, "height": 576 } }]
+  "id": "tsk_...",
+  "type": "image.generate",
+  "status": "completed",
+  "result": {
+    "images": [{ "url": "https://cdn.mynth.io/..." }]
+  }
 }
 ```
 
-## Task Details
+These polling endpoints are CORS-enabled for browser calls with PATs.
 
 `GET /tasks/:id` — API key only (owner)
 
 Returns full task object including cost, request, timestamps.
-
-## CORS
-
-`/tasks/:id/status` and `/tasks/:id/results` allow all origins. Safe to call from browser with PAT.

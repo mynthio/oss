@@ -1,23 +1,16 @@
 # SDK Usage
 
-## Client Creation
+Use `@mynthio/sdk` from server-side JS/TS code.
 
 ```ts
 import Mynth from "@mynthio/sdk";
 
-// Reads MYNTH_API_KEY from env
 const mynth = new Mynth();
-
-// Or pass explicitly
-const mynth = new Mynth({
-  apiKey: "mak_...",
-  baseUrl: "https://api.mynth.io",
-});
 ```
 
 ## Generate
 
-Waits for completion, returns a completed task:
+`generate()` waits until the task completes.
 
 ```ts
 const task = await mynth.image.generate({
@@ -30,9 +23,9 @@ console.log(task.result?.model);
 console.log(task.getImages());
 ```
 
-## Generate Async
+## Start Now, Finish Later
 
-Returns immediately with a task ID and PAT (public access token):
+`generateAsync()` returns a task ID immediately. Use it for browser polling, background UI states, or webhook-driven persistence.
 
 ```ts
 const taskAsync = await mynth.image.generateAsync({ prompt: "A sunset over mountains" });
@@ -40,7 +33,6 @@ const taskAsync = await mynth.image.generateAsync({ prompt: "A sunset over mount
 console.log(taskAsync.id);
 console.log(taskAsync.access.publicAccessToken);
 
-// Poll until done
 const task = await taskAsync.wait();
 console.log(task.urls);
 ```
@@ -54,43 +46,19 @@ await mynth.image.generate({
   size: { type: "aspect_ratio", aspectRatio: "16:9" },
   count: 2,
   output: { format: "webp", quality: 80 },
+  negative_prompt: "text, watermark",
+  magic_prompt: true,
   inputs: ["https://example.com/reference.jpg"],
   metadata: { userId: "u_123" },
 });
 ```
 
-### Prompt
+Useful size values:
 
-A string, or structured:
-
-```ts
-prompt: {
-  positive: "Studio product shot",
-  negative: "blurry, text",
-  enhance: "prefer_magic",
-}
-```
-
-### Size
-
-- Presets: `"landscape"`, `"portrait"`, `"square"`, `"instagram"`
-- `"auto"` — Mynth resolves optimal aspect ratio
-- Aspect ratios: `"1:1"`, `"16:9"`, `"4:3"`, `"9:16"`, `"2:3"`, `"3:2"`, etc.
-- Optional `scale: "4k"` for higher resolution on supporting models
-
-Mynth applies best resolution presets by default. No raw pixel resolution — use aspect ratios.
-
-See all models and capabilities: [mynth.io/models](https://mynth.io/models)
-
-### Output
-
-Format and quality are processed via sharp:
-
-```ts
-output: { format: "webp", quality: 80 }
-```
-
-Supported formats: `png`, `jpg`, `webp`.
+- `"auto"`
+- `"square"`, `"portrait"`, `"landscape"`, `"portrait_tall"`, `"landscape_wide"`
+- `"1:1"`, `"2:3"`, `"3:2"`, `"3:4"`, `"4:3"`, `"4:5"`, `"5:4"`, `"9:16"`, `"16:9"`, `"21:9"`, `"2:1"`, `"1:2"`
+- `{ type: "aspect_ratio", aspectRatio: "4:5", scale: "4k" }`
 
 ## Working With Results
 
@@ -105,6 +73,8 @@ task.getImages(); // detailed image objects
 task.result?.model; // resolved model
 task.getMetadata(); // your metadata object
 ```
+
+The SDK also exports `AVAILABLE_MODELS` and `MynthSDKTypes` for typed model selection and request objects.
 
 ## Error Handling
 

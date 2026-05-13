@@ -1,18 +1,18 @@
 ---
 name: mynth
 description: >
-  Mynth unified image generation API. Use when working with image generation,
-  adding image generation to an app, migrating to Mynth, switching between image
-  providers, or setting up Mynth. Triggers on: "mynth", "image generation",
-  "add image gen", "migrate to mynth", "switch to mynth", "multi-model image",
-  "unified image API", "replace image provider".
+  Use when adding or migrating AI image generation with Mynth, the unified image
+  generation API and SDK. Covers @mynthio/sdk, the REST API, Public Access
+  Tokens for browser polling, webhooks, Convex, and the @mynthio/tanstack-ai
+  adapter. Trigger for Mynth-specific setup, provider replacement, multi-model
+  image generation, image task polling, or webhook sync.
 ---
 
 # Mynth Image Generation
 
-Mynth is a unified API for image generation across multiple models and providers.
+Mynth submits image-generation tasks to a unified API, returns a task ID, and can expose a task-scoped Public Access Token for browser polling.
 
-## Guides
+## Pick the Reference
 
 | Task                               | Reference                                                     |
 | ---------------------------------- | ------------------------------------------------------------- |
@@ -20,22 +20,22 @@ Mynth is a unified API for image generation across multiple models and providers
 | Set up Mynth in a project          | [setup.md](references/setup.md)                               |
 | Use the SDK (JS/TS with server)    | [sdk-usage.md](references/sdk-usage.md)                       |
 | Use the REST API (non-JS, mobile)  | [rest-api.md](references/rest-api.md)                         |
-| Use with Tanstack Start/AI         | [tanstack-ai.md](references/tanstack-ai.md)                   |
+| Use with TanStack AI               | [tanstack-ai.md](references/tanstack-ai.md)                   |
 | Use with Convex                    | [convex.md](references/convex.md)                             |
 | Client-side polling with PATs      | [public-access-tokens.md](references/public-access-tokens.md) |
 | Set up webhooks                    | [webhooks.md](references/webhooks.md)                         |
 
-## Choosing an Integration
+## Integration Choice
 
-1. **JS/TS repo with a server** → SDK (`@mynthio/sdk`)
-2. **Non-JS or mobile** → REST API (see [OpenAPI spec](https://api.mynth.io/openapi))
-3. **Tanstack Start or `@tanstack/ai`** → Tanstack adapter (`@mynthio/tanstack-ai-adapter`)
-4. **Convex backend** → Convex helper (`@mynthio/sdk/convex`)
+- JS/TS server code: `@mynthio/sdk`
+- Non-JS, mobile, or edge code without the SDK: REST API
+- TanStack AI `generateImage()`: `@mynthio/tanstack-ai-adapter`
+- Convex webhook handling: `@mynthio/sdk/convex`
 
-## How Mynth Works
+## Core Flow
 
-1. **Submit** a generation request — returns a task ID and a PAT (public access token)
-2. **Poll** task status and results from the browser using the PAT (CORS enabled)
-3. **Sync** results to your database via webhooks
+1. Submit a generation request with an API key.
+2. Poll task status and result with the API key or task-scoped PAT.
+3. Use webhooks when the app needs durable database sync.
 
-Mynth manages providers, retries, and processing internally. No queue infrastructure needed on your side.
+Keep implementations small: do not recreate provider routing, queue workers, polling proxy endpoints, format conversion, or content-rating logic unless the app has a reason Mynth does not cover.

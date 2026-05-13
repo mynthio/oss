@@ -1,10 +1,10 @@
 # Webhooks
 
-## Two Options
+Use webhooks when generated results must be persisted, billed, moderated, or attached to user records without relying on an open browser tab.
 
-### 1. Per-Request Custom Webhooks
+## Per-Request Custom Webhooks
 
-Pass directly in the generate request. No signing. Up to 5 endpoints.
+Pass directly in the generate request. These are not signed.
 
 ```ts
 await mynth.image.generate({
@@ -13,9 +13,9 @@ await mynth.image.generate({
 });
 ```
 
-### 2. Dashboard-Registered Webhooks
+## Registered Webhooks
 
-Create via API, stored in database. Signed with HMAC-SHA256. Auto-disabled after consecutive failures.
+Create in the dashboard or API. Registered webhooks are signed with HMAC-SHA256.
 
 ```ts
 await fetch("https://api.mynth.io/webhook/", {
@@ -26,7 +26,7 @@ await fetch("https://api.mynth.io/webhook/", {
   },
   body: JSON.stringify({
     url: "https://your-app.com/api/mynth-webhook",
-    events: ["task.image.generate.completed", "task.image.generate.failed"],
+    events: ["task.image.generate.completed"],
     enabled: true,
   }),
 });
@@ -40,7 +40,7 @@ await fetch("https://api.mynth.io/webhook/", {
 - `task.failed` — any task failed
 - `all` — all events
 
-## Payload Shape
+## Payload
 
 On completion:
 
@@ -72,16 +72,18 @@ Headers: `X-Mynth-Event` and `X-Mynth-Signature: t=<timestamp>,v1=<hex>`
 
 Verify: `HMAC-SHA256("{timestamp}.{rawBody}", webhookSecret)`
 
-## Convex
+For Convex, use `@mynthio/sdk/convex`; see [convex.md](convex.md).
 
-Use `@mynthio/sdk/convex` for automatic signature verification — see [convex.md](convex.md).
+## Request-Level Overrides
 
-## Disable Dashboard Webhooks per Request
+Disable registered webhooks for one request while still sending a custom webhook:
 
 ```ts
 await mynth.image.generate({
   prompt: "A sunset",
-  webhook: { enabled: false }, // disables dashboard webhooks for this task
-  webhook: { custom: [{ url: "..." }] }, // still sends to custom endpoints
+  webhook: {
+    dashboard: false,
+    custom: [{ url: "https://your-app.com/api/mynth-webhook" }],
+  },
 });
 ```

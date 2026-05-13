@@ -1,12 +1,10 @@
 # Convex Integration
 
-## Installation
+Use this only for handling signed Mynth webhooks in Convex HTTP actions. For generation calls from Convex functions, use the regular SDK client from [sdk-usage.md](sdk-usage.md).
 
 ```bash
 bun add @mynthio/sdk
 ```
-
-## Webhook Handler
 
 Define in your `convex/http.ts`:
 
@@ -26,9 +24,7 @@ export const mynthWebhook = mynthWebhookAction({
 });
 ```
 
-## Environment Variable
-
-Set `MYNTH_WEBHOOK_SECRET` in your Convex environment. Or pass `webhookSecret` explicitly:
+Set `MYNTH_WEBHOOK_SECRET` in Convex, or pass it explicitly:
 
 ```ts
 export const mynthWebhook = mynthWebhookAction(
@@ -41,9 +37,7 @@ export const mynthWebhook = mynthWebhookAction(
 );
 ```
 
-## Events
+The helper verifies `X-Mynth-Signature` and routes:
 
-- `imageTaskCompleted` — fires when generation succeeds. `payload.result.images` contains the generated images.
-- `imageTaskFailed` — fires when generation fails. `payload.task.id` identifies the failed task.
-
-Signature verification (HMAC-SHA256, `X-Mynth-Signature` header) is handled automatically.
+- `task.image.generate.completed` to `imageTaskCompleted`
+- `task.image.generate.failed` to `imageTaskFailed`

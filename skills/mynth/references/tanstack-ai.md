@@ -1,12 +1,10 @@
-# Tanstack AI Adapter
+# TanStack AI Adapter
 
-## Installation
+Use this when the app already uses `@tanstack/ai` and wants Mynth through `generateImage()`.
 
 ```bash
 bun add @mynthio/tanstack-ai-adapter @tanstack/ai
 ```
-
-## Quick Start
 
 ```ts
 import { generateImage } from "@tanstack/ai";
@@ -20,9 +18,7 @@ const result = await generateImage({
 console.log(result.images); // [{ url: "..." }]
 ```
 
-## Reusable Provider
-
-Create a provider instance for reuse across multiple generations:
+Create a reusable provider when the app centralizes API config:
 
 ```ts
 import { createMynthImage } from "@mynthio/tanstack-ai-adapter";
@@ -35,7 +31,7 @@ const result = await generateImage({
 });
 ```
 
-## Streaming (SSE)
+Streaming:
 
 ```ts
 import { generateImage } from "@tanstack/ai";
@@ -51,20 +47,17 @@ const stream = generateImage({
 return toServerSentEventsResponse(stream);
 ```
 
-## Mynth-Specific Options
-
-Pass Mynth options via `modelOptions`:
+Pass Mynth-specific fields through `modelOptions`:
 
 ```ts
 const result = await generateImage({
   adapter: mynthImage("black-forest-labs/flux.2-dev"),
   prompt: "A sunset",
   modelOptions: {
-    mynth: {
-      output: { format: "png", quality: 100 },
-      inputs: ["https://example.com/ref.jpg"],
-      metadata: { userId: "u_123" },
-    },
+    output: { format: "png", quality: 100 },
+    size: { type: "aspect_ratio", aspectRatio: "16:9" },
+    inputs: ["https://example.com/ref.jpg"],
+    metadata: { userId: "u_123" },
   },
 });
 ```

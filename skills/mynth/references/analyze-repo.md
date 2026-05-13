@@ -1,38 +1,28 @@
 # Analyze a Repo for Mynth Migration
 
-## When to Use
-
-When the user asks to analyze their repo for Mynth suitability, evaluate whether Mynth can simplify their codebase. Scan for these patterns and highlight savings.
+Use this when asked whether Mynth can replace existing image-generation code.
 
 ## Migration Patterns
 
-| What user does                                                                    | What Mynth provides                                                | Savings                                                        |
-| --------------------------------------------------------------------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------- |
-| Multiple providers/models with per-model config (if/else, switch, config objects) | Single unified payload — just change `model` field                 | Removes provider abstraction and per-model config logic        |
-| Manual retries on image generation                                                | Mynth retries across providers internally                          | Retries likely unnecessary; at most handle 500 on initial call |
-| Content rating checks (manual or LLM-based)                                       | Built-in `content_rating` with custom levels                       | Reduces LLM calls, removes rating logic                        |
-| Image post-processing (format conversion, quality, resize)                        | Built-in output formatting via sharp                               | Removes image processing code                                  |
-| Manual image size determination per prompt                                        | `size: "auto"`                                                     | Removes size selection logic                                   |
-| Background jobs/queues (trigger.dev, BullMQ, custom workers)                      | Mynth is always async. PAT for client polling, webhooks to sync DB | Removes queue infra, polling proxies, status endpoints         |
+- Provider switch statements, model config maps, or fallback logic -> one `model` field, often `"auto"`.
+- Queue workers or status proxy endpoints -> Mynth tasks plus PAT browser polling.
+- Webhook sync code without provider value -> Mynth webhooks.
+- Prompt-to-size heuristics -> `size: "auto"` or explicit aspect-ratio presets.
+- Post-processing for output format/quality -> `output`.
+- Content rating calls -> `rating`.
+- Provider-specific reference/init image plumbing -> `inputs`.
 
 ## Analysis Workflow
 
 1. Scan the repo for image generation related code
-2. Match patterns from the table above
-3. Estimate code reduction per pattern
-4. Recommend integration approach based on stack:
-   - JS/TS with server → SDK (`@mynthio/sdk`)
-   - Non-JS or mobile → REST API
-   - Tanstack Start or `@tanstack/ai` → Tanstack adapter
-   - Convex → `@mynthio/sdk/convex`
-5. Present findings with a summary of what can be removed/replaced
+2. Match only concrete code paths to the patterns above
+3. Recommend the smallest integration path from [SKILL.md](../SKILL.md)
+4. Present what can be deleted, what must remain, and any behavior that needs product confirmation
 
-## The Mynth Async Pattern
+## Core Replacement Pattern
 
-Mynth always processes tasks asynchronously:
+1. Server submits with `generateAsync()` or `POST /image/generate`
+2. Browser polls `/tasks/:id/status` and `/tasks/:id/result` with the PAT
+3. Server syncs durable state from `task.image.generate.completed` webhooks
 
-1. **Submit** — call `generateAsync()` or `POST /image/generate`, receive task ID + PAT
-2. **Client-side** — send PAT to browser, poll `/tasks/:id/status` and `/tasks/:id/results` directly (CORS allows all origins on these endpoints, no proxy needed)
-3. **Server-side** — receive webhook (`task.image.generate.completed`) to sync result to your database
-
-This replaces custom queue workers, custom status endpoints, and background job infrastructure.
+Do not promise removal of queues or workers if the app uses them for unrelated work, retries with custom semantics, payments, moderation review, or user notifications.

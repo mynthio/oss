@@ -241,10 +241,8 @@ const rate = Command.make(
         return;
       }
 
-      const successes = result.results.filter(
-        (r): r is { url: string; rating: string } => "url" in r,
-      );
-      const errors = result.results.filter((r): r is { error_code: string } => "error_code" in r);
+      const successes = result.results.filter((r) => r.status === "success");
+      const errors = result.results.filter((r) => r.status === "failed");
 
       if (uploaded.length > 0) {
         yield* Console.log(
@@ -252,13 +250,13 @@ const rate = Command.make(
         );
       }
       yield* Console.log(
-        `✓ Rated ${successes.length}/${result.results.length} (task ${result.taskId})`,
+        `✓ Rated ${successes.length}/${result.results.length} (task ${result.task.id})`,
       );
       for (const r of successes) {
-        yield* Console.log(`  ${r.rating}  ${r.url}`);
+        yield* Console.log(`  ${r.level}  ${r.url}`);
       }
       for (const r of errors) {
-        yield* Console.log(`  ERROR  ${r.error_code}`);
+        yield* Console.log(`  ERROR  ${r.error.code}  ${r.url}`);
       }
       if (urlInputs.length === 0 && uploaded.length > 0) {
         yield* Console.log("");
@@ -273,7 +271,7 @@ const rate = Command.make(
 // image generate --------------------------------------------------------------
 
 const MAX_GENERATE_INPUTS = 8;
-const INPUT_ROLES = ["context", "init", "reference"] as const;
+const INPUT_ROLES = ["auto", "init", "reference"] as const;
 type InputRole = (typeof INPUT_ROLES)[number];
 
 type ParsedInput = {
@@ -319,7 +317,7 @@ const negativeOption = Options.text("negative").pipe(
 
 const enhanceOption = Options.choice("enhance", ["prefer_magic", "prefer_native", "none"]).pipe(
   Options.withDescription(
-    'Prompt enhancement mode: "prefer_magic" (Mynth), "prefer_native" (provider), or "none"',
+    'Prompt enhancement mode: "prefer_magic" (Mynth) or "none". "prefer_native" is no longer supported by the API.',
   ),
   Options.optional,
 );
@@ -360,7 +358,7 @@ const inputOption = Options.text("input").pipe(
   Options.withAlias("i"),
   Options.withDescription(
     'Input image as "[role:]path-or-url" (repeatable, up to ' +
-      `${MAX_GENERATE_INPUTS}). Role is one of: context, init, reference (default: reference). ` +
+      `${MAX_GENERATE_INPUTS}). Role is one of: auto, init, reference (default: reference). ` +
       "Examples: -i ./img.jpg, -i reference:https://example.com/a.png, -i init:./seed.png",
   ),
   Options.repeated,
@@ -449,6 +447,15 @@ const generate = Command.make(
     Effect.gen(function* () {
       const images = yield* ImageService;
 
+      const enhanceValue = Option.getOrUndefined(opts.enhance);
+      if (enhanceValue === "prefer_native") {
+        return yield* new MynthApiError({
+          message:
+            '--enhance prefer_native is no longer supported by the API; use "prefer_magic" or "none"',
+          status: 0,
+        });
+      }
+
       if (opts.input.length > MAX_GENERATE_INPUTS) {
         return yield* new MynthApiError({
           message: `too many --input values: ${opts.input.length} (max ${MAX_GENERATE_INPUTS})`,
@@ -489,18 +496,7 @@ const generate = Command.make(
         },
       }));
 
-      // Build structured prompt when any structured field is provided
-      const enhanceValue = Option.getOrUndefined(opts.enhance);
       const negativeValue = Option.getOrUndefined(opts.negative);
-      const usesStructuredPrompt = enhanceValue !== undefined || negativeValue !== undefined;
-
-      const prompt: unknown = usesStructuredPrompt
-        ? {
-            positive: opts.prompt,
-            ...(negativeValue !== undefined ? { negative: negativeValue } : {}),
-            enhance: enhanceValue === undefined || enhanceValue === "none" ? false : enhanceValue,
-          }
-        : opts.prompt;
 
       const output: Record<string, unknown> = {};
       const fmt = Option.getOrUndefined(opts.format);
@@ -510,23 +506,25 @@ const generate = Command.make(
 
       const contentRatingCfg =
         customLevels !== undefined
-          ? { enabled: true, levels: customLevels }
+          ? { mode: "custom", levels: customLevels }
           : opts.contentRating
-            ? { enabled: true }
+            ? true
             : undefined;
 
-      const request: Record<string, unknown> = { prompt };
+      const request: Record<string, unknown> = { prompt: opts.prompt };
       const model = Option.getOrUndefined(opts.model);
       const size = Option.getOrUndefined(opts.size);
       const count = Option.getOrUndefined(opts.count);
       const destination = Option.getOrUndefined(opts.destination);
       if (model !== undefined) request["model"] = model;
+      if (negativeValue !== undefined) request["negative_prompt"] = negativeValue;
+      if (enhanceValue === "prefer_magic") request["magic_prompt"] = true;
       if (size !== undefined) request["size"] = size;
       if (count !== undefined) request["count"] = count;
       if (Object.keys(output).length > 0) request["output"] = output;
       if (resolvedInputs.length > 0) request["inputs"] = resolvedInputs;
       if (destination !== undefined) request["destination"] = destination;
-      if (contentRatingCfg !== undefined) request["content_rating"] = contentRatingCfg;
+      if (contentRatingCfg !== undefined) request["rating"] = contentRatingCfg;
       if (Option.isSome(metadata)) request["metadata"] = metadata.value;
 
       // Async mode: create the task and return the ID immediately.
@@ -589,7 +587,7 @@ type TaskResult = {
   images?: ReadonlyArray<Record<string, unknown>>;
   cost?: { total?: string };
   model?: string;
-  prompt_enhance?: { positive?: string; negative?: string; source?: string };
+  magic_prompt?: { positive?: string; negative?: string };
   destination?: { name?: string };
   size_auto?: { value?: string; source?: string };
 };
@@ -602,7 +600,7 @@ const downloadSucceededImages = Effect.fn("image.downloadSucceededImages")(funct
   const result = (task.result ?? {}) as TaskResult;
   const urls = (result.images ?? [])
     .map((img) => img as Record<string, unknown>)
-    .filter((img) => img["status"] === "succeeded")
+    .filter((img) => img["status"] === "success")
     .map((img) => (img["url"] as string | null) ?? (img["mynth_url"] as string | null))
     .filter((u): u is string => typeof u === "string" && u.length > 0);
 
@@ -623,13 +621,13 @@ const summarizeTask = (task: {
   const result = (task.result ?? {}) as TaskResult;
   const images = (result.images ?? []).map((img) => {
     const obj = img as Record<string, unknown>;
-    if (obj["status"] === "succeeded") {
+    if (obj["status"] === "success") {
       return {
-        status: "succeeded",
+        status: "success",
         url: obj["url"] ?? null,
         mynth_url: obj["mynth_url"] ?? null,
         size: obj["size"],
-        content_rating: obj["content_rating"],
+        rating: obj["rating"],
       };
     }
     return { status: "failed", error: obj["error"], mynth_url: obj["mynth_url"] ?? null };
@@ -638,7 +636,7 @@ const summarizeTask = (task: {
     taskId: task.id,
     status: task.status,
     images,
-    ...(result.prompt_enhance ? { prompt_enhance: result.prompt_enhance } : {}),
+    ...(result.magic_prompt ? { magic_prompt: result.magic_prompt } : {}),
     ...(result.cost?.total !== undefined ? { cost: result.cost.total } : {}),
     ...(result.model !== undefined ? { model: result.model } : {}),
   };
@@ -655,7 +653,7 @@ const renderTaskHuman = Effect.fn("image.renderTaskHuman")(function* (
     yield* Console.log(`✓ Uploaded ${uploadedCount} input image${uploadedCount === 1 ? "" : "s"}`);
   }
 
-  const succeeded = images.filter((i) => (i as Record<string, unknown>)["status"] === "succeeded");
+  const succeeded = images.filter((i) => (i as Record<string, unknown>)["status"] === "success");
   yield* Console.log(
     `✓ Generated ${succeeded.length}/${images.length} image${images.length === 1 ? "" : "s"} (task ${task.id})`,
   );
@@ -669,12 +667,12 @@ const renderTaskHuman = Effect.fn("image.renderTaskHuman")(function* (
     yield* Console.log(`  Destination: ${result.destination.name}`);
   }
 
-  if (result.prompt_enhance?.positive !== undefined) {
+  if (result.magic_prompt?.positive !== undefined) {
     yield* Console.log("");
-    yield* Console.log(`Enhanced prompt (${result.prompt_enhance.source ?? "unknown"}):`);
-    yield* Console.log(`  ${result.prompt_enhance.positive}`);
-    if (result.prompt_enhance.negative !== undefined && result.prompt_enhance.negative.length > 0) {
-      yield* Console.log(`  negative: ${result.prompt_enhance.negative}`);
+    yield* Console.log("Enhanced prompt (mynth):");
+    yield* Console.log(`  ${result.magic_prompt.positive}`);
+    if (result.magic_prompt.negative !== undefined && result.magic_prompt.negative.length > 0) {
+      yield* Console.log(`  negative: ${result.magic_prompt.negative}`);
     }
   }
 
@@ -682,8 +680,8 @@ const renderTaskHuman = Effect.fn("image.renderTaskHuman")(function* (
     yield* Console.log("");
     for (const raw of images) {
       const img = raw as Record<string, unknown>;
-      if (img["status"] === "succeeded") {
-        const rating = img["content_rating"] as { level?: string } | undefined;
+      if (img["status"] === "success") {
+        const rating = img["rating"] as { level?: string } | undefined;
         const ratingSuffix = rating?.level !== undefined ? ` [${rating.level}]` : "";
         const url = (img["url"] as string | null) ?? (img["mynth_url"] as string);
         yield* Console.log(`  ✓ ${url}${ratingSuffix}`);

@@ -23,11 +23,14 @@ export type RateLevel = {
 };
 
 export type RateResultItem =
-  | { readonly url: string; readonly rating: string }
-  | { readonly error_code: string };
+  | { readonly status: "success"; readonly url: string; readonly level: string }
+  | { readonly status: "failed"; readonly url: string; readonly error: { readonly code: string } };
 
 export type RateResponse = {
-  readonly taskId: string;
+  readonly task: {
+    readonly id: string;
+    readonly cost: string;
+  };
   readonly results: ReadonlyArray<RateResultItem>;
 };
 
@@ -187,8 +190,10 @@ export class ImageService extends Effect.Service<ImageService>()("ImageService",
         hasLevels: args.levels !== undefined,
       });
 
-      const body: Record<string, unknown> = { urls: args.urls };
-      if (args.levels !== undefined) body["levels"] = args.levels;
+      const body: Record<string, unknown> =
+        args.levels !== undefined
+          ? { urls: args.urls, mode: "custom", levels: args.levels }
+          : { urls: args.urls, mode: "nsfw_sfw" };
 
       const httpBody = yield* HttpBody.json(body).pipe(
         Effect.mapError(
@@ -457,12 +462,19 @@ const UploadResponseSchema = Schema.Struct({
 });
 
 const RateResultItemSchema = Schema.Union(
-  Schema.Struct({ url: Schema.String, rating: Schema.String }),
-  Schema.Struct({ error_code: Schema.String }),
+  Schema.Struct({ status: Schema.Literal("success"), url: Schema.String, level: Schema.String }),
+  Schema.Struct({
+    status: Schema.Literal("failed"),
+    url: Schema.String,
+    error: Schema.Struct({ code: Schema.String }),
+  }),
 );
 
 const RateResponseSchema = Schema.Struct({
-  taskId: Schema.String,
+  task: Schema.Struct({
+    id: Schema.String,
+    cost: Schema.String,
+  }),
   results: Schema.Array(RateResultItemSchema),
 });
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.13](https://github.com/mynthio/oss/compare/tan-ai-v0.0.12...tan-ai-v0.0.13) (2026-05-13)
+
+
+### Features
+
+* **tanstack-ai-adapter:** support current Mynth options ([3b53639](https://github.com/mynthio/oss/commit/3b5363971c4839618e8e8ee4a500064f416ba14c))
+
 ## [0.0.12](https://github.com/mynthio/oss/compare/tan-ai-v0.0.11...tan-ai-v0.0.12) (2026-04-27)
 
 

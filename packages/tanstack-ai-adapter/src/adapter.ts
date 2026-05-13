@@ -41,7 +41,7 @@ export class MynthImageAdapter<TModel extends MynthImageModel> extends BaseImage
   private client: MynthImage;
 
   constructor(config: MynthImageConfig, model: TModel) {
-    super({}, model);
+    super(model);
 
     this.client = new MynthImage({
       apiKey: config.apiKey,
@@ -65,10 +65,20 @@ export class MynthImageAdapter<TModel extends MynthImageModel> extends BaseImage
     const { prompt, numberOfImages, size, modelOptions } = options;
 
     const request: MynthSDKTypes.ImageGenerationRequest = {
-      prompt: modelOptions?.promptStructured ?? prompt,
+      prompt: modelOptions?.promptStructured?.positive ?? prompt,
       // TanStack adapters are model-bound; provider options should not override it.
       model: this.model as MynthSDKTypes.ImageGenerationModel,
     };
+
+    if (modelOptions?.promptStructured?.negative !== undefined) {
+      request.negative_prompt = modelOptions.promptStructured.negative;
+    } else if (modelOptions?.negativePrompt !== undefined) {
+      request.negative_prompt = modelOptions.negativePrompt;
+    }
+
+    if (modelOptions?.promptStructured?.enhance || modelOptions?.magicPrompt) {
+      request.magic_prompt = true;
+    }
 
     if (numberOfImages !== undefined) {
       request.count = numberOfImages;
@@ -98,8 +108,10 @@ export class MynthImageAdapter<TModel extends MynthImageModel> extends BaseImage
       request.webhook = modelOptions.webhook;
     }
 
-    if (modelOptions?.contentRating !== undefined) {
-      request.content_rating = modelOptions.contentRating;
+    if (modelOptions?.rating !== undefined) {
+      request.rating = modelOptions.rating;
+    } else if (modelOptions?.contentRating !== undefined) {
+      request.rating = modelOptions.contentRating;
     }
 
     if (modelOptions?.metadata !== undefined) {
@@ -117,7 +129,7 @@ export class MynthImageAdapter<TModel extends MynthImageModel> extends BaseImage
     task: Awaited<ReturnType<MynthImage["generate"]>>,
     fallbackModel: string,
   ): ImageGenerationResult {
-    const revisedPrompt = task.result?.prompt_enhance?.positive;
+    const revisedPrompt = task.result?.magic_prompt?.positive;
     const images: Array<GeneratedImage> = task
       .getImages()
       .filter((img): img is typeof img & { url: string } => img.url !== null)

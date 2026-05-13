@@ -19,6 +19,7 @@ export type { MynthImageModel } from "./model-meta";
 export type {
   MynthImageModelProviderOptionsByName,
   MynthImageModelSizeByName,
+  MynthImagePromptStructured,
   MynthImageShorthandSize,
   MynthImageProviderOptions,
 } from "./provider-options";

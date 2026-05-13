@@ -37,10 +37,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@mynthio/sdk": "0.0.15"
+    "@mynthio/sdk": "0.0.16"
   },
   "devDependencies": {
-    "@tanstack/ai": "^0.9.2",
+    "@tanstack/ai": "^0.16.0",
     "@tanstack/vite-config": "^0.5.2",
     "@vitest/coverage-v8": "^4.1.2",
     "typescript": "6.0.2",
@@ -48,6 +48,6 @@
     "vitest": "^4.1.2"
   },
   "peerDependencies": {
-    "@tanstack/ai": ">=0.9.2"
+    "@tanstack/ai": ">=0.16.0"
   }
 }

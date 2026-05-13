@@ -100,15 +100,12 @@ import { mynthImage } from "@mynthio/tanstack-ai-adapter";
 
 const result = await generateImage({
   adapter: mynthImage("google/gemini-3.1-flash-image"),
-  prompt: "Ignored when promptStructured is provided",
+  prompt: "Modern poster design for a jazz festival",
   numberOfImages: 2,
   size: "landscape",
   modelOptions: {
-    promptStructured: {
-      positive: "Modern poster design for a jazz festival",
-      negative: "watermark, blurry text",
-      enhance: "prefer_magic",
-    },
+    negativePrompt: "watermark, blurry text",
+    magicPrompt: true,
     size: {
       type: "aspect_ratio",
       aspectRatio: "4:5",
@@ -119,16 +116,14 @@ const result = await generateImage({
     },
     inputs: ["https://example.com/reference-image.jpg"],
     webhook: {
-      enabled: true,
+      dashboard: false,
     },
     access: {
       pat: {
         enabled: false,
       },
     },
-    contentRating: {
-      enabled: true,
-    },
+    rating: true,
     metadata: {
       requestId: "req_123",
     },
@@ -138,7 +133,9 @@ const result = await generateImage({
 
 Notes:
 
-- `modelOptions.promptStructured` overrides the plain `prompt`
+- `modelOptions.negativePrompt` maps to Mynth's `negative_prompt`
+- `modelOptions.magicPrompt` maps to Mynth's `magic_prompt`
+- `modelOptions.promptStructured` remains supported for compatibility and expands to `prompt`, `negative_prompt`, and `magic_prompt`
 - `modelOptions.size` overrides the top-level `size`
 - Top-level `size` is for shorthand values such as `"auto"` and preset strings
 - Use `modelOptions.size` when you need structured request sizes, including aspect ratios and an optional `scale: "4k"`

@@ -46,7 +46,7 @@ function createMockTask(
   } = {},
 ) {
   const images = overrides.images ?? [
-    { status: "succeeded", url: "https://cdn.mynth.io/image1.webp" },
+    { status: "success", url: "https://cdn.mynth.io/image1.webp" },
   ];
 
   return {
@@ -56,10 +56,10 @@ function createMockTask(
       model: overrides.model,
       images,
       cost: { images: "0.01", total: "0.012" },
-      prompt_enhance: overrides.promptEnhance,
+      magic_prompt: overrides.promptEnhance,
     },
-    getImages: () => images.filter((img) => img.status === "succeeded"),
-    urls: images.filter((img) => img.status === "succeeded").map((img) => img.url),
+    getImages: () => images.filter((img) => img.status === "success"),
+    urls: images.filter((img) => img.status === "success").map((img) => img.url),
   };
 }
 
@@ -113,7 +113,7 @@ describe("MynthImageAdapter", () => {
       expect(generateMock).toHaveBeenCalledWith(expect.objectContaining({ count: 2 }));
     });
 
-    it("prefers a structured prompt over the plain prompt", async () => {
+    it("expands a structured prompt to the current SDK request shape", async () => {
       // Arrange
       generateMock.mockResolvedValue(createMockTask());
       const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
@@ -133,7 +133,35 @@ describe("MynthImageAdapter", () => {
 
       // Assert
       expect(generateMock).toHaveBeenCalledWith(
-        expect.objectContaining({ prompt: promptStructured }),
+        expect.objectContaining({
+          prompt: "a cat",
+          negative_prompt: "blurry",
+          magic_prompt: true,
+        }),
+      );
+    });
+
+    it("forwards native negative and magic prompt options", async () => {
+      // Arrange
+      generateMock.mockResolvedValue(createMockTask());
+      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
+
+      // Act
+      await adapter.generateImages(
+        createOptions({
+          modelOptions: {
+            negativePrompt: "watermark",
+            magicPrompt: true,
+          },
+        }),
+      );
+
+      // Assert
+      expect(generateMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          negative_prompt: "watermark",
+          magic_prompt: true,
+        }),
       );
     });
 
@@ -208,8 +236,8 @@ describe("MynthImageAdapter", () => {
             access: { pat: { enabled: false } },
             output: { format: "png", quality: 90 },
             inputs: ["https://example.com/ref.jpg"],
-            webhook: { enabled: true },
-            contentRating: { enabled: true },
+            webhook: { dashboard: false },
+            rating: true,
             metadata: { userId: "u123" },
           },
         }),
@@ -221,8 +249,8 @@ describe("MynthImageAdapter", () => {
           access: { pat: { enabled: false } },
           output: { format: "png", quality: 90 },
           inputs: ["https://example.com/ref.jpg"],
-          webhook: { enabled: true },
-          content_rating: { enabled: true },
+          webhook: { dashboard: false },
+          rating: true,
           metadata: { userId: "u123" },
         }),
       );
@@ -272,7 +300,7 @@ describe("MynthImageAdapter", () => {
         createMockTask({
           model: DEFAULT_MODEL,
           images: [
-            { status: "succeeded", url: "https://cdn.mynth.io/img1.webp" },
+            { status: "success", url: "https://cdn.mynth.io/img1.webp" },
             { status: "failed", url: "https://cdn.mynth.io/failed.webp" },
           ],
         }),

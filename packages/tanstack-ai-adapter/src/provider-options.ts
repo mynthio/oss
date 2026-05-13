@@ -11,6 +11,19 @@ import type { MynthImageModel } from "./model-meta";
  */
 export type MynthImageShorthandSize = "auto" | MynthSDKTypes.ImageGenerationRequestSizePreset;
 
+/**
+ * Backward-compatible structured prompt shape.
+ *
+ * Mynth's current API accepts `prompt`, `negative_prompt`, and
+ * `magic_prompt`. The adapter still accepts this shape and expands it into
+ * those request fields.
+ */
+export interface MynthImagePromptStructured {
+  positive: string;
+  negative?: string;
+  enhance?: boolean | "prefer_magic";
+}
+
 // ============================================================================
 // Provider Options
 // ============================================================================
@@ -25,8 +38,12 @@ export type MynthImageShorthandSize = "auto" | MynthSDKTypes.ImageGenerationRequ
 export interface MynthImageProviderOptions {
   /** Output format and quality */
   output?: MynthSDKTypes.ImageGenerationRequestOutput;
-  /** Structured prompt with negative/enhance */
-  promptStructured?: MynthSDKTypes.PromptStructured;
+  /** Structured prompt with negative/enhance. Prefer `negativePrompt` and `magicPrompt` for new code. */
+  promptStructured?: MynthImagePromptStructured;
+  /** Negative prompt sent as `negative_prompt` to the Mynth API. */
+  negativePrompt?: string;
+  /** Enable Mynth-side prompt enhancement. */
+  magicPrompt?: true;
   /** Public Access Token response configuration */
   access?: MynthSDKTypes.ImageGenerationRequestAccess;
   /** Image inputs (reference, init, context) */
@@ -35,8 +52,10 @@ export interface MynthImageProviderOptions {
   size?: MynthSDKTypes.ImageGenerationRequestSize;
   /** Webhook configuration */
   webhook?: MynthSDKTypes.ImageGenerationRequestWebhook;
-  /** Content rating configuration */
-  contentRating?: MynthSDKTypes.ImageGenerationRequestContentRating;
+  /** Image rating configuration */
+  rating?: MynthSDKTypes.ImageGenerationRequestRating;
+  /** Deprecated alias for `rating`. */
+  contentRating?: MynthSDKTypes.ImageGenerationRequestRating;
   /** Custom metadata */
   metadata?: Record<string, unknown>;
   /** Destination name (slug) for delivering this generation. Overrides any adapter-level or env default. */

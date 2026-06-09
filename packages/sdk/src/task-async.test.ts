@@ -265,12 +265,12 @@ describe("TaskAsync", () => {
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          data: { status: "completed" },
+          data: { data: { status: "completed" } },
         })
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          data: taskData,
+          data: { data: taskData },
         });
 
       const client = createMockClient({ get: mockGet });
@@ -301,12 +301,12 @@ describe("TaskAsync", () => {
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          data: { status: "completed" },
+          data: { data: { status: "completed" } },
         })
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          data: taskData,
+          data: { data: taskData },
         });
       const client = createMockClient({ get: mockGet });
       const taskAsync = createTaskAsync("completed-with-magic-prompt", { client });
@@ -329,12 +329,12 @@ describe("TaskAsync", () => {
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          data: { status: "completed" },
+          data: { data: { status: "completed" } },
         })
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          data: taskData,
+          data: { data: taskData },
         });
 
       const client = createMockClient({ get: mockGet });
@@ -356,22 +356,22 @@ describe("TaskAsync", () => {
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          data: { status: "pending" },
+          data: { data: { status: "pending" } },
         })
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          data: { status: "pending" },
+          data: { data: { status: "pending" } },
         })
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          data: { status: "completed" },
+          data: { data: { status: "completed" } },
         })
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          data: taskData,
+          data: { data: taskData },
         });
 
       const client = createMockClient({ get: mockGet });
@@ -394,7 +394,7 @@ describe("TaskAsync", () => {
       const mockGet = vi.fn().mockResolvedValueOnce({
         ok: true,
         status: 200,
-        data: { status: "failed" },
+        data: { data: { status: "failed" } },
       });
 
       const client = createMockClient({ get: mockGet });
@@ -467,12 +467,12 @@ describe("TaskAsync", () => {
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          data: { status: "completed" },
+          data: { data: { status: "completed" } },
         })
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          data: taskData,
+          data: { data: taskData },
         });
 
       const client = createMockClient({ get: mockGet });
@@ -522,12 +522,12 @@ describe("TaskAsync", () => {
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          data: { status: "completed" },
+          data: { data: { status: "completed" } },
         })
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          data: taskData,
+          data: { data: taskData },
         });
 
       const client = createMockClient({ get: mockGet });
@@ -557,12 +557,12 @@ describe("TaskAsync", () => {
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          data: { status: "completed" },
+          data: { data: { status: "completed" } },
         })
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          data: taskData,
+          data: { data: taskData },
         });
 
       const client = createMockClient({ get: mockGet });
@@ -608,7 +608,7 @@ describe("TaskAsync", () => {
       const mockGet = vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
-        data: { status: "pending" },
+        data: { data: { status: "pending" } },
       });
 
       const client = createMockClient({ get: mockGet });
@@ -647,7 +647,7 @@ describe("TaskAsync", () => {
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          data: { status: "completed" },
+          data: { data: { status: "completed" } },
         })
         .mockResolvedValueOnce({
           ok: false,
@@ -669,7 +669,7 @@ describe("TaskAsync", () => {
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          data: { status: "completed" },
+          data: { data: { status: "completed" } },
         })
         .mockResolvedValueOnce({
           ok: false,
@@ -691,7 +691,7 @@ describe("TaskAsync", () => {
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          data: { status: "completed" },
+          data: { data: { status: "completed" } },
         })
         .mockResolvedValueOnce({
           ok: false,
@@ -713,7 +713,7 @@ describe("TaskAsync", () => {
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          data: { status: "completed" },
+          data: { data: { status: "completed" } },
         })
         .mockResolvedValueOnce({
           ok: false,
@@ -778,7 +778,7 @@ describe("TaskAsync", () => {
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          data: { status: "pending" },
+          data: { data: { status: "pending" } },
         })
         // Second batch of 5xx errors (5 more errors)
         .mockResolvedValueOnce({
@@ -810,12 +810,12 @@ describe("TaskAsync", () => {
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          data: { status: "completed" },
+          data: { data: { status: "completed" } },
         })
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          data: taskData,
+          data: { data: taskData },
         });
 
       const client = createMockClient({ get: mockGet });

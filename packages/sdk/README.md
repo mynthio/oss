@@ -119,14 +119,18 @@ const status = await fetch(`https://api.mynth.io/tasks/${taskId}/status`, {
   headers: {
     Authorization: `Bearer ${pat}`,
   },
-}).then((res) => res.json());
+})
+  .then((res) => res.json())
+  .then((body) => body.data);
 
 if (status.status === "completed") {
   const taskResult = await fetch(`https://api.mynth.io/tasks/${taskId}/result`, {
     headers: {
       Authorization: `Bearer ${pat}`,
     },
-  }).then((res) => res.json());
+  })
+    .then((res) => res.json())
+    .then((body) => body.data);
 
   console.log(taskResult.result.images);
 }

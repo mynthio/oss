@@ -42,8 +42,10 @@ describe("MynthImage generation", () => {
   test("generateAsync returns a pollable task without waiting", async () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(
       jsonResponse({
-        taskId: "task-123",
-        access: { publicAccessToken: "pat-123" },
+        data: {
+          taskId: "task-123",
+          access: { publicAccessToken: "pat-123" },
+        },
       }),
     );
     vi.stubGlobal("fetch", fetchMock);
@@ -68,9 +70,9 @@ describe("MynthImage generation", () => {
     const taskData = createTaskData();
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce(jsonResponse({ taskId: "task-123" }))
-      .mockResolvedValueOnce(jsonResponse({ status: "completed" }))
-      .mockResolvedValueOnce(jsonResponse(taskData));
+      .mockResolvedValueOnce(jsonResponse({ data: { taskId: "task-123" } }))
+      .mockResolvedValueOnce(jsonResponse({ data: { status: "completed" } }))
+      .mockResolvedValueOnce(jsonResponse({ data: taskData }));
     vi.stubGlobal("fetch", fetchMock);
 
     const image = new MynthImage({ apiKey: "mak_test", baseUrl: "https://api.test" });
@@ -88,6 +90,39 @@ describe("MynthImage generation", () => {
       3,
       "https://api.test/tasks/task-123",
       expect.any(Object),
+    );
+  });
+
+  test("rate returns wrapped image rating data", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      jsonResponse({
+        data: {
+          task: { id: "task-rate-123", cost: "0.01" },
+          results: [{ status: "success", url: "https://cdn.test/image.webp", level: "sfw" }],
+        },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const image = new MynthImage({ apiKey: "mak_test", baseUrl: "https://api.test" });
+    const result = await image.rate({
+      urls: ["https://cdn.test/image.webp"],
+      mode: "nsfw_sfw",
+    });
+
+    expect(result.taskId).toBe("task-rate-123");
+    expect(result.getRatings()).toEqual([
+      { status: "success", url: "https://cdn.test/image.webp", level: "sfw" },
+    ]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.test/image/rate",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          urls: ["https://cdn.test/image.webp"],
+          mode: "nsfw_sfw",
+        }),
+      }),
     );
   });
 });

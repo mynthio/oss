@@ -3,6 +3,10 @@
  * Import as `import type { MynthSDKTypes } from "@mynthio/sdk"`.
  */
 export namespace MynthSDKTypes {
+  export type ApiResponse<DataT> = {
+    data: DataT;
+  };
+
   export type TaskStatus = "pending" | "completed" | "failed";
 
   export type TaskType = "image.generate" | "image.rate";

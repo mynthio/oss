@@ -205,21 +205,24 @@ class MynthImage {
   private async createGenerationTask<const T extends MynthSDKTypes.ImageGenerationRequest>(
     request: T,
   ): Promise<TaskAsync<ImageGenerationResult<ExtractMetadata<T>, ExtractRatingResponse<T>>>> {
-    const json = await this.client.post<{
-      taskId: string;
-      access?: {
-        publicAccessToken: string;
-      };
-    }>(GENERATE_IMAGE_PATH, {
+    const json = await this.client.post<
+      MynthSDKTypes.ApiResponse<{
+        taskId: string;
+        access?: {
+          publicAccessToken: string;
+        };
+      }>
+    >(GENERATE_IMAGE_PATH, {
       ...request,
       destination: request.destination ?? this.defaultDestination,
     });
 
+    const data = json.data;
     type Result = ImageGenerationResult<ExtractMetadata<T>, ExtractRatingResponse<T>>;
 
-    const taskAsync = new TaskAsync<Result>(json.taskId, {
+    const taskAsync = new TaskAsync<Result>(data.taskId, {
       client: this.client,
-      pat: json.access?.publicAccessToken,
+      pat: data.access?.publicAccessToken,
       resultFactory: (data) =>
         new ImageGenerationResult(data as MynthSDKTypes.ImageGenerationTaskData) as Result,
     });
@@ -261,12 +264,11 @@ class MynthImage {
   ): Promise<ImageRateResult<ExtractRateLevelValues<T>>> {
     type LevelT = ExtractRateLevelValues<T>;
 
-    const json = await this.client.post<MynthSDKTypes.ImageRateResponse<LevelT>>(
-      RATE_IMAGE_PATH,
-      request,
-    );
+    const json = await this.client.post<
+      MynthSDKTypes.ApiResponse<MynthSDKTypes.ImageRateResponse<LevelT>>
+    >(RATE_IMAGE_PATH, request);
 
-    return new ImageRateResult<LevelT>(json);
+    return new ImageRateResult<LevelT>(json.data);
   }
 }
 

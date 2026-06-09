@@ -200,14 +200,16 @@ export class TaskAsync<ResultT> {
       useApiKey || !this._access.publicAccessToken ? undefined : this._access.publicAccessToken;
 
     try {
-      const response = await this.client.get<{
-        status: MynthSDKTypes.TaskStatus;
-      }>(TASK_STATUS_PATH(this.id), {
+      const response = await this.client.get<
+        MynthSDKTypes.ApiResponse<{
+          status: MynthSDKTypes.TaskStatus;
+        }>
+      >(TASK_STATUS_PATH(this.id), {
         accessToken,
       });
 
       if (response.ok) {
-        return { ok: true, status: response.data.status };
+        return { ok: true, status: response.data.data.status };
       }
 
       // 401 or 403 are unauthorized
@@ -239,10 +241,12 @@ export class TaskAsync<ResultT> {
   }
 
   private async fetchTask(): Promise<MynthSDKTypes.TaskData> {
-    const response = await this.client.get<MynthSDKTypes.TaskData>(TASK_DETAILS_PATH(this.id));
+    const response = await this.client.get<MynthSDKTypes.ApiResponse<MynthSDKTypes.TaskData>>(
+      TASK_DETAILS_PATH(this.id),
+    );
 
     if (response.ok) {
-      return response.data;
+      return response.data.data;
     }
 
     if (response.status === 401 || response.status === 403) {

@@ -40,7 +40,14 @@ export class TaskService extends Effect.Service<TaskService>()("TaskService", {
             }),
         ),
       );
-      return json as TaskData;
+      const data = (json as { readonly data?: unknown }).data;
+      if (data === undefined) {
+        return yield* new MynthApiError({
+          message: "invalid task response: missing data",
+          status: response.status,
+        });
+      }
+      return data as TaskData;
     });
 
     return { getTask } as const;

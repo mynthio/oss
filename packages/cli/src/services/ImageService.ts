@@ -160,7 +160,7 @@ export class ImageService extends Effect.Service<ImageService>()("ImageService",
         ),
       );
 
-      return filePaths.map((p, i): UploadedImage => ({ path: p, url: json.urls[i]! }));
+      return filePaths.map((p, i): UploadedImage => ({ path: p, url: json.data.urls[i]! }));
     });
 
     const rate = Effect.fn("ImageService.rate")(function* (args: {
@@ -229,7 +229,7 @@ export class ImageService extends Effect.Service<ImageService>()("ImageService",
         ),
       );
 
-      return json as RateResponse;
+      return json.data as RateResponse;
     });
 
     const generate = Effect.fn("ImageService.generate")(function* (args: {
@@ -277,8 +277,8 @@ export class ImageService extends Effect.Service<ImageService>()("ImageService",
       );
 
       return {
-        taskId: json.taskId,
-        pat: Option.fromNullable(json.access?.publicAccessToken),
+        taskId: json.data.taskId,
+        pat: Option.fromNullable(json.data.access?.publicAccessToken),
       } satisfies GenerateResponse;
     });
 
@@ -326,7 +326,7 @@ export class ImageService extends Effect.Service<ImageService>()("ImageService",
             }),
         ),
       );
-      return json.status;
+      return json.data.status;
     });
 
     const getTaskDetails = Effect.fn("ImageService.getTaskDetails")(function* (taskId: string) {
@@ -349,7 +349,14 @@ export class ImageService extends Effect.Service<ImageService>()("ImageService",
             }),
         ),
       );
-      return json as TaskData;
+      const data = (json as { readonly data?: unknown }).data;
+      if (data === undefined) {
+        return yield* new MynthApiError({
+          message: "invalid task details response: missing data",
+          status: response.status,
+        });
+      }
+      return data as TaskData;
     });
 
     const waitForTask = Effect.fn("ImageService.waitForTask")(function* (
@@ -458,7 +465,9 @@ export class ImageService extends Effect.Service<ImageService>()("ImageService",
 }) {}
 
 const UploadResponseSchema = Schema.Struct({
-  urls: Schema.Array(Schema.String),
+  data: Schema.Struct({
+    urls: Schema.Array(Schema.String),
+  }),
 });
 
 const RateResultItemSchema = Schema.Union(
@@ -471,22 +480,28 @@ const RateResultItemSchema = Schema.Union(
 );
 
 const RateResponseSchema = Schema.Struct({
-  task: Schema.Struct({
-    id: Schema.String,
-    cost: Schema.String,
+  data: Schema.Struct({
+    task: Schema.Struct({
+      id: Schema.String,
+      cost: Schema.String,
+    }),
+    results: Schema.Array(RateResultItemSchema),
   }),
-  results: Schema.Array(RateResultItemSchema),
 });
 
 const GenerateResponseSchema = Schema.Struct({
-  taskId: Schema.String,
-  access: Schema.optional(
-    Schema.Struct({
-      publicAccessToken: Schema.optional(Schema.String),
-    }),
-  ),
+  data: Schema.Struct({
+    taskId: Schema.String,
+    access: Schema.optional(
+      Schema.Struct({
+        publicAccessToken: Schema.optional(Schema.String),
+      }),
+    ),
+  }),
 });
 
 const TaskStatusSchema = Schema.Struct({
-  status: Schema.Literal("pending", "completed", "failed"),
+  data: Schema.Struct({
+    status: Schema.Literal("pending", "completed", "failed"),
+  }),
 });

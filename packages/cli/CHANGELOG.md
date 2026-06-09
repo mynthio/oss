@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.7](https://github.com/mynthio/oss/compare/cli-v0.0.6...cli-v0.0.7) (2026-06-09)
+
+
+### Bug Fixes
+
+* **cli:** align image and task services with API data envelope ([b779ec3](https://github.com/mynthio/oss/commit/b779ec35ef0e5f1d14ff7adc2e7fbfbaca172cd0))
+
 ## [0.0.6](https://github.com/mynthio/oss/compare/cli-v0.0.5...cli-v0.0.6) (2026-05-13)
 
 

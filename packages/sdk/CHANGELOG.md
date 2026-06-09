@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.17](https://github.com/mynthio/oss/compare/sdk-v0.0.16...sdk-v0.0.17) (2026-06-09)
+
+
+### Bug Fixes
+
+* **sdk:** wrap API responses in data envelope ([c3f42c5](https://github.com/mynthio/oss/commit/c3f42c58ff55d342cbe21c6ca92cfb5d5a01ffdb))
+
 ## [0.0.16](https://github.com/mynthio/oss/compare/sdk-v0.0.15...sdk-v0.0.16) (2026-05-12)
 
 

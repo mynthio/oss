@@ -21,12 +21,16 @@ Browser:
 ```ts
 const status = await fetch(`https://api.mynth.io/tasks/${taskId}/status`, {
   headers: { Authorization: `Bearer ${pat}` },
-}).then((r) => r.json());
+})
+  .then((r) => r.json())
+  .then((body) => body.data);
 
 if (status.status === "completed") {
   const task = await fetch(`https://api.mynth.io/tasks/${taskId}/result`, {
     headers: { Authorization: `Bearer ${pat}` },
-  }).then((r) => r.json());
+  })
+    .then((r) => r.json())
+    .then((body) => body.data);
 
   console.log(task.result.images);
 }

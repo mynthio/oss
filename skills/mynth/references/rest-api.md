@@ -26,9 +26,11 @@ Response (201):
 
 ```json
 {
-  "taskId": "tsk_...",
-  "access": {
-    "publicAccessToken": "pat_..."
+  "data": {
+    "taskId": "tsk_...",
+    "access": {
+      "publicAccessToken": "pat_..."
+    }
   }
 }
 ```
@@ -44,18 +46,24 @@ PAT generation is enabled by default. Disable it with:
 `GET /tasks/:id/status` — API key or PAT
 
 ```json
-{ "status": "completed" }
+{
+  "data": {
+    "status": "completed"
+  }
+}
 ```
 
 `GET /tasks/:id/result` — API key or PAT
 
 ```json
 {
-  "id": "tsk_...",
-  "type": "image.generate",
-  "status": "completed",
-  "result": {
-    "images": [{ "url": "https://cdn.mynth.io/..." }]
+  "data": {
+    "id": "tsk_...",
+    "type": "image.generate",
+    "status": "completed",
+    "result": {
+      "images": [{ "url": "https://cdn.mynth.io/..." }]
+    }
   }
 }
 ```
@@ -64,4 +72,36 @@ These polling endpoints are CORS-enabled for browser calls with PATs.
 
 `GET /tasks/:id` — API key only (owner)
 
-Returns full task object including cost, request, timestamps.
+Returns `{ "data": ... }` with the full task object including cost, request, timestamps.
+
+## Upload
+
+`POST /image/upload`
+
+Response (200):
+
+```json
+{
+  "data": {
+    "urls": ["https://cdn.mynth.io/..."]
+  }
+}
+```
+
+## Rate
+
+`POST /image/rate`
+
+Response (200):
+
+```json
+{
+  "data": {
+    "task": {
+      "id": "tsk_...",
+      "cost": "0.01"
+    },
+    "results": [{ "status": "success", "url": "https://cdn.mynth.io/...", "level": "sfw" }]
+  }
+}
+```

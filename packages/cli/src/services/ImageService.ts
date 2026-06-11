@@ -1,16 +1,14 @@
-import * as FileSystem from "@effect/platform/FileSystem";
-import * as HttpBody from "@effect/platform/HttpBody";
-import * as HttpClient from "@effect/platform/HttpClient";
-import * as HttpClientRequest from "@effect/platform/HttpClientRequest";
-import * as HttpClientResponse from "@effect/platform/HttpClientResponse";
-import * as Path from "@effect/platform/Path";
-import * as Duration from "effect/Duration";
-import * as Effect from "effect/Effect";
-import * as Option from "effect/Option";
-import * as Schema from "effect/Schema";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { basename, extname, join, resolve } from "node:path";
+import type { z } from "zod";
 import { MynthApiError } from "../domain/Errors.ts";
-import { appConfig } from "./AppConfig.ts";
-import { MynthApi } from "./MynthApi.ts";
+import {
+  GenerateResponseSchema,
+  RateResponseSchema,
+  TaskStatusSchema,
+  UploadResponseSchema,
+} from "../domain/Schemas.ts";
+import { MynthApi, readJson, readText } from "./MynthApi.ts";
 
 export const MAX_UPLOAD_FILES = 10;
 export const MAX_RATE_IMAGES = 10;
@@ -36,7 +34,7 @@ export type RateResponse = {
 
 export type GenerateResponse = {
   readonly taskId: string;
-  readonly pat: Option.Option<string>;
+  readonly pat?: string;
 };
 
 export type TaskData = {
@@ -50,21 +48,15 @@ export type TaskData = {
   readonly updatedAt: string;
 };
 
+export type UploadedImage = {
+  readonly path: string;
+  readonly url: string;
+};
+
 const POLL_TIMEOUT_MS = 5 * 60 * 1000;
 const POLL_FAST_PHASE_MS = 12_000;
 const POLL_FAST_INTERVAL_MS = 2_500;
 const POLL_SLOW_INTERVAL_MS = 5_000;
-
-const deriveFilename = (url: string, taskId: string, index: number): string => {
-  try {
-    const parsed = new URL(url);
-    const last = parsed.pathname.split("/").filter(Boolean).pop();
-    if (last && last.length > 0) return decodeURIComponent(last);
-  } catch {
-    // fall through to fallback
-  }
-  return `${taskId}-${index}`;
-};
 
 const EXT_TO_MIME: Record<string, string> = {
   ".jpg": "image/jpeg",
@@ -73,435 +65,303 @@ const EXT_TO_MIME: Record<string, string> = {
   ".webp": "image/webp",
 };
 
-export type UploadedImage = {
-  readonly path: string;
-  readonly url: string;
+const sleep = (ms: number) => new Promise((resolvePromise) => setTimeout(resolvePromise, ms));
+
+const deriveFilename = (url: string, taskId: string, index: number): string => {
+  try {
+    const parsed = new URL(url);
+    const last = parsed.pathname.split("/").filter(Boolean).pop();
+    if (last && last.length > 0) return decodeURIComponent(last);
+  } catch {
+    // Use the fallback below.
+  }
+  return `${taskId}-${index}`;
 };
 
-const readImageFile = Effect.fn("ImageService.readImageFile")(function* (filePath: string) {
-  const fs = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
-
-  const ext = path.extname(filePath).toLowerCase();
+const readImageFile = async (filePath: string): Promise<File> => {
+  const ext = extname(filePath).toLowerCase();
   const mime = EXT_TO_MIME[ext];
   if (!mime) {
-    return yield* new MynthApiError({
+    throw new MynthApiError({
       message: `unsupported image extension "${ext}" for ${filePath} (allowed: .jpg, .jpeg, .png, .webp)`,
       status: 0,
     });
   }
 
-  const bytes = yield* fs
-    .readFile(filePath)
-    .pipe(
-      Effect.mapError(
-        (cause) =>
-          new MynthApiError({ message: `could not read ${filePath}: ${cause.message}`, status: 0 }),
-      ),
-    );
+  let bytes: Buffer;
+  try {
+    bytes = await readFile(filePath);
+  } catch (cause) {
+    throw new MynthApiError({
+      message: `could not read ${filePath}: ${(cause as Error).message}`,
+      status: 0,
+      cause,
+    });
+  }
 
-  const name = path.basename(filePath);
-  const buffer = new ArrayBuffer(bytes.byteLength);
-  new Uint8Array(buffer).set(bytes);
-  return new File([buffer], name, { type: mime });
-});
+  const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+  return new File([new Uint8Array(buffer as ArrayBuffer)], basename(filePath), { type: mime });
+};
 
-export class ImageService extends Effect.Service<ImageService>()("ImageService", {
-  effect: Effect.gen(function* () {
-    const api = yield* MynthApi;
-    const httpClient = yield* HttpClient.HttpClient;
-    const cfg = yield* appConfig;
+const parseResponse = async <T>(
+  response: Response,
+  schema: z.ZodType<T>,
+  message: string,
+): Promise<T> => {
+  const parsed = schema.safeParse(await readJson(response));
+  if (!parsed.success) {
+    throw new MynthApiError({ message, status: response.status, cause: parsed.error });
+  }
+  return parsed.data;
+};
 
-    const upload = Effect.fn("ImageService.upload")(function* (filePaths: ReadonlyArray<string>) {
-      if (filePaths.length === 0) {
-        return yield* new MynthApiError({ message: "no files to upload", status: 0 });
-      }
-      if (filePaths.length > MAX_UPLOAD_FILES) {
-        return yield* new MynthApiError({
-          message: `too many files: ${filePaths.length} (max ${MAX_UPLOAD_FILES})`,
+const requireSuccess = async (
+  response: Response,
+  label: string,
+  statusOverride?: number,
+): Promise<void> => {
+  if (response.status >= 200 && response.status < 300) return;
+  const bodyText = await readText(response);
+  throw new MynthApiError({
+    message: `${label} failed (${response.status}): ${bodyText || "no body"}`,
+    status: statusOverride ?? response.status,
+  });
+};
+
+const mapLimit = async <A, B>(
+  items: ReadonlyArray<A>,
+  limit: number,
+  fn: (item: A, index: number) => Promise<B>,
+): Promise<ReadonlyArray<B>> => {
+  const results = Array.from<B | undefined>({ length: items.length });
+  let next = 0;
+
+  const worker = async () => {
+    while (true) {
+      const index = next++;
+      const item = items[index];
+      if (item === undefined) return;
+      results[index] = await fn(item, index);
+    }
+  };
+
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results as ReadonlyArray<B>;
+};
+
+export class ImageService {
+  constructor(private readonly api: MynthApi) {}
+
+  async upload(filePaths: ReadonlyArray<string>): Promise<ReadonlyArray<UploadedImage>> {
+    if (filePaths.length === 0) {
+      throw new MynthApiError({ message: "no files to upload", status: 0 });
+    }
+    if (filePaths.length > MAX_UPLOAD_FILES) {
+      throw new MynthApiError({
+        message: `too many files: ${filePaths.length} (max ${MAX_UPLOAD_FILES})`,
+        status: 0,
+      });
+    }
+
+    const files = await Promise.all(filePaths.map(readImageFile));
+    const form = new FormData();
+    for (const file of files) form.append("images", file);
+
+    const response = await this.api.execute("/image/upload", { method: "POST", body: form });
+    await requireSuccess(response, "upload");
+
+    const json = await parseResponse(response, UploadResponseSchema, "invalid upload response");
+    return filePaths.map((path, i): UploadedImage => ({ path, url: json.data.urls[i]! }));
+  }
+
+  async rate(args: {
+    readonly urls: ReadonlyArray<string>;
+    readonly levels?: ReadonlyArray<RateLevel>;
+  }): Promise<RateResponse> {
+    if (args.urls.length === 0) {
+      throw new MynthApiError({ message: "no image URLs to rate", status: 0 });
+    }
+    if (args.urls.length > MAX_RATE_IMAGES) {
+      throw new MynthApiError({
+        message: `too many images: ${args.urls.length} (max ${MAX_RATE_IMAGES})`,
+        status: 0,
+      });
+    }
+    if (
+      args.levels !== undefined &&
+      (args.levels.length < MIN_RATE_LEVELS || args.levels.length > MAX_RATE_LEVELS)
+    ) {
+      throw new MynthApiError({
+        message: `levels must have between ${MIN_RATE_LEVELS} and ${MAX_RATE_LEVELS} items (got ${args.levels.length})`,
+        status: 0,
+      });
+    }
+
+    const body =
+      args.levels !== undefined
+        ? { urls: args.urls, mode: "custom", levels: args.levels }
+        : { urls: args.urls, mode: "nsfw_sfw" };
+
+    const response = await this.api.execute("/image/rate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    await requireSuccess(response, "rate");
+
+    const json = await parseResponse(response, RateResponseSchema, "invalid rate response");
+    return json.data as RateResponse;
+  }
+
+  async generate(args: {
+    readonly request: Record<string, unknown>;
+    readonly requestPat: boolean;
+  }): Promise<GenerateResponse> {
+    const body = args.requestPat
+      ? {
+          ...args.request,
+          access: { ...(args.request["access"] as object | undefined), pat: { enabled: true } },
+        }
+      : args.request;
+
+    const response = await this.api.execute("/image/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    await requireSuccess(response, "generate");
+
+    const json = await parseResponse(response, GenerateResponseSchema, "invalid generate response");
+
+    const pat = json.data.access?.publicAccessToken;
+    return { taskId: json.data.taskId, ...(pat !== undefined ? { pat } : {}) };
+  }
+
+  async waitForTask(taskId: string, pat?: string): Promise<TaskData> {
+    const startTime = Date.now();
+    while (true) {
+      const elapsed = Date.now() - startTime;
+      if (elapsed >= POLL_TIMEOUT_MS) {
+        throw new MynthApiError({
+          message: `task ${taskId} polling timed out after ${POLL_TIMEOUT_MS}ms`,
           status: 0,
         });
       }
 
-      yield* Effect.logDebug("ImageService.upload starting", {
-        count: filePaths.length,
-        filePaths,
-      });
-
-      const files = yield* Effect.forEach(filePaths, readImageFile);
-      yield* Effect.logDebug(
-        "ImageService.upload read files",
-        files.map((f) => ({ name: f.name, size: f.size, type: f.type })),
-      );
-
-      const form = new FormData();
-      for (const file of files) form.append("images", file);
-
-      const response = yield* api.execute(
-        HttpClientRequest.post("/image/upload").pipe(HttpClientRequest.bodyFormData(form)),
-      );
-      yield* Effect.logDebug("ImageService.upload response", { status: response.status });
-
-      if (response.status < 200 || response.status >= 300) {
-        const bodyText = yield* response.text.pipe(Effect.orElseSucceed(() => ""));
-        return yield* new MynthApiError({
-          message: `upload failed (${response.status}): ${bodyText || "no body"}`,
-          status: response.status,
-        });
-      }
-
-      const json = yield* HttpClientResponse.schemaBodyJson(UploadResponseSchema)(response).pipe(
-        Effect.mapError(
-          (cause) =>
-            new MynthApiError({
-              message: `invalid upload response: ${cause.message}`,
-              status: response.status,
-            }),
-        ),
-      );
-
-      return filePaths.map((p, i): UploadedImage => ({ path: p, url: json.data.urls[i]! }));
-    });
-
-    const rate = Effect.fn("ImageService.rate")(function* (args: {
-      readonly urls: ReadonlyArray<string>;
-      readonly levels?: ReadonlyArray<RateLevel> | undefined;
-    }) {
-      if (args.urls.length === 0) {
-        return yield* new MynthApiError({ message: "no image URLs to rate", status: 0 });
-      }
-      if (args.urls.length > MAX_RATE_IMAGES) {
-        return yield* new MynthApiError({
-          message: `too many images: ${args.urls.length} (max ${MAX_RATE_IMAGES})`,
+      const status = await this.getTaskStatus(taskId, pat);
+      if (status === "completed") return this.getTaskDetails(taskId);
+      if (status === "failed") {
+        throw new MynthApiError({
+          message: `task ${taskId} failed during generation`,
           status: 0,
         });
       }
-      if (args.levels !== undefined) {
-        if (args.levels.length < MIN_RATE_LEVELS || args.levels.length > MAX_RATE_LEVELS) {
-          return yield* new MynthApiError({
-            message: `levels must have between ${MIN_RATE_LEVELS} and ${MAX_RATE_LEVELS} items (got ${args.levels.length})`,
-            status: 0,
-          });
-        }
-      }
 
-      yield* Effect.logDebug("ImageService.rate starting", {
-        count: args.urls.length,
-        hasLevels: args.levels !== undefined,
+      const base = elapsed < POLL_FAST_PHASE_MS ? POLL_FAST_INTERVAL_MS : POLL_SLOW_INTERVAL_MS;
+      await sleep(base + Math.floor(Math.random() * 500));
+    }
+  }
+
+  async getTaskDetails(taskId: string): Promise<TaskData> {
+    const response = await this.api.execute(`/tasks/${taskId}`);
+    await requireSuccess(response, "task details");
+    const json = (await readJson(response)) as { readonly data?: unknown };
+    if (json.data === undefined) {
+      throw new MynthApiError({
+        message: "invalid task details response: missing data",
+        status: response.status,
       });
+    }
+    return json.data as TaskData;
+  }
 
-      const body: Record<string, unknown> =
-        args.levels !== undefined
-          ? { urls: args.urls, mode: "custom", levels: args.levels }
-          : { urls: args.urls, mode: "nsfw_sfw" };
-
-      const httpBody = yield* HttpBody.json(body).pipe(
-        Effect.mapError(
-          (cause) =>
-            new MynthApiError({
-              message: `could not encode rate body: ${cause.reason}`,
-              status: 0,
-              cause,
-            }),
-        ),
-      );
-
-      const response = yield* api.execute(
-        HttpClientRequest.post("/image/rate").pipe(HttpClientRequest.setBody(httpBody)),
-      );
-      yield* Effect.logDebug("ImageService.rate response", { status: response.status });
-
-      if (response.status < 200 || response.status >= 300) {
-        const bodyText = yield* response.text.pipe(Effect.orElseSucceed(() => ""));
-        return yield* new MynthApiError({
-          message: `rate failed (${response.status}): ${bodyText || "no body"}`,
-          status: response.status,
-        });
-      }
-
-      const json = yield* HttpClientResponse.schemaBodyJson(RateResponseSchema)(response).pipe(
-        Effect.mapError(
-          (cause) =>
-            new MynthApiError({
-              message: `invalid rate response: ${cause.message}`,
-              status: response.status,
-            }),
-        ),
-      );
-
-      return json.data as RateResponse;
-    });
-
-    const generate = Effect.fn("ImageService.generate")(function* (args: {
-      readonly request: Record<string, unknown>;
-      readonly requestPat: boolean;
-    }) {
-      const body = args.requestPat
-        ? {
-            ...args.request,
-            access: { ...(args.request.access as object | undefined), pat: { enabled: true } },
-          }
-        : args.request;
-
-      const httpBody = yield* HttpBody.json(body).pipe(
-        Effect.mapError(
-          (cause) =>
-            new MynthApiError({
-              message: `could not encode generate body: ${cause.reason}`,
-              status: 0,
-              cause,
-            }),
-        ),
-      );
-
-      const response = yield* api.execute(
-        HttpClientRequest.post("/image/generate").pipe(HttpClientRequest.setBody(httpBody)),
-      );
-
-      if (response.status < 200 || response.status >= 300) {
-        const bodyText = yield* response.text.pipe(Effect.orElseSucceed(() => ""));
-        return yield* new MynthApiError({
-          message: `generate failed (${response.status}): ${bodyText || "no body"}`,
-          status: response.status,
-        });
-      }
-
-      const json = yield* HttpClientResponse.schemaBodyJson(GenerateResponseSchema)(response).pipe(
-        Effect.mapError(
-          (cause) =>
-            new MynthApiError({
-              message: `invalid generate response: ${cause.message}`,
-              status: response.status,
-            }),
-        ),
-      );
-
-      return {
-        taskId: json.data.taskId,
-        pat: Option.fromNullable(json.data.access?.publicAccessToken),
-      } satisfies GenerateResponse;
-    });
-
-    const getTaskStatus = Effect.fn("ImageService.getTaskStatus")(function* (
-      taskId: string,
-      pat: Option.Option<string>,
-    ) {
-      const path = `/tasks/${taskId}/status`;
-
-      const response = yield* Option.match(pat, {
-        onSome: (token) =>
-          httpClient
-            .execute(
-              HttpClientRequest.get(`${cfg.mynthApiUrl}${path}`).pipe(
-                HttpClientRequest.setHeader("Authorization", `Bearer ${token}`),
-              ),
-            )
-            .pipe(
-              Effect.mapError(
-                (cause) =>
-                  new MynthApiError({
-                    message: `task status request failed: ${cause.message}`,
-                    status: 0,
-                    cause,
-                  }),
-              ),
-            ),
-        onNone: () => api.execute(HttpClientRequest.get(path)),
+  async downloadImages(args: {
+    readonly urls: ReadonlyArray<string>;
+    readonly destinationDir: string;
+    readonly taskId: string;
+  }): Promise<ReadonlyArray<string>> {
+    const absoluteDir = resolve(args.destinationDir);
+    try {
+      await mkdir(absoluteDir, { recursive: true });
+    } catch (cause) {
+      throw new MynthApiError({
+        message: `could not create output directory ${absoluteDir}: ${(cause as Error).message}`,
+        status: 0,
+        cause,
       });
+    }
+
+    return mapLimit(args.urls, 4, async (url, index) => {
+      let response: Response;
+      try {
+        response = await fetch(url);
+      } catch (cause) {
+        throw new MynthApiError({
+          message: `download failed for ${url}: ${(cause as Error).message}`,
+          status: 0,
+          cause,
+        });
+      }
 
       if (response.status < 200 || response.status >= 300) {
-        const bodyText = yield* response.text.pipe(Effect.orElseSucceed(() => ""));
-        return yield* new MynthApiError({
-          message: `task status failed (${response.status}): ${bodyText || "no body"}`,
+        throw new MynthApiError({
+          message: `download failed for ${url} (${response.status})`,
           status: response.status,
         });
       }
 
-      const json = yield* HttpClientResponse.schemaBodyJson(TaskStatusSchema)(response).pipe(
-        Effect.mapError(
-          (cause) =>
-            new MynthApiError({
-              message: `invalid task status response: ${cause.message}`,
-              status: response.status,
-            }),
-        ),
-      );
-      return json.data.status;
-    });
-
-    const getTaskDetails = Effect.fn("ImageService.getTaskDetails")(function* (taskId: string) {
-      const response = yield* api.execute(HttpClientRequest.get(`/tasks/${taskId}`));
-
-      if (response.status < 200 || response.status >= 300) {
-        const bodyText = yield* response.text.pipe(Effect.orElseSucceed(() => ""));
-        return yield* new MynthApiError({
-          message: `task details failed (${response.status}): ${bodyText || "no body"}`,
+      let bytes: ArrayBuffer;
+      try {
+        bytes = await response.arrayBuffer();
+      } catch (cause) {
+        throw new MynthApiError({
+          message: `could not read body for ${url}: ${(cause as Error).message}`,
           status: response.status,
+          cause,
         });
       }
 
-      const json = yield* response.json.pipe(
-        Effect.mapError(
-          (cause) =>
-            new MynthApiError({
-              message: `invalid task details response: ${cause.message}`,
-              status: response.status,
-            }),
-        ),
-      );
-      const data = (json as { readonly data?: unknown }).data;
-      if (data === undefined) {
-        return yield* new MynthApiError({
-          message: "invalid task details response: missing data",
-          status: response.status,
+      const filename = deriveFilename(url, args.taskId, index);
+      const filePath = join(absoluteDir, filename);
+      try {
+        await writeFile(filePath, new Uint8Array(bytes));
+      } catch (cause) {
+        throw new MynthApiError({
+          message: `could not write ${filePath}: ${(cause as Error).message}`,
+          status: 0,
+          cause,
         });
       }
-      return data as TaskData;
+
+      return filePath;
     });
+  }
 
-    const waitForTask = Effect.fn("ImageService.waitForTask")(function* (
-      taskId: string,
-      pat: Option.Option<string>,
-    ) {
-      const startTime = Date.now();
-      while (true) {
-        const elapsed = Date.now() - startTime;
-        if (elapsed >= POLL_TIMEOUT_MS) {
-          return yield* new MynthApiError({
-            message: `task ${taskId} polling timed out after ${POLL_TIMEOUT_MS}ms`,
-            status: 0,
-          });
-        }
+  private async getTaskStatus(
+    taskId: string,
+    pat: string | undefined,
+  ): Promise<"pending" | "completed" | "failed"> {
+    const path = `/tasks/${taskId}/status`;
+    let response: Response;
 
-        const status = yield* getTaskStatus(taskId, pat);
-        if (status === "completed") return yield* getTaskDetails(taskId);
-        if (status === "failed") {
-          return yield* new MynthApiError({
-            message: `task ${taskId} failed during generation`,
-            status: 0,
-          });
-        }
-
-        const base = elapsed < POLL_FAST_PHASE_MS ? POLL_FAST_INTERVAL_MS : POLL_SLOW_INTERVAL_MS;
-        yield* Effect.sleep(Duration.millis(base + Math.floor(Math.random() * 500)));
+    if (pat !== undefined) {
+      try {
+        response = await fetch(`${this.api.baseUrl}${path}`, {
+          headers: { Authorization: `Bearer ${pat}` },
+        });
+      } catch (cause) {
+        throw new MynthApiError({
+          message: `task status request failed: ${(cause as Error).message}`,
+          status: 0,
+          cause,
+        });
       }
-    });
+    } else {
+      response = await this.api.execute(path);
+    }
 
-    const downloadImages = Effect.fn("ImageService.downloadImages")(function* (args: {
-      readonly urls: ReadonlyArray<string>;
-      readonly destinationDir: string;
-      readonly taskId: string;
-    }) {
-      const fs = yield* FileSystem.FileSystem;
-      const path = yield* Path.Path;
-
-      const absoluteDir = path.resolve(args.destinationDir);
-
-      yield* fs.makeDirectory(absoluteDir, { recursive: true }).pipe(
-        Effect.mapError(
-          (cause) =>
-            new MynthApiError({
-              message: `could not create output directory ${absoluteDir}: ${cause.message}`,
-              status: 0,
-            }),
-        ),
-      );
-
-      return yield* Effect.forEach(
-        args.urls,
-        (url, index) =>
-          Effect.gen(function* () {
-            const response = yield* httpClient.execute(HttpClientRequest.get(url)).pipe(
-              Effect.mapError(
-                (cause) =>
-                  new MynthApiError({
-                    message: `download failed for ${url}: ${cause.message}`,
-                    status: 0,
-                    cause,
-                  }),
-              ),
-            );
-
-            if (response.status < 200 || response.status >= 300) {
-              return yield* new MynthApiError({
-                message: `download failed for ${url} (${response.status})`,
-                status: response.status,
-              });
-            }
-
-            const bytes = yield* response.arrayBuffer.pipe(
-              Effect.mapError(
-                (cause) =>
-                  new MynthApiError({
-                    message: `could not read body for ${url}: ${cause.message}`,
-                    status: response.status,
-                    cause,
-                  }),
-              ),
-            );
-
-            const filename = deriveFilename(url, args.taskId, index);
-            const filePath = path.join(absoluteDir, filename);
-
-            yield* fs.writeFile(filePath, new Uint8Array(bytes)).pipe(
-              Effect.mapError(
-                (cause) =>
-                  new MynthApiError({
-                    message: `could not write ${filePath}: ${cause.message}`,
-                    status: 0,
-                  }),
-              ),
-            );
-
-            return filePath;
-          }),
-        { concurrency: 4 },
-      );
-    });
-
-    return { upload, rate, generate, waitForTask, getTaskDetails, downloadImages } as const;
-  }),
-  dependencies: [MynthApi.Default],
-}) {}
-
-const UploadResponseSchema = Schema.Struct({
-  data: Schema.Struct({
-    urls: Schema.Array(Schema.String),
-  }),
-});
-
-const RateResultItemSchema = Schema.Union(
-  Schema.Struct({ status: Schema.Literal("success"), url: Schema.String, level: Schema.String }),
-  Schema.Struct({
-    status: Schema.Literal("failed"),
-    url: Schema.String,
-    error: Schema.Struct({ code: Schema.String }),
-  }),
-);
-
-const RateResponseSchema = Schema.Struct({
-  data: Schema.Struct({
-    task: Schema.Struct({
-      id: Schema.String,
-      cost: Schema.String,
-    }),
-    results: Schema.Array(RateResultItemSchema),
-  }),
-});
-
-const GenerateResponseSchema = Schema.Struct({
-  data: Schema.Struct({
-    taskId: Schema.String,
-    access: Schema.optional(
-      Schema.Struct({
-        publicAccessToken: Schema.optional(Schema.String),
-      }),
-    ),
-  }),
-});
-
-const TaskStatusSchema = Schema.Struct({
-  data: Schema.Struct({
-    status: Schema.Literal("pending", "completed", "failed"),
-  }),
-});
+    await requireSuccess(response, "task status");
+    const json = await parseResponse(response, TaskStatusSchema, "invalid task status response");
+    return json.data.status;
+  }
+}

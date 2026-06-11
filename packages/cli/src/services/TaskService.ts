@@ -1,7 +1,5 @@
-import * as HttpClientRequest from "@effect/platform/HttpClientRequest";
-import * as Effect from "effect/Effect";
 import { MynthApiError } from "../domain/Errors.ts";
-import { MynthApi } from "./MynthApi.ts";
+import { MynthApi, readJson, readText } from "./MynthApi.ts";
 
 export type TaskData = {
   readonly id: string;
@@ -16,41 +14,27 @@ export type TaskData = {
   readonly updatedAt: string;
 };
 
-export class TaskService extends Effect.Service<TaskService>()("TaskService", {
-  effect: Effect.gen(function* () {
-    const api = yield* MynthApi;
+export class TaskService {
+  constructor(private readonly api: MynthApi) {}
 
-    const getTask = Effect.fn("TaskService.getTask")(function* (taskId: string) {
-      const response = yield* api.execute(HttpClientRequest.get(`/tasks/${taskId}`));
+  async getTask(taskId: string): Promise<TaskData> {
+    const response = await this.api.execute(`/tasks/${taskId}`);
 
-      if (response.status < 200 || response.status >= 300) {
-        const bodyText = yield* response.text.pipe(Effect.orElseSucceed(() => ""));
-        return yield* new MynthApiError({
-          message: `task fetch failed (${response.status}): ${bodyText || "no body"}`,
-          status: response.status,
-        });
-      }
+    if (response.status < 200 || response.status >= 300) {
+      const bodyText = await readText(response);
+      throw new MynthApiError({
+        message: `task fetch failed (${response.status}): ${bodyText || "no body"}`,
+        status: response.status,
+      });
+    }
 
-      const json = yield* response.json.pipe(
-        Effect.mapError(
-          (cause) =>
-            new MynthApiError({
-              message: `invalid task response: ${cause.message}`,
-              status: response.status,
-            }),
-        ),
-      );
-      const data = (json as { readonly data?: unknown }).data;
-      if (data === undefined) {
-        return yield* new MynthApiError({
-          message: "invalid task response: missing data",
-          status: response.status,
-        });
-      }
-      return data as TaskData;
-    });
-
-    return { getTask } as const;
-  }),
-  dependencies: [MynthApi.Default],
-}) {}
+    const json = (await readJson(response)) as { readonly data?: unknown };
+    if (json.data === undefined) {
+      throw new MynthApiError({
+        message: "invalid task response: missing data",
+        status: response.status,
+      });
+    }
+    return json.data as TaskData;
+  }
+}

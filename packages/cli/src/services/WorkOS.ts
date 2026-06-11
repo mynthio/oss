@@ -1,9 +1,3 @@
-import * as HttpBody from "@effect/platform/HttpBody";
-import * as HttpClient from "@effect/platform/HttpClient";
-import * as HttpClientRequest from "@effect/platform/HttpClientRequest";
-import * as HttpClientResponse from "@effect/platform/HttpClientResponse";
-import * as Effect from "effect/Effect";
-import * as Match from "effect/Match";
 import {
   AuthorizationDeniedError,
   AuthorizationExpiredError,
@@ -12,161 +6,160 @@ import {
 } from "../domain/Errors.ts";
 import { WORKOS_API_URL, WORKOS_CLIENT_ID } from "../constants.ts";
 import {
-  DeviceAuthorizationResponse,
-  TokenResponse,
-  WorkOSErrorResponse,
+  DeviceAuthorizationResponseSchema,
+  TokenResponseSchema,
+  WorkOSErrorResponseSchema,
+  type DeviceAuthorizationResponse,
+  type TokenResponse,
 } from "../domain/Schemas.ts";
 
 const DEVICE_GRANT = "urn:ietf:params:oauth:grant-type:device_code";
 const REFRESH_GRANT = "refresh_token";
 
-/**
- * Decode the `exp` claim of a JWT (no signature verification — we trust the issuer
- * because we just received the token over TLS from WorkOS).
- */
-const decodeJwtExp = (token: string): Effect.Effect<number, WorkOSError> =>
-  Effect.try({
-    try: () => {
-      const parts = token.split(".");
-      if (parts.length < 2) throw new Error("malformed jwt");
-      const payload = JSON.parse(Buffer.from(parts[1]!, "base64url").toString("utf8")) as {
-        exp?: number;
-      };
-      if (typeof payload.exp !== "number") throw new Error("jwt missing exp claim");
-      return payload.exp * 1000;
-    },
-    catch: (cause) => new WorkOSError({ message: "could not decode access token", cause }),
+type TokenSuccess = {
+  readonly token: TokenResponse;
+  readonly expiresAt: number;
+};
+
+const decodeJwtExp = (token: string): number => {
+  try {
+    const parts = token.split(".");
+    if (parts.length < 2) throw new Error("malformed jwt");
+    const payload = JSON.parse(Buffer.from(parts[1]!, "base64url").toString("utf8")) as {
+      exp?: number;
+    };
+    if (typeof payload.exp !== "number") throw new Error("jwt missing exp claim");
+    return payload.exp * 1000;
+  } catch (cause) {
+    throw new WorkOSError({ message: "could not decode access token", cause });
+  }
+};
+
+const readJson = async (response: Response): Promise<unknown> => {
+  try {
+    return await response.json();
+  } catch {
+    return {};
+  }
+};
+
+const readErrorBody = async (response: Response) =>
+  WorkOSErrorResponseSchema.catch({}).parse(await readJson(response));
+
+const failWorkOsError = async (response: Response, fallbackMessage: string): Promise<never> => {
+  const errBody = await readErrorBody(response);
+  const code = errBody.error ?? errBody.code;
+  throw new WorkOSError({
+    message: errBody.error_description ?? errBody.message ?? fallbackMessage,
+    status: response.status,
+    ...(code !== undefined ? { code } : {}),
   });
+};
 
-const formBody = (params: Record<string, string>): HttpBody.HttpBody =>
-  HttpBody.urlParams(Object.entries(params));
+const parseTokenSuccess = async (response: Response, label: string): Promise<TokenSuccess> => {
+  const parsed = TokenResponseSchema.safeParse(await readJson(response));
+  if (!parsed.success) {
+    throw new WorkOSError({
+      message: `invalid ${label} response`,
+      status: response.status,
+      cause: parsed.error,
+    });
+  }
+  return { token: parsed.data, expiresAt: decodeJwtExp(parsed.data.access_token) };
+};
 
-/** Parse the JSON error body WorkOS returns, tolerating a missing/malformed body. */
-const readErrorBody = (response: HttpClientResponse.HttpClientResponse) =>
-  HttpClientResponse.schemaBodyJson(WorkOSErrorResponse)(response).pipe(
-    Effect.orElseSucceed(() => ({}) as Record<string, never>),
-  );
+const parseAuthenticate = async (response: Response): Promise<TokenSuccess> => {
+  if (response.status === 200) return parseTokenSuccess(response, "token");
 
-const failWorkOsError = (
-  response: HttpClientResponse.HttpClientResponse,
-  fallbackMessage: string,
-): Effect.Effect<never, WorkOSError> =>
-  readErrorBody(response).pipe(
-    Effect.flatMap((errBody) => {
-      const code = errBody.error ?? errBody.code;
-      return new WorkOSError({
-        message: errBody.error_description ?? errBody.message ?? fallbackMessage,
+  const errBody = await readErrorBody(response);
+  const code = errBody.error ?? errBody.code;
+  switch (code) {
+    case "authorization_pending":
+      throw new AuthorizationPendingError({ slowDown: false });
+    case "slow_down":
+      throw new AuthorizationPendingError({ slowDown: true });
+    case "expired_token":
+      throw new AuthorizationExpiredError();
+    case "access_denied":
+      throw new AuthorizationDeniedError();
+    default:
+      throw new WorkOSError({
+        message: errBody.error_description ?? errBody.message ?? "WorkOS error",
         status: response.status,
         ...(code !== undefined ? { code } : {}),
       });
-    }),
-  );
+  }
+};
 
-const parseTokenSuccess = (response: HttpClientResponse.HttpClientResponse, label: string) =>
-  Effect.gen(function* () {
-    const body = yield* HttpClientResponse.schemaBodyJson(TokenResponse)(response).pipe(
-      Effect.mapError(
-        (cause) =>
-          new WorkOSError({ message: `invalid ${label} response`, status: response.status, cause }),
-      ),
-    );
-    const expiresAt = yield* decodeJwtExp(body.access_token);
-    return { token: body, expiresAt };
-  });
+export class WorkOS {
+  private readonly baseUrl = WORKOS_API_URL;
 
-const parseAuthenticate = Effect.fn("WorkOS.parseAuthenticate")(function* (
-  response: HttpClientResponse.HttpClientResponse,
-) {
-  if (response.status === 200) return yield* parseTokenSuccess(response, "token");
-
-  const errBody = yield* readErrorBody(response);
-  const code = errBody.error ?? errBody.code;
-
-  return yield* Match.value(code).pipe(
-    Match.when("authorization_pending", () => new AuthorizationPendingError({ slowDown: false })),
-    Match.when("slow_down", () => new AuthorizationPendingError({ slowDown: true })),
-    Match.when("expired_token", () => new AuthorizationExpiredError()),
-    Match.when("access_denied", () => new AuthorizationDeniedError()),
-    Match.orElse(
-      () =>
-        new WorkOSError({
-          message: errBody.error_description ?? errBody.message ?? "WorkOS error",
-          status: response.status,
-          ...(code !== undefined ? { code } : {}),
-        }),
-    ),
-  );
-});
-
-export class WorkOS extends Effect.Service<WorkOS>()("WorkOS", {
-  effect: Effect.gen(function* () {
-    const baseClient = yield* HttpClient.HttpClient;
-    const client = baseClient.pipe(
-      HttpClient.mapRequest(HttpClientRequest.prependUrl(WORKOS_API_URL)),
+  async requestDeviceAuthorization(): Promise<DeviceAuthorizationResponse> {
+    const res = await this.post(
+      "/user_management/authorize/device",
+      new URLSearchParams({ client_id: WORKOS_CLIENT_ID }),
+      "device authorize request failed",
     );
 
-    const post = (path: string, body: HttpBody.HttpBody) =>
-      HttpClientRequest.post(path).pipe(
-        HttpClientRequest.setBody(body),
-        HttpClientRequest.setHeader("Accept", "application/json"),
-      );
+    if (res.status !== 200) {
+      return failWorkOsError(res, "device authorize failed");
+    }
 
-    const sendAuthenticate = (body: HttpBody.HttpBody, label: string) =>
-      client
-        .execute(post("/user_management/authenticate", body))
-        .pipe(
-          Effect.mapError(
-            (cause) => new WorkOSError({ message: `${label} request failed`, cause }),
-          ),
-        );
+    const parsed = DeviceAuthorizationResponseSchema.safeParse(await readJson(res));
+    if (!parsed.success) {
+      throw new WorkOSError({
+        message: "invalid device authorize response",
+        status: res.status,
+        cause: parsed.error,
+      });
+    }
+    return parsed.data;
+  }
 
-    const requestDeviceAuthorization = Effect.fn("WorkOS.deviceAuthorize")(function* () {
-      const res = yield* client
-        .execute(
-          post("/user_management/authorize/device", formBody({ client_id: WORKOS_CLIENT_ID })),
-        )
-        .pipe(
-          Effect.mapError(
-            (cause) => new WorkOSError({ message: "device authorize request failed", cause }),
-          ),
-        );
-      if (res.status !== 200) {
-        return yield* failWorkOsError(res, "device authorize failed");
-      }
-      return yield* HttpClientResponse.schemaBodyJson(DeviceAuthorizationResponse)(res).pipe(
-        Effect.mapError(
-          (cause) => new WorkOSError({ message: "invalid device authorize response", cause }),
-        ),
-      );
-    });
+  async exchangeDeviceCode(deviceCode: string): Promise<TokenSuccess> {
+    const res = await this.post(
+      "/user_management/authenticate",
+      JSON.stringify({
+        grant_type: DEVICE_GRANT,
+        client_id: WORKOS_CLIENT_ID,
+        device_code: deviceCode,
+      }),
+      "authenticate request failed",
+      { "Content-Type": "application/json" },
+    );
+    return parseAuthenticate(res);
+  }
 
-    const exchangeDeviceCode = Effect.fn("WorkOS.exchangeDeviceCode")(function* (
-      deviceCode: string,
-    ) {
-      const res = yield* sendAuthenticate(
-        HttpBody.unsafeJson({
-          grant_type: DEVICE_GRANT,
-          client_id: WORKOS_CLIENT_ID,
-          device_code: deviceCode,
-        }),
-        "authenticate",
-      );
-      return yield* parseAuthenticate(res);
-    });
+  async refresh(refreshToken: string): Promise<TokenSuccess> {
+    const res = await this.post(
+      "/user_management/authenticate",
+      JSON.stringify({
+        grant_type: REFRESH_GRANT,
+        client_id: WORKOS_CLIENT_ID,
+        refresh_token: refreshToken,
+      }),
+      "refresh request failed",
+      { "Content-Type": "application/json" },
+    );
 
-    const refresh = Effect.fn("WorkOS.refresh")(function* (refreshToken: string) {
-      const res = yield* sendAuthenticate(
-        HttpBody.unsafeJson({
-          grant_type: REFRESH_GRANT,
-          client_id: WORKOS_CLIENT_ID,
-          refresh_token: refreshToken,
-        }),
-        "refresh",
-      );
-      if (res.status === 200) return yield* parseTokenSuccess(res, "refresh");
-      return yield* failWorkOsError(res, "refresh failed");
-    });
+    if (res.status === 200) return parseTokenSuccess(res, "refresh");
+    return failWorkOsError(res, "refresh failed");
+  }
 
-    return { requestDeviceAuthorization, exchangeDeviceCode, refresh } as const;
-  }),
-}) {}
+  private async post(
+    path: string,
+    body: string | URLSearchParams,
+    failureMessage: string,
+    headers: Record<string, string> = {},
+  ): Promise<Response> {
+    try {
+      return await fetch(`${this.baseUrl}${path}`, {
+        method: "POST",
+        body,
+        headers: { Accept: "application/json", ...headers },
+      });
+    } catch (cause) {
+      throw new WorkOSError({ message: failureMessage, cause });
+    }
+  }
+}

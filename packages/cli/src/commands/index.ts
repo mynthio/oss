@@ -1,4 +1,4 @@
-export { authCommand, whoamiCommand } from "./auth.ts";
-export { configCommand } from "./config.ts";
-export { imageCommand } from "./image.ts";
-export { taskCommand } from "./task.ts";
+export { createAuthCommand, createWhoamiCommand } from "./auth.ts";
+export { createConfigCommand } from "./config.ts";
+export { createImageCommand } from "./image.ts";
+export { createTaskCommand } from "./task.ts";

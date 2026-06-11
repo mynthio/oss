@@ -1,34 +1,36 @@
-import * as NodeContext from "@effect/platform-node/NodeContext";
-import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
-import * as Effect from "effect/Effect";
-import * as Layer from "effect/Layer";
-import * as Logger from "effect/Logger";
-import * as LogLevel from "effect/LogLevel";
-import { run } from "./Cli.ts";
-import { MainLayer } from "./layers.ts";
+import { InvalidArgumentError } from "commander";
+import { createProgram } from "./Cli.ts";
+import { CliUsageError } from "./domain/Errors.ts";
+import { printErr } from "./utils/output.ts";
 
 const debug = process.env["MYNTH_DEBUG"] === "1" || process.env["MYNTH_DEBUG"] === "true";
 
-const LoggerLayer = debug
-  ? Logger.pretty.pipe(Layer.provide(Logger.minimumLogLevel(LogLevel.Debug)))
-  : Layer.empty;
+const formatError = (error: unknown): string => {
+  if (error instanceof InvalidArgumentError) return error.message;
+  if (error instanceof Error) return error.message;
+  return String(error);
+};
 
-const program = debug
-  ? run(process.argv).pipe(
-      Effect.tapErrorCause((cause) =>
-        Effect.sync(() => {
-          // Surface nested causes (e.g. the underlying transport error inside MynthApiError.cause)
-          // that Effect's default reporter doesn't unwrap.
-          console.error("=== MYNTH_DEBUG cause ===");
-          console.error(JSON.stringify(cause, null, 2));
-        }),
-      ),
-    )
-  : run(process.argv);
+const main = async () => {
+  const program = createProgram();
+  program.exitOverride();
 
-program.pipe(
-  Effect.provide(MainLayer),
-  Effect.provide(NodeContext.layer),
-  Effect.provide(LoggerLayer),
-  NodeRuntime.runMain({ disableErrorReporting: !debug }),
-);
+  try {
+    await program.parseAsync(process.argv);
+  } catch (error) {
+    if ((error as { code?: string }).code === "commander.helpDisplayed") return;
+    if ((error as { code?: string }).code === "commander.version") return;
+
+    const message = formatError(error);
+    printErr(message);
+
+    if (debug && error instanceof Error) {
+      printErr("=== MYNTH_DEBUG cause ===");
+      printErr(JSON.stringify(error.cause ?? error, null, 2));
+    }
+
+    process.exitCode = error instanceof CliUsageError ? 1 : 1;
+  }
+};
+
+await main();

@@ -1,15 +1,11 @@
-import * as Args from "@effect/cli/Args";
-import * as Command from "@effect/cli/Command";
-import * as Options from "@effect/cli/Options";
-import * as Console from "effect/Console";
-import * as Effect from "effect/Effect";
-import { TaskService, type TaskData } from "../services/TaskService.ts";
+import { Command } from "commander";
+import type { CliContext } from "../context.ts";
+import type { TaskData } from "../services/TaskService.ts";
+import { print } from "../utils/output.ts";
 
-const jsonOption = Options.boolean("json").pipe(
-  Options.withDescription("Output machine-readable JSON instead of a human-readable summary"),
-);
-
-const taskIdArg = Args.text({ name: "id" }).pipe(Args.withDescription("Task ID"));
+type JsonOption = {
+  readonly json?: boolean;
+};
 
 const statusGlyph = (status: string): string => {
   switch (status) {
@@ -22,21 +18,6 @@ const statusGlyph = (status: string): string => {
   }
 };
 
-const renderHuman = Effect.fn("task.renderHuman")(function* (task: TaskData) {
-  yield* Console.log(`${statusGlyph(task.status)} Task ${task.id}`);
-  yield* Console.log(`  Type:       ${task.type}`);
-  yield* Console.log(`  Status:     ${task.status}`);
-  if (task.cost !== null) yield* Console.log(`  Cost:       ${task.cost}`);
-  yield* Console.log(`  Created:    ${task.createdAt}`);
-  yield* Console.log(`  Updated:    ${task.updatedAt}`);
-
-  if (task.result !== null && task.result !== undefined) {
-    yield* Console.log("");
-    yield* Console.log("Result:");
-    yield* Console.log(indent(JSON.stringify(task.result, null, 2), 2));
-  }
-});
-
 const indent = (text: string, spaces: number): string => {
   const pad = " ".repeat(spaces);
   return text
@@ -45,18 +26,37 @@ const indent = (text: string, spaces: number): string => {
     .join("\n");
 };
 
-const get = Command.make("get", { id: taskIdArg, json: jsonOption }, ({ id, json }) =>
-  Effect.gen(function* () {
-    const tasks = yield* TaskService;
-    const task = yield* tasks.getTask(id);
+const renderHuman = (task: TaskData): void => {
+  print(`${statusGlyph(task.status)} Task ${task.id}`);
+  print(`  Type:       ${task.type}`);
+  print(`  Status:     ${task.status}`);
+  if (task.cost !== null) print(`  Cost:       ${task.cost}`);
+  print(`  Created:    ${task.createdAt}`);
+  print(`  Updated:    ${task.updatedAt}`);
 
-    if (json) {
-      yield* Console.log(JSON.stringify(task, null, 2));
-      return;
-    }
+  if (task.result !== null && task.result !== undefined) {
+    print("");
+    print("Result:");
+    print(indent(JSON.stringify(task.result, null, 2), 2));
+  }
+};
 
-    yield* renderHuman(task);
-  }),
-);
+export const createTaskCommand = (ctx: CliContext): Command => {
+  const task = new Command("task");
 
-export const taskCommand = Command.make("task").pipe(Command.withSubcommands([get]));
+  task
+    .command("get")
+    .description("Fetch a task by ID")
+    .argument("<id>", "Task ID")
+    .option("--json", "Output machine-readable JSON instead of a human-readable summary")
+    .action(async (id: string, options: JsonOption) => {
+      const data = await ctx.tasks.getTask(id);
+      if (options.json) {
+        print(JSON.stringify(data, null, 2));
+        return;
+      }
+      renderHuman(data);
+    });
+
+  return task;
+};

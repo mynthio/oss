@@ -1,17 +1,46 @@
-import * as Command from "@effect/cli/Command";
+import { Command, Help, Option } from "commander";
+import { createCliContext } from "./context.ts";
 import {
-  authCommand,
-  configCommand,
-  imageCommand,
-  taskCommand,
-  whoamiCommand,
+  createAuthCommand,
+  createConfigCommand,
+  createImageCommand,
+  createTaskCommand,
+  createWhoamiCommand,
 } from "./commands/index.ts";
 
-const mynth = Command.make("mynth").pipe(
-  Command.withSubcommands([authCommand, configCommand, imageCommand, taskCommand, whoamiCommand]),
-);
+class MynthHelp extends Help {
+  override optionTerm(option: Option): string {
+    return `(${option.flags.replaceAll("<", "").replaceAll(">", "")})`;
+  }
 
-export const run = Command.run(mynth, {
-  name: "Mynth CLI",
-  version: "0.0.7",
-});
+  override subcommandTerm(command: Command): string {
+    const args = command.registeredArguments
+      .map((arg) =>
+        arg.required ? `${arg.name()}${arg.variadic ? "..." : ""}` : `[${arg.name()}]`,
+      )
+      .join(" ");
+    return args.length > 0 ? `${command.name()} ${args}` : command.name();
+  }
+}
+
+export const createProgram = (): Command => {
+  const ctx = createCliContext();
+  const program = new Command("mynth");
+
+  program.description("Official Mynth CLI").version("0.0.7");
+
+  program.addCommand(createAuthCommand(ctx));
+  program.addCommand(createConfigCommand(ctx));
+  program.addCommand(createImageCommand(ctx));
+  program.addCommand(createTaskCommand(ctx));
+  program.addCommand(createWhoamiCommand(ctx));
+
+  applyHelp(program);
+  return program;
+};
+
+const applyHelp = (command: Command): void => {
+  command.configureHelp({ helpWidth: 100 });
+  command.createHelp = () => new MynthHelp();
+  for (const child of command.commands) applyHelp(child);
+};

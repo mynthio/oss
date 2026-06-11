@@ -1,13 +1,10 @@
-import * as Args from "@effect/cli/Args";
-import * as Command from "@effect/cli/Command";
-import * as Options from "@effect/cli/Options";
-import * as FileSystem from "@effect/platform/FileSystem";
-import * as Path from "@effect/platform/Path";
-import * as Console from "effect/Console";
-import * as Effect from "effect/Effect";
-import * as Option from "effect/Option";
-import * as Schema from "effect/Schema";
-import { MynthApiError } from "../domain/Errors.ts";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import { Command, Option } from "commander";
+import chalk from "chalk";
+import { z } from "zod";
+import type { CliContext } from "../context.ts";
+import { CliUsageError, MynthApiError } from "../domain/Errors.ts";
 import {
   ImageService,
   MAX_RATE_IMAGES,
@@ -15,603 +12,279 @@ import {
   MAX_UPLOAD_FILES,
   MIN_RATE_LEVELS,
   type RateLevel,
+  type TaskData,
 } from "../services/ImageService.ts";
+import { print } from "../utils/output.ts";
 import { withSpinner } from "../utils/spinner.ts";
-
-const jsonOption = Options.boolean("json").pipe(
-  Options.withDescription("Output machine-readable JSON instead of a human-readable summary"),
-);
-
-// Shared level helpers -------------------------------------------------------
-
-const LevelArraySchema = Schema.Array(
-  Schema.Struct({ value: Schema.String, description: Schema.String }),
-);
-
-const parseLevelPair = (raw: string): Effect.Effect<RateLevel, MynthApiError> =>
-  Effect.sync(() => raw.indexOf("=")).pipe(
-    Effect.flatMap((idx) =>
-      idx <= 0
-        ? Effect.fail(
-            new MynthApiError({
-              message: `invalid --level "${raw}": expected "value=description"`,
-              status: 0,
-            }),
-          )
-        : Effect.succeed<RateLevel>({
-            value: raw.slice(0, idx).trim(),
-            description: raw.slice(idx + 1).trim(),
-          }),
-    ),
-    Effect.flatMap((level) =>
-      level.value.length === 0 || level.description.length === 0
-        ? Effect.fail(
-            new MynthApiError({
-              message: `invalid --level "${raw}": value and description must be non-empty`,
-              status: 0,
-            }),
-          )
-        : Effect.succeed(level),
-    ),
-  );
-
-const parseLevelsJson = (
-  source: string,
-  origin: string,
-): Effect.Effect<ReadonlyArray<RateLevel>, MynthApiError> =>
-  Effect.try({
-    try: () => JSON.parse(source) as unknown,
-    catch: (cause) =>
-      new MynthApiError({
-        message: `invalid JSON in ${origin}: ${(cause as Error).message}`,
-        status: 0,
-        cause,
-      }),
-  }).pipe(
-    Effect.flatMap((parsed) =>
-      Schema.decodeUnknown(LevelArraySchema)(parsed).pipe(
-        Effect.mapError(
-          (cause) =>
-            new MynthApiError({
-              message: `invalid levels in ${origin}: expected array of { value, description }`,
-              status: 0,
-              cause,
-            }),
-        ),
-      ),
-    ),
-  );
-
-const resolveLevels = Effect.fn("image.resolveLevels")(function* (input: {
-  readonly levelPairs: ReadonlyArray<string>;
-  readonly levelsFile: Option.Option<string>;
-  readonly levelsJson: Option.Option<string>;
-}) {
-  const sources = [
-    input.levelPairs.length > 0 ? "--level" : null,
-    Option.isSome(input.levelsFile) ? "--levels-file" : null,
-    Option.isSome(input.levelsJson) ? "--levels-json" : null,
-  ].filter((s): s is string => s !== null);
-
-  if (sources.length === 0) return undefined;
-  if (sources.length > 1) {
-    return yield* new MynthApiError({
-      message: `conflicting level options: ${sources.join(", ")} — use only one`,
-      status: 0,
-    });
-  }
-
-  const levels: ReadonlyArray<RateLevel> = yield* input.levelPairs.length > 0
-    ? Effect.forEach(input.levelPairs, parseLevelPair)
-    : Option.match(input.levelsFile, {
-        onSome: (path) =>
-          Effect.gen(function* () {
-            const fs = yield* FileSystem.FileSystem;
-            const contents = yield* fs.readFileString(path).pipe(
-              Effect.mapError(
-                (cause) =>
-                  new MynthApiError({
-                    message: `could not read ${path}: ${cause.message}`,
-                    status: 0,
-                  }),
-              ),
-            );
-            return yield* parseLevelsJson(contents, path);
-          }),
-        onNone: () =>
-          parseLevelsJson(
-            Option.getOrElse(input.levelsJson, () => "[]"),
-            "--levels-json",
-          ),
-      });
-
-  if (levels.length < MIN_RATE_LEVELS || levels.length > MAX_RATE_LEVELS) {
-    return yield* new MynthApiError({
-      message: `levels must have between ${MIN_RATE_LEVELS} and ${MAX_RATE_LEVELS} items (got ${levels.length})`,
-      status: 0,
-    });
-  }
-
-  const values = new Set<string>();
-  for (const lv of levels) {
-    if (values.has(lv.value)) {
-      return yield* new MynthApiError({
-        message: `duplicate level value: "${lv.value}"`,
-        status: 0,
-      });
-    }
-    values.add(lv.value);
-  }
-
-  return levels;
-});
-
-const isUrl = (s: string) => /^https?:\/\//i.test(s);
-
-// image upload ---------------------------------------------------------------
-
-const uploadFiles = Args.file({ exists: "yes" }).pipe(
-  Args.withDescription("Path to a local image file (.jpg, .jpeg, .png, .webp)"),
-  Args.between(1, MAX_UPLOAD_FILES),
-);
-
-const upload = Command.make("upload", { files: uploadFiles, json: jsonOption }, ({ files, json }) =>
-  Effect.gen(function* () {
-    const images = yield* ImageService;
-    const uploaded = yield* images.upload(files);
-    if (json) {
-      yield* Console.log(JSON.stringify({ images: uploaded }, null, 2));
-      return;
-    }
-    yield* Console.log(`✓ Uploaded ${uploaded.length} image${uploaded.length === 1 ? "" : "s"}`);
-    for (const { path, url } of uploaded) {
-      yield* Console.log(`  ${path}`);
-      yield* Console.log(`    → ${url}`);
-    }
-  }),
-);
-
-// image rate ------------------------------------------------------------------
-
-const rateInputs = Args.text({ name: "image" }).pipe(
-  Args.withDescription(
-    "Image URL (http://, https://) or path to a local image file to upload first",
-  ),
-  Args.between(1, MAX_RATE_IMAGES),
-);
-
-const levelOption = Options.text("level").pipe(
-  Options.withAlias("l"),
-  Options.withDescription(
-    'Custom rating level as "value=description" (repeatable, 2–7 items). ' +
-      'Example: -l safe="No explicit content" -l nsfw="Contains nudity"',
-  ),
-  Options.repeated,
-);
-
-const levelsFileOption = Options.file("levels-file", { exists: "yes" }).pipe(
-  Options.withDescription(
-    'Path to a JSON file containing an array of { "value": string, "description": string } (2–7 items). ' +
-      "Alternative to --level when descriptions contain special characters.",
-  ),
-  Options.optional,
-);
-
-const levelsJsonOption = Options.text("levels-json").pipe(
-  Options.withDescription(
-    'Inline JSON array of { "value": string, "description": string } (2–7 items). ' +
-      "Alternative to --level / --levels-file.",
-  ),
-  Options.optional,
-);
-
-const rate = Command.make(
-  "rate",
-  {
-    inputs: rateInputs,
-    level: levelOption,
-    levelsFile: levelsFileOption,
-    levelsJson: levelsJsonOption,
-    json: jsonOption,
-  },
-  ({ inputs, level, levelsFile, levelsJson, json }) =>
-    Effect.gen(function* () {
-      const images = yield* ImageService;
-
-      const levels = yield* resolveLevels({
-        levelPairs: level,
-        levelsFile,
-        levelsJson,
-      });
-
-      const urlInputs = inputs.filter(isUrl);
-      const pathInputs = inputs.filter((s) => !isUrl(s));
-
-      const uploaded = pathInputs.length > 0 ? yield* images.upload(pathInputs) : [];
-
-      const uploadedByPath = new Map(uploaded.map((u) => [u.path, u.url] as const));
-      const urls = inputs.map((input) =>
-        isUrl(input) ? input : (uploadedByPath.get(input) ?? input),
-      );
-
-      const result = yield* images.rate({ urls, ...(levels ? { levels } : {}) });
-
-      if (json) {
-        yield* Console.log(JSON.stringify(result, null, 2));
-        return;
-      }
-
-      const successes = result.results.filter((r) => r.status === "success");
-      const errors = result.results.filter((r) => r.status === "failed");
-
-      if (uploaded.length > 0) {
-        yield* Console.log(
-          `✓ Uploaded ${uploaded.length} image${uploaded.length === 1 ? "" : "s"}`,
-        );
-      }
-      yield* Console.log(
-        `✓ Rated ${successes.length}/${result.results.length} (task ${result.task.id})`,
-      );
-      for (const r of successes) {
-        yield* Console.log(`  ${r.level}  ${r.url}`);
-      }
-      for (const r of errors) {
-        yield* Console.log(`  ERROR  ${r.error.code}  ${r.url}`);
-      }
-      if (urlInputs.length === 0 && uploaded.length > 0) {
-        yield* Console.log("");
-        yield* Console.log("Uploaded source files:");
-        for (const u of uploaded) {
-          yield* Console.log(`  ${u.path} → ${u.url}`);
-        }
-      }
-    }),
-);
-
-// image generate --------------------------------------------------------------
 
 const MAX_GENERATE_INPUTS = 8;
 const INPUT_ROLES = ["auto", "init", "reference"] as const;
-type InputRole = (typeof INPUT_ROLES)[number];
 
+type InputRole = (typeof INPUT_ROLES)[number];
 type ParsedInput = {
   readonly role: InputRole;
   readonly value: string;
   readonly isFile: boolean;
 };
 
-const parseInputSpec = (raw: string): Effect.Effect<ParsedInput, MynthApiError> =>
-  Effect.sync(() => {
-    const colonIdx = raw.indexOf(":");
-    const looksLikeUrl = /^https?:/i.test(raw);
-    if (colonIdx > 0 && !looksLikeUrl) {
-      const maybeRole = raw.slice(0, colonIdx) as InputRole;
-      if ((INPUT_ROLES as ReadonlyArray<string>).includes(maybeRole)) {
-        return { role: maybeRole, rest: raw.slice(colonIdx + 1) };
-      }
-    }
-    return { role: "reference" as InputRole, rest: raw };
-  }).pipe(
-    Effect.flatMap(({ role, rest }) =>
-      rest.length === 0
-        ? Effect.fail(
-            new MynthApiError({
-              message: `invalid --input "${raw}": missing path or URL`,
-              status: 0,
-            }),
-          )
-        : Effect.succeed<ParsedInput>({ role, value: rest, isFile: !isUrl(rest) }),
-    ),
-  );
-
-const promptOption = Options.text("prompt").pipe(
-  Options.withAlias("p"),
-  Options.withDescription("Text prompt describing the image to generate"),
-);
-
-const negativeOption = Options.text("negative").pipe(
-  Options.withAlias("n"),
-  Options.withDescription("Negative prompt (elements to exclude)"),
-  Options.optional,
-);
-
-const enhanceOption = Options.choice("enhance", ["prefer_magic", "prefer_native", "none"]).pipe(
-  Options.withDescription(
-    'Prompt enhancement mode: "prefer_magic" (Mynth) or "none". "prefer_native" is no longer supported by the API.',
-  ),
-  Options.optional,
-);
-
-const modelOption = Options.text("model").pipe(
-  Options.withAlias("m"),
-  Options.withDescription('Model ID (e.g. "black-forest-labs/flux.1-dev"). Default: "auto"'),
-  Options.optional,
-);
-
-const sizeOption = Options.text("size").pipe(
-  Options.withAlias("s"),
-  Options.withDescription(
-    'Size preset or aspect ratio: "square", "portrait", "landscape", "1:1", "16:9", "16:9_4k", "auto", etc.',
-  ),
-  Options.optional,
-);
-
-const countOption = Options.integer("count").pipe(
-  Options.withAlias("c"),
-  Options.withDescription("Number of images to generate (default: 1)"),
-  Options.optional,
-);
-
-const formatOption = Options.choice("format", ["png", "jpg", "webp"]).pipe(
-  Options.withAlias("f"),
-  Options.withDescription("Output image format (default: webp)"),
-  Options.optional,
-);
-
-const qualityOption = Options.integer("quality").pipe(
-  Options.withAlias("q"),
-  Options.withDescription("Output quality 0–100 (default: 80)"),
-  Options.optional,
-);
-
-const inputOption = Options.text("input").pipe(
-  Options.withAlias("i"),
-  Options.withDescription(
-    'Input image as "[role:]path-or-url" (repeatable, up to ' +
-      `${MAX_GENERATE_INPUTS}). Role is one of: auto, init, reference (default: reference). ` +
-      "Examples: -i ./img.jpg, -i reference:https://example.com/a.png, -i init:./seed.png",
-  ),
-  Options.repeated,
-);
-
-const outputDirOption = Options.directory("output-dir", { exists: "either" }).pipe(
-  Options.withAlias("o"),
-  Options.withDescription(
-    "Directory to save generated images to. Created if it doesn't exist. " +
-      "Ignored in --async mode since the task hasn't completed yet.",
-  ),
-  Options.optional,
-);
-
-const destinationOption = Options.text("destination").pipe(
-  Options.withDescription(
-    "Name (slug) of a user-configured destination to deliver the result to. " +
-      "Falls back to MYNTH_DESTINATION env var if not set.",
-  ),
-  Options.optional,
-);
-
-const metadataOption = Options.text("metadata").pipe(
-  Options.withDescription("Inline JSON object of custom metadata to attach to the task (max 2KB)"),
-  Options.optional,
-);
-
-const contentRatingOption = Options.boolean("content-rating").pipe(
-  Options.withDescription(
-    "Enable content rating classification using default sfw/nsfw levels. " +
-      "For custom levels use --level / --levels-file / --levels-json.",
-  ),
-);
-
-const asyncOption = Options.boolean("async").pipe(
-  Options.withDescription("Return the task ID immediately instead of polling until completion"),
-);
-
-const detailedOption = Options.boolean("detailed").pipe(
-  Options.withDescription("Include full task data (all fields) in the output"),
-);
-
-const parseMetadata = (raw: string): Effect.Effect<Record<string, unknown>, MynthApiError> =>
-  Effect.try({
-    try: () => JSON.parse(raw) as unknown,
-    catch: (cause) =>
-      new MynthApiError({
-        message: `invalid --metadata JSON: ${(cause as Error).message}`,
-        status: 0,
-        cause,
-      }),
-  }).pipe(
-    Effect.flatMap((parsed) =>
-      parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)
-        ? Effect.succeed(parsed as Record<string, unknown>)
-        : Effect.fail(
-            new MynthApiError({ message: "--metadata must be a JSON object", status: 0 }),
-          ),
-    ),
-  );
-
-const generate = Command.make(
-  "generate",
-  {
-    prompt: promptOption,
-    negative: negativeOption,
-    enhance: enhanceOption,
-    model: modelOption,
-    size: sizeOption,
-    count: countOption,
-    format: formatOption,
-    quality: qualityOption,
-    input: inputOption,
-    outputDir: outputDirOption,
-    destination: destinationOption,
-    metadata: metadataOption,
-    contentRating: contentRatingOption,
-    level: levelOption,
-    levelsFile: levelsFileOption,
-    levelsJson: levelsJsonOption,
-    async: asyncOption,
-    detailed: detailedOption,
-    json: jsonOption,
-  },
-  (opts) =>
-    Effect.gen(function* () {
-      const images = yield* ImageService;
-
-      const enhanceValue = Option.getOrUndefined(opts.enhance);
-      if (enhanceValue === "prefer_native") {
-        return yield* new MynthApiError({
-          message:
-            '--enhance prefer_native is no longer supported by the API; use "prefer_magic" or "none"',
-          status: 0,
-        });
-      }
-
-      if (opts.input.length > MAX_GENERATE_INPUTS) {
-        return yield* new MynthApiError({
-          message: `too many --input values: ${opts.input.length} (max ${MAX_GENERATE_INPUTS})`,
-          status: 0,
-        });
-      }
-
-      const parsedInputs = yield* Effect.forEach(opts.input, parseInputSpec);
-
-      const metadata = yield* Option.match(opts.metadata, {
-        onSome: (raw) => parseMetadata(raw).pipe(Effect.map(Option.some)),
-        onNone: () => Effect.succeed(Option.none<Record<string, unknown>>()),
-      });
-
-      const customLevels = yield* resolveLevels({
-        levelPairs: opts.level,
-        levelsFile: opts.levelsFile,
-        levelsJson: opts.levelsJson,
-      });
-
-      if (customLevels && !opts.contentRating) {
-        // Custom levels imply content rating is enabled; this is allowed and does not
-        // require --content-rating. Nothing to do here.
-      }
-
-      // Upload any file inputs to get CDN URLs
-      const filePaths = parsedInputs.filter((i) => i.isFile).map((i) => i.value);
-      const uniqueFilePaths = Array.from(new Set(filePaths));
-      const uploaded = uniqueFilePaths.length > 0 ? yield* images.upload(uniqueFilePaths) : [];
-      const uploadedByPath = new Map(uploaded.map((u) => [u.path, u.url] as const));
-
-      const resolvedInputs = parsedInputs.map((i) => ({
-        type: "image" as const,
-        role: i.role,
-        source: {
-          type: "url" as const,
-          url: i.isFile ? (uploadedByPath.get(i.value) ?? i.value) : i.value,
-        },
-      }));
-
-      const negativeValue = Option.getOrUndefined(opts.negative);
-
-      const output: Record<string, unknown> = {};
-      const fmt = Option.getOrUndefined(opts.format);
-      const q = Option.getOrUndefined(opts.quality);
-      if (fmt !== undefined) output["format"] = fmt;
-      if (q !== undefined) output["quality"] = q;
-
-      const contentRatingCfg =
-        customLevels !== undefined
-          ? { mode: "custom", levels: customLevels }
-          : opts.contentRating
-            ? true
-            : undefined;
-
-      const request: Record<string, unknown> = { prompt: opts.prompt };
-      const model = Option.getOrUndefined(opts.model);
-      const size = Option.getOrUndefined(opts.size);
-      const count = Option.getOrUndefined(opts.count);
-      const destination = Option.getOrUndefined(opts.destination);
-      if (model !== undefined) request["model"] = model;
-      if (negativeValue !== undefined) request["negative_prompt"] = negativeValue;
-      if (enhanceValue === "prefer_magic") request["magic_prompt"] = true;
-      if (size !== undefined) request["size"] = size;
-      if (count !== undefined) request["count"] = count;
-      if (Object.keys(output).length > 0) request["output"] = output;
-      if (resolvedInputs.length > 0) request["inputs"] = resolvedInputs;
-      if (destination !== undefined) request["destination"] = destination;
-      if (contentRatingCfg !== undefined) request["rating"] = contentRatingCfg;
-      if (Option.isSome(metadata)) request["metadata"] = metadata.value;
-
-      // Async mode: create the task and return the ID immediately.
-      if (opts.async) {
-        const created = yield* images.generate({ request, requestPat: true });
-        const payload = {
-          taskId: created.taskId,
-          access: Option.match(created.pat, {
-            onSome: (publicAccessToken) => ({ publicAccessToken }),
-            onNone: () => undefined,
-          }),
-        };
-        if (opts.json) {
-          yield* Console.log(JSON.stringify(payload, null, 2));
-          return;
-        }
-        yield* Console.log(`✓ Task created: ${created.taskId}`);
-        if (Option.isSome(created.pat)) {
-          yield* Console.log(`  PAT: ${created.pat.value}`);
-        }
-        return;
-      }
-
-      // Sync mode: create, then poll with PAT by default.
-      const created = yield* images.generate({ request, requestPat: true });
-
-      // Show a spinner only for human-readable output; keep --json clean.
-      const waitEffect = images.waitForTask(created.taskId, created.pat);
-      const task = yield* opts.json ? waitEffect : withSpinner(waitEffect);
-
-      const outputDirRaw = Option.getOrUndefined(opts.outputDir);
-      const outputDir =
-        outputDirRaw !== undefined ? (yield* Path.Path).resolve(outputDirRaw) : undefined;
-      const downloadedFiles =
-        outputDir !== undefined ? yield* downloadSucceededImages(task, outputDir) : [];
-
-      if (opts.json) {
-        const base = opts.detailed ? task : summarizeTask(task);
-        const output = outputDir !== undefined ? { ...(base as object), downloadedFiles } : base;
-        yield* Console.log(JSON.stringify(output, null, 2));
-        return;
-      }
-
-      yield* renderTaskHuman(task, uploaded.length);
-      if (outputDir !== undefined && downloadedFiles.length > 0) {
-        yield* Console.log("");
-        yield* Console.log(
-          `✓ Saved ${downloadedFiles.length} image${downloadedFiles.length === 1 ? "" : "s"} to ${outputDir}`,
-        );
-        for (const f of downloadedFiles) {
-          yield* Console.log(`  ${f}`);
-        }
-      }
-    }),
-);
-
-// ----------------------------------------------------------------------------
-
-type TaskResult = {
-  images?: ReadonlyArray<Record<string, unknown>>;
-  cost?: { total?: string };
-  model?: string;
-  magic_prompt?: { positive?: string; negative?: string };
-  destination?: { name?: string };
-  size_auto?: { value?: string; source?: string };
+type JsonOption = {
+  readonly json?: boolean;
 };
 
-const downloadSucceededImages = Effect.fn("image.downloadSucceededImages")(function* (
+type RateOptions = JsonOption & {
+  readonly level?: ReadonlyArray<string>;
+  readonly levelsFile?: string;
+  readonly levelsJson?: string;
+};
+
+type GenerateOptions = RateOptions & {
+  readonly prompt?: string;
+  readonly negative?: string;
+  readonly enhance?: "prefer_magic" | "prefer_native" | "none";
+  readonly model?: string;
+  readonly size?: string;
+  readonly count?: number;
+  readonly format?: "png" | "jpg" | "webp";
+  readonly quality?: number;
+  readonly input?: ReadonlyArray<string>;
+  readonly outputDir?: string;
+  readonly destination?: string;
+  readonly metadata?: string;
+  readonly contentRating?: boolean;
+  readonly async?: boolean;
+  readonly detailed?: boolean;
+};
+
+const ok = chalk.green("✓");
+const fail = chalk.red("✗");
+const createJsonOption = () =>
+  new Option("--json", "Output machine-readable JSON instead of a human-readable summary");
+
+const LevelArraySchema = z.array(z.object({ value: z.string(), description: z.string() }));
+
+const isUrl = (s: string) => /^https?:\/\//i.test(s);
+
+const collect = (value: string, previous: ReadonlyArray<string> = []) => [...previous, value];
+
+const parseInteger = (value: string): number => {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isInteger(parsed) || String(parsed) !== value) {
+    throw new CliUsageError(`invalid integer: "${value}"`);
+  }
+  return parsed;
+};
+
+const parseLevelPair = (raw: string): RateLevel => {
+  const idx = raw.indexOf("=");
+  if (idx <= 0) {
+    throw new MynthApiError({
+      message: `invalid --level "${raw}": expected "value=description"`,
+      status: 0,
+    });
+  }
+
+  const level = {
+    value: raw.slice(0, idx).trim(),
+    description: raw.slice(idx + 1).trim(),
+  };
+
+  if (level.value.length === 0 || level.description.length === 0) {
+    throw new MynthApiError({
+      message: `invalid --level "${raw}": value and description must be non-empty`,
+      status: 0,
+    });
+  }
+
+  return level;
+};
+
+const parseLevelsJson = (source: string, origin: string): ReadonlyArray<RateLevel> => {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(source);
+  } catch (cause) {
+    throw new MynthApiError({
+      message: `invalid JSON in ${origin}: ${(cause as Error).message}`,
+      status: 0,
+      cause,
+    });
+  }
+
+  const result = LevelArraySchema.safeParse(parsed);
+  if (!result.success) {
+    throw new MynthApiError({
+      message: `invalid levels in ${origin}: expected array of { value, description }`,
+      status: 0,
+      cause: result.error,
+    });
+  }
+  return result.data;
+};
+
+const resolveLevels = async (input: {
+  readonly levelPairs: ReadonlyArray<string>;
+  readonly levelsFile?: string | undefined;
+  readonly levelsJson?: string | undefined;
+}): Promise<ReadonlyArray<RateLevel> | undefined> => {
+  const sources = [
+    input.levelPairs.length > 0 ? "--level" : null,
+    input.levelsFile !== undefined ? "--levels-file" : null,
+    input.levelsJson !== undefined ? "--levels-json" : null,
+  ].filter((source): source is string => source !== null);
+
+  if (sources.length === 0) return undefined;
+  if (sources.length > 1) {
+    throw new MynthApiError({
+      message: `conflicting level options: ${sources.join(", ")} - use only one`,
+      status: 0,
+    });
+  }
+
+  let levels: ReadonlyArray<RateLevel>;
+  if (input.levelPairs.length > 0) {
+    levels = input.levelPairs.map(parseLevelPair);
+  } else if (input.levelsFile !== undefined) {
+    let contents: string;
+    try {
+      contents = await readFile(input.levelsFile, "utf8");
+    } catch (cause) {
+      throw new MynthApiError({
+        message: `could not read ${input.levelsFile}: ${(cause as Error).message}`,
+        status: 0,
+        cause,
+      });
+    }
+    levels = parseLevelsJson(contents, input.levelsFile);
+  } else {
+    levels = parseLevelsJson(input.levelsJson ?? "[]", "--levels-json");
+  }
+
+  if (levels.length < MIN_RATE_LEVELS || levels.length > MAX_RATE_LEVELS) {
+    throw new MynthApiError({
+      message: `levels must have between ${MIN_RATE_LEVELS} and ${MAX_RATE_LEVELS} items (got ${levels.length})`,
+      status: 0,
+    });
+  }
+
+  const values = new Set<string>();
+  for (const level of levels) {
+    if (values.has(level.value)) {
+      throw new MynthApiError({ message: `duplicate level value: "${level.value}"`, status: 0 });
+    }
+    values.add(level.value);
+  }
+
+  return levels;
+};
+
+const parseInputSpec = (raw: string): ParsedInput => {
+  const colonIdx = raw.indexOf(":");
+  const looksLikeUrl = /^https?:/i.test(raw);
+  let role: InputRole = "reference";
+  let rest = raw;
+
+  if (colonIdx > 0 && !looksLikeUrl) {
+    const maybeRole = raw.slice(0, colonIdx);
+    if ((INPUT_ROLES as ReadonlyArray<string>).includes(maybeRole)) {
+      role = maybeRole as InputRole;
+      rest = raw.slice(colonIdx + 1);
+    }
+  }
+
+  if (rest.length === 0) {
+    throw new MynthApiError({
+      message: `invalid --input "${raw}": missing path or URL`,
+      status: 0,
+    });
+  }
+
+  return { role, value: rest, isFile: !isUrl(rest) };
+};
+
+const parseMetadata = (raw: string): Record<string, unknown> => {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (cause) {
+    throw new MynthApiError({
+      message: `invalid --metadata JSON: ${(cause as Error).message}`,
+      status: 0,
+      cause,
+    });
+  }
+
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new MynthApiError({ message: "--metadata must be a JSON object", status: 0 });
+  }
+
+  return parsed as Record<string, unknown>;
+};
+
+const addLevelOptions = (command: Command) =>
+  command
+    .option(
+      "-l, --level <value>",
+      'Custom rating level as "value=description" (repeatable, 2-7 items). Example: -l safe="No explicit content" -l nsfw="Contains nudity"',
+      collect,
+    )
+    .option(
+      "--levels-file <path>",
+      'Path to a JSON file containing an array of { "value": string, "description": string } (2-7 items). Alternative to --level when descriptions contain special characters.',
+    )
+    .option(
+      "--levels-json <json>",
+      'Inline JSON array of { "value": string, "description": string } (2-7 items). Alternative to --level / --levels-file.',
+    );
+
+const renderTaskHuman = (
   task: { readonly id: string; readonly result: unknown },
-  destinationDir: string,
-) {
-  const images = yield* ImageService;
+  uploadedCount: number,
+): void => {
   const result = (task.result ?? {}) as TaskResult;
-  const urls = (result.images ?? [])
-    .map((img) => img as Record<string, unknown>)
-    .filter((img) => img["status"] === "success")
-    .map((img) => (img["url"] as string | null) ?? (img["mynth_url"] as string | null))
-    .filter((u): u is string => typeof u === "string" && u.length > 0);
+  const images = result.images ?? [];
 
-  if (urls.length === 0) return [] as ReadonlyArray<string>;
+  if (uploadedCount > 0) {
+    print(`${ok} Uploaded ${uploadedCount} input image${uploadedCount === 1 ? "" : "s"}`);
+  }
 
-  return yield* images.downloadImages({
-    urls,
-    destinationDir,
-    taskId: task.id,
-  });
-});
+  const succeeded = images.filter(
+    (image) => (image as Record<string, unknown>)["status"] === "success",
+  );
+  print(
+    `${ok} Generated ${succeeded.length}/${images.length} image${images.length === 1 ? "" : "s"} (task ${task.id})`,
+  );
+
+  if (result.model !== undefined) print(`  Model: ${result.model}`);
+  if (result.size_auto?.value !== undefined) {
+    print(`  Size: ${result.size_auto.value} (auto, ${result.size_auto.source})`);
+  }
+  if (result.cost?.total !== undefined) print(`  Cost: ${result.cost.total}`);
+  if (result.destination?.name !== undefined) print(`  Destination: ${result.destination.name}`);
+
+  if (result.magic_prompt?.positive !== undefined) {
+    print("");
+    print("Enhanced prompt (mynth):");
+    print(`  ${result.magic_prompt.positive}`);
+    if (result.magic_prompt.negative !== undefined && result.magic_prompt.negative.length > 0) {
+      print(`  negative: ${result.magic_prompt.negative}`);
+    }
+  }
+
+  if (images.length > 0) {
+    print("");
+    for (const raw of images) {
+      const image = raw as Record<string, unknown>;
+      if (image["status"] === "success") {
+        const rating = image["rating"] as { level?: string } | undefined;
+        const ratingSuffix = rating?.level !== undefined ? ` [${rating.level}]` : "";
+        const url = (image["url"] as string | null) ?? (image["mynth_url"] as string);
+        print(`  ${ok} ${url}${ratingSuffix}`);
+      } else {
+        print(`  ${fail} ${(image["error"] as string) ?? "unknown error"}`);
+      }
+    }
+  }
+};
 
 const summarizeTask = (task: {
   readonly id: string;
@@ -619,8 +292,8 @@ const summarizeTask = (task: {
   readonly result: unknown;
 }) => {
   const result = (task.result ?? {}) as TaskResult;
-  const images = (result.images ?? []).map((img) => {
-    const obj = img as Record<string, unknown>;
+  const images = (result.images ?? []).map((image) => {
+    const obj = image as Record<string, unknown>;
     if (obj["status"] === "success") {
       return {
         status: "success",
@@ -632,6 +305,7 @@ const summarizeTask = (task: {
     }
     return { status: "failed", error: obj["error"], mynth_url: obj["mynth_url"] ?? null };
   });
+
   return {
     taskId: task.id,
     status: task.status,
@@ -642,58 +316,276 @@ const summarizeTask = (task: {
   };
 };
 
-const renderTaskHuman = Effect.fn("image.renderTaskHuman")(function* (
-  task: { readonly id: string; readonly status: string; readonly result: unknown },
-  uploadedCount: number,
-) {
+const downloadSucceededImages = async (
+  images: ImageService,
+  task: { readonly id: string; readonly result: unknown },
+  destinationDir: string,
+): Promise<ReadonlyArray<string>> => {
   const result = (task.result ?? {}) as TaskResult;
-  const images = result.images ?? [];
+  const urls = (result.images ?? [])
+    .map((image) => image as Record<string, unknown>)
+    .filter((image) => image["status"] === "success")
+    .map((image) => (image["url"] as string | null) ?? (image["mynth_url"] as string | null))
+    .filter((url): url is string => typeof url === "string" && url.length > 0);
 
-  if (uploadedCount > 0) {
-    yield* Console.log(`✓ Uploaded ${uploadedCount} input image${uploadedCount === 1 ? "" : "s"}`);
-  }
+  if (urls.length === 0) return [];
+  return images.downloadImages({ urls, destinationDir, taskId: task.id });
+};
 
-  const succeeded = images.filter((i) => (i as Record<string, unknown>)["status"] === "success");
-  yield* Console.log(
-    `✓ Generated ${succeeded.length}/${images.length} image${images.length === 1 ? "" : "s"} (task ${task.id})`,
-  );
+type TaskResult = {
+  images?: ReadonlyArray<Record<string, unknown>>;
+  cost?: { total?: string };
+  model?: string;
+  magic_prompt?: { positive?: string; negative?: string };
+  destination?: { name?: string };
+  size_auto?: { value?: string; source?: string };
+};
 
-  if (result.model !== undefined) yield* Console.log(`  Model: ${result.model}`);
-  if (result.size_auto?.value !== undefined) {
-    yield* Console.log(`  Size: ${result.size_auto.value} (auto, ${result.size_auto.source})`);
-  }
-  if (result.cost?.total !== undefined) yield* Console.log(`  Cost: ${result.cost.total}`);
-  if (result.destination?.name !== undefined) {
-    yield* Console.log(`  Destination: ${result.destination.name}`);
-  }
+export const createImageCommand = (ctx: CliContext): Command => {
+  const image = new Command("image");
 
-  if (result.magic_prompt?.positive !== undefined) {
-    yield* Console.log("");
-    yield* Console.log("Enhanced prompt (mynth):");
-    yield* Console.log(`  ${result.magic_prompt.positive}`);
-    if (result.magic_prompt.negative !== undefined && result.magic_prompt.negative.length > 0) {
-      yield* Console.log(`  negative: ${result.magic_prompt.negative}`);
+  image
+    .command("upload")
+    .description("Upload local images to Mynth")
+    .argument("<files...>", "Path to a local image file (.jpg, .jpeg, .png, .webp)")
+    .addOption(createJsonOption())
+    .action(async (files: ReadonlyArray<string>, options: JsonOption) => {
+      if (files.length > MAX_UPLOAD_FILES) {
+        throw new MynthApiError({
+          message: `too many files: ${files.length} (max ${MAX_UPLOAD_FILES})`,
+          status: 0,
+        });
+      }
+
+      const uploaded = await ctx.images.upload(files);
+      if (options.json) {
+        print(JSON.stringify({ images: uploaded }, null, 2));
+        return;
+      }
+
+      print(`${ok} Uploaded ${uploaded.length} image${uploaded.length === 1 ? "" : "s"}`);
+      for (const { path, url } of uploaded) {
+        print(`  ${path}`);
+        print(`    -> ${url}`);
+      }
+    });
+
+  const rate = image
+    .command("rate")
+    .description("Rate images by URL or local file")
+    .argument(
+      "<image...>",
+      "Image URL (http://, https://) or path to a local image file to upload first",
+    )
+    .addOption(createJsonOption());
+  addLevelOptions(rate);
+  rate.action(async (inputs: ReadonlyArray<string>, options: RateOptions) => {
+    if (inputs.length > MAX_RATE_IMAGES) {
+      throw new MynthApiError({
+        message: `too many images: ${inputs.length} (max ${MAX_RATE_IMAGES})`,
+        status: 0,
+      });
     }
-  }
 
-  if (images.length > 0) {
-    yield* Console.log("");
-    for (const raw of images) {
-      const img = raw as Record<string, unknown>;
-      if (img["status"] === "success") {
-        const rating = img["rating"] as { level?: string } | undefined;
-        const ratingSuffix = rating?.level !== undefined ? ` [${rating.level}]` : "";
-        const url = (img["url"] as string | null) ?? (img["mynth_url"] as string);
-        yield* Console.log(`  ✓ ${url}${ratingSuffix}`);
-      } else {
-        yield* Console.log(`  ✗ ${(img["error"] as string) ?? "unknown error"}`);
+    const levels = await resolveLevels({
+      levelPairs: options.level ?? [],
+      levelsFile: options.levelsFile,
+      levelsJson: options.levelsJson,
+    });
+
+    const urlInputs = inputs.filter(isUrl);
+    const pathInputs = inputs.filter((input) => !isUrl(input));
+    const uploaded = pathInputs.length > 0 ? await ctx.images.upload(pathInputs) : [];
+    const uploadedByPath = new Map(uploaded.map((upload) => [upload.path, upload.url] as const));
+    const urls = inputs.map((input) =>
+      isUrl(input) ? input : (uploadedByPath.get(input) ?? input),
+    );
+
+    const result = await ctx.images.rate({ urls, ...(levels ? { levels } : {}) });
+    if (options.json) {
+      print(JSON.stringify(result, null, 2));
+      return;
+    }
+
+    const successes = result.results.filter((item) => item.status === "success");
+    const errors = result.results.filter((item) => item.status === "failed");
+
+    if (uploaded.length > 0) {
+      print(`${ok} Uploaded ${uploaded.length} image${uploaded.length === 1 ? "" : "s"}`);
+    }
+    print(`${ok} Rated ${successes.length}/${result.results.length} (task ${result.task.id})`);
+    for (const item of successes) {
+      print(`  ${item.level}  ${item.url}`);
+    }
+    for (const item of errors) {
+      print(`  ERROR  ${item.error.code}  ${item.url}`);
+    }
+    if (urlInputs.length === 0 && uploaded.length > 0) {
+      print("");
+      print("Uploaded source files:");
+      for (const upload of uploaded) {
+        print(`  ${upload.path} -> ${upload.url}`);
       }
     }
-  }
-});
+  });
 
-// ----------------------------------------------------------------------------
+  const generate = image.command("generate").description("Generate images with Mynth");
+  generate
+    .option("-p, --prompt <text>", "Text prompt describing the image to generate")
+    .option("-n, --negative <text>", "Negative prompt (elements to exclude)")
+    .addOption(
+      new Option(
+        "--enhance <mode>",
+        'Prompt enhancement mode: "prefer_magic" (Mynth) or "none". "prefer_native" is no longer supported by the API.',
+      ).choices(["prefer_magic", "prefer_native", "none"]),
+    )
+    .option("-m, --model <id>", 'Model ID (e.g. "black-forest-labs/flux.1-dev"). Default: "auto"')
+    .option(
+      "-s, --size <size>",
+      'Size preset or aspect ratio: "square", "portrait", "landscape", "1:1", "16:9", "16:9_4k", "auto", etc.',
+    )
+    .option("-c, --count <number>", "Number of images to generate (default: 1)", parseInteger)
+    .addOption(
+      new Option("-f, --format <format>", "Output image format (default: webp)").choices([
+        "png",
+        "jpg",
+        "webp",
+      ]),
+    )
+    .option("-q, --quality <number>", "Output quality 0-100 (default: 80)", parseInteger)
+    .option(
+      "-i, --input <value>",
+      `Input image as "[role:]path-or-url" (repeatable, up to ${MAX_GENERATE_INPUTS}). Role is one of: auto, init, reference (default: reference). Examples: -i ./img.jpg, -i reference:https://example.com/a.png, -i init:./seed.png`,
+      collect,
+    )
+    .option(
+      "-o, --output-dir <dir>",
+      "Directory to save generated images to. Created if it doesn't exist. Ignored in --async mode since the task hasn't completed yet.",
+    )
+    .option(
+      "--destination <name>",
+      "Name (slug) of a user-configured destination to deliver the result to. Falls back to MYNTH_DESTINATION env var if not set.",
+    )
+    .option(
+      "--metadata <json>",
+      "Inline JSON object of custom metadata to attach to the task (max 2KB)",
+    )
+    .option(
+      "--content-rating",
+      "Enable content rating classification using default sfw/nsfw levels. For custom levels use --level / --levels-file / --levels-json.",
+    )
+    .option("--async", "Return the task ID immediately instead of polling until completion")
+    .option("--detailed", "Include full task data (all fields) in the output")
+    .addOption(createJsonOption());
+  addLevelOptions(generate);
 
-export const imageCommand = Command.make("image").pipe(
-  Command.withSubcommands([generate, upload, rate]),
-);
+  generate.action(async (options: GenerateOptions) => {
+    if (options.prompt === undefined || options.prompt.length === 0) {
+      throw new CliUsageError("Expected to find option: '--prompt'");
+    }
+
+    if (options.enhance === "prefer_native") {
+      throw new MynthApiError({
+        message:
+          '--enhance prefer_native is no longer supported by the API; use "prefer_magic" or "none"',
+        status: 0,
+      });
+    }
+
+    const inputs = options.input ?? [];
+    if (inputs.length > MAX_GENERATE_INPUTS) {
+      throw new MynthApiError({
+        message: `too many --input values: ${inputs.length} (max ${MAX_GENERATE_INPUTS})`,
+        status: 0,
+      });
+    }
+
+    const parsedInputs = inputs.map(parseInputSpec);
+    const metadata = options.metadata !== undefined ? parseMetadata(options.metadata) : undefined;
+    const customLevels = await resolveLevels({
+      levelPairs: options.level ?? [],
+      levelsFile: options.levelsFile,
+      levelsJson: options.levelsJson,
+    });
+
+    const filePaths = parsedInputs.filter((input) => input.isFile).map((input) => input.value);
+    const uniqueFilePaths = Array.from(new Set(filePaths));
+    const uploaded = uniqueFilePaths.length > 0 ? await ctx.images.upload(uniqueFilePaths) : [];
+    const uploadedByPath = new Map(uploaded.map((upload) => [upload.path, upload.url] as const));
+
+    const resolvedInputs = parsedInputs.map((input) => ({
+      type: "image" as const,
+      role: input.role,
+      source: {
+        type: "url" as const,
+        url: input.isFile ? (uploadedByPath.get(input.value) ?? input.value) : input.value,
+      },
+    }));
+
+    const output: Record<string, unknown> = {};
+    if (options.format !== undefined) output["format"] = options.format;
+    if (options.quality !== undefined) output["quality"] = options.quality;
+
+    const contentRatingCfg =
+      customLevels !== undefined
+        ? { mode: "custom", levels: customLevels }
+        : options.contentRating
+          ? true
+          : undefined;
+
+    const request: Record<string, unknown> = { prompt: options.prompt };
+    if (options.model !== undefined) request["model"] = options.model;
+    if (options.negative !== undefined) request["negative_prompt"] = options.negative;
+    if (options.enhance === "prefer_magic") request["magic_prompt"] = true;
+    if (options.size !== undefined) request["size"] = options.size;
+    if (options.count !== undefined) request["count"] = options.count;
+    if (Object.keys(output).length > 0) request["output"] = output;
+    if (resolvedInputs.length > 0) request["inputs"] = resolvedInputs;
+    if (options.destination !== undefined) request["destination"] = options.destination;
+    if (contentRatingCfg !== undefined) request["rating"] = contentRatingCfg;
+    if (metadata !== undefined) request["metadata"] = metadata;
+
+    if (options.async) {
+      const created = await ctx.images.generate({ request, requestPat: true });
+      const payload = {
+        taskId: created.taskId,
+        ...(created.pat !== undefined ? { access: { publicAccessToken: created.pat } } : {}),
+      };
+      if (options.json) {
+        print(JSON.stringify(payload, null, 2));
+        return;
+      }
+      print(`${ok} Task created: ${created.taskId}`);
+      if (created.pat !== undefined) print(`  PAT: ${created.pat}`);
+      return;
+    }
+
+    const created = await ctx.images.generate({ request, requestPat: true });
+    const wait = ctx.images.waitForTask(created.taskId, created.pat);
+    const task: TaskData = options.json ? await wait : await withSpinner(wait);
+
+    const outputDir = options.outputDir !== undefined ? resolve(options.outputDir) : undefined;
+    const downloadedFiles =
+      outputDir !== undefined ? await downloadSucceededImages(ctx.images, task, outputDir) : [];
+
+    if (options.json) {
+      const base = options.detailed ? task : summarizeTask(task);
+      const payload = outputDir !== undefined ? { ...(base as object), downloadedFiles } : base;
+      print(JSON.stringify(payload, null, 2));
+      return;
+    }
+
+    renderTaskHuman(task, uploaded.length);
+    if (outputDir !== undefined && downloadedFiles.length > 0) {
+      print("");
+      print(
+        `${ok} Saved ${downloadedFiles.length} image${downloadedFiles.length === 1 ? "" : "s"} to ${outputDir}`,
+      );
+      for (const file of downloadedFiles) {
+        print(`  ${file}`);
+      }
+    }
+  });
+
+  return image;
+};

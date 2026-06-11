@@ -38,4 +38,6 @@ bun run test
 bun run typecheck
 ```
 
-Built on [Effect](https://effect.website) + [`@effect/cli`](https://github.com/Effect-TS/effect/tree/main/packages/cli).
+Built with focused TypeScript CLI libraries: [`commander`](https://github.com/tj/commander.js),
+[`chalk`](https://github.com/chalk/chalk), [`ora`](https://github.com/sindresorhus/ora), and
+[`zod`](https://github.com/colinhacks/zod).

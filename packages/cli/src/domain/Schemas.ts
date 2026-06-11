@@ -1,52 +1,94 @@
-import * as Schema from "effect/Schema";
+import { z } from "zod";
 
-export const WorkOSUser = Schema.Struct({
-  id: Schema.String,
-  email: Schema.String,
-  first_name: Schema.NullOr(Schema.String).pipe(Schema.optional),
-  last_name: Schema.NullOr(Schema.String).pipe(Schema.optional),
+export const WorkOSUserSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  first_name: z.string().nullable().optional(),
+  last_name: z.string().nullable().optional(),
 });
-export type WorkOSUser = typeof WorkOSUser.Type;
+export type WorkOSUser = z.infer<typeof WorkOSUserSchema>;
 
-export const DeviceAuthorizationResponse = Schema.Struct({
-  device_code: Schema.String,
-  user_code: Schema.String,
-  verification_uri: Schema.String,
-  verification_uri_complete: Schema.String.pipe(Schema.optional),
-  expires_in: Schema.Number,
-  interval: Schema.Number.pipe(Schema.optional),
+export const DeviceAuthorizationResponseSchema = z.object({
+  device_code: z.string(),
+  user_code: z.string(),
+  verification_uri: z.string(),
+  verification_uri_complete: z.string().optional(),
+  expires_in: z.number(),
+  interval: z.number().optional(),
 });
-export type DeviceAuthorizationResponse = typeof DeviceAuthorizationResponse.Type;
+export type DeviceAuthorizationResponse = z.infer<typeof DeviceAuthorizationResponseSchema>;
 
-export const TokenResponse = Schema.Struct({
-  access_token: Schema.String,
-  refresh_token: Schema.String,
-  user: WorkOSUser.pipe(Schema.optional),
-  organization_id: Schema.String.pipe(Schema.optional),
+export const TokenResponseSchema = z.object({
+  access_token: z.string(),
+  refresh_token: z.string(),
+  user: WorkOSUserSchema.optional(),
+  organization_id: z.string().optional(),
 });
-export type TokenResponse = typeof TokenResponse.Type;
+export type TokenResponse = z.infer<typeof TokenResponseSchema>;
 
-export const WorkOSErrorResponse = Schema.Struct({
-  error: Schema.String.pipe(Schema.optional),
-  error_description: Schema.String.pipe(Schema.optional),
-  message: Schema.String.pipe(Schema.optional),
-  code: Schema.String.pipe(Schema.optional),
+export const WorkOSErrorResponseSchema = z.object({
+  error: z.string().optional(),
+  error_description: z.string().optional(),
+  message: z.string().optional(),
+  code: z.string().optional(),
 });
 
-export const OAuthCredentials = Schema.Struct({
-  kind: Schema.Literal("oauth"),
-  access_token: Schema.String,
-  refresh_token: Schema.String,
-  expires_at: Schema.Number,
-  user: WorkOSUser.pipe(Schema.optional),
+export const OAuthCredentialsSchema = z.object({
+  kind: z.literal("oauth"),
+  access_token: z.string(),
+  refresh_token: z.string(),
+  expires_at: z.number(),
+  user: WorkOSUserSchema.optional(),
 });
-export type OAuthCredentials = typeof OAuthCredentials.Type;
+export type OAuthCredentials = z.infer<typeof OAuthCredentialsSchema>;
 
-export const ApiKeyCredentials = Schema.Struct({
-  kind: Schema.Literal("api_key"),
-  api_key: Schema.String,
+export const ApiKeyCredentialsSchema = z.object({
+  kind: z.literal("api_key"),
+  api_key: z.string(),
 });
-export type ApiKeyCredentials = typeof ApiKeyCredentials.Type;
+export type ApiKeyCredentials = z.infer<typeof ApiKeyCredentialsSchema>;
 
-export const Credentials = Schema.Union(OAuthCredentials, ApiKeyCredentials);
-export type Credentials = typeof Credentials.Type;
+export const CredentialsSchema = z.union([OAuthCredentialsSchema, ApiKeyCredentialsSchema]);
+export type Credentials = z.infer<typeof CredentialsSchema>;
+
+export const UploadResponseSchema = z.object({
+  data: z.object({
+    urls: z.array(z.string()),
+  }),
+});
+
+export const RateResultItemSchema = z.union([
+  z.object({ status: z.literal("success"), url: z.string(), level: z.string() }),
+  z.object({
+    status: z.literal("failed"),
+    url: z.string(),
+    error: z.object({ code: z.string() }),
+  }),
+]);
+
+export const RateResponseSchema = z.object({
+  data: z.object({
+    task: z.object({
+      id: z.string(),
+      cost: z.string(),
+    }),
+    results: z.array(RateResultItemSchema),
+  }),
+});
+
+export const GenerateResponseSchema = z.object({
+  data: z.object({
+    taskId: z.string(),
+    access: z
+      .object({
+        publicAccessToken: z.string().optional(),
+      })
+      .optional(),
+  }),
+});
+
+export const TaskStatusSchema = z.object({
+  data: z.object({
+    status: z.union([z.literal("pending"), z.literal("completed"), z.literal("failed")]),
+  }),
+});

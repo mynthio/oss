@@ -1,9 +1,12 @@
-import * as Config from "effect/Config";
-import * as Effect from "effect/Effect";
+export type AppConfig = {
+  readonly mynthApiUrl: string;
+  readonly apiKeyEnvOverride?: string;
+};
 
-export const appConfig = Effect.all({
-  mynthApiUrl: Config.string("MYNTH_API_URL").pipe(Config.withDefault("https://api.mynth.io")),
-  apiKeyEnvOverride: Config.redacted("MYNTH_API_KEY").pipe(Config.option),
-});
-
-export type AppConfig = Effect.Effect.Success<typeof appConfig>;
+export const getAppConfig = (): AppConfig => {
+  const apiKeyEnvOverride = process.env["MYNTH_API_KEY"];
+  return {
+    mynthApiUrl: process.env["MYNTH_API_URL"] ?? "https://api.mynth.io",
+    ...(apiKeyEnvOverride !== undefined ? { apiKeyEnvOverride } : {}),
+  };
+};

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.8](https://github.com/mynthio/oss/compare/cli-v0.0.7...cli-v0.0.8) (2026-06-11)
+
+
+### Features
+
+* **cli:** replace Effect CLI runtime ([eeaa5af](https://github.com/mynthio/oss/commit/eeaa5affb2ec0008a152a159ad7fe4d40b5d01cc))
+
 ## [0.0.7](https://github.com/mynthio/oss/compare/cli-v0.0.6...cli-v0.0.7) (2026-06-09)
 
 

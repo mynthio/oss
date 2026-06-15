@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.18](https://github.com/mynthio/oss/compare/sdk-v0.0.17...sdk-v0.0.18) (2026-06-15)
+
+
+### Features
+
+* **sdk:** add model catalog and async rating ([aa37185](https://github.com/mynthio/oss/commit/aa371856313941796844e0b7547b333dc18331cd))
+
 ## [0.0.17](https://github.com/mynthio/oss/compare/sdk-v0.0.16...sdk-v0.0.17) (2026-06-09)
 
 

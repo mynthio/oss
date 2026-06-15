@@ -18,7 +18,7 @@ await mynth.image.generate({
 Create in the dashboard or API. Registered webhooks are signed with HMAC-SHA256.
 
 ```ts
-await fetch("https://api.mynth.io/webhook/", {
+await fetch("https://api.mynth.io/webhook", {
   method: "POST",
   headers: {
     Authorization: "Bearer mak_...",
@@ -36,6 +36,8 @@ await fetch("https://api.mynth.io/webhook/", {
 
 - `task.image.generate.completed` — generation succeeded
 - `task.image.generate.failed` — generation failed
+- `task.image.rate.completed` — rating task succeeded
+- `task.image.rate.failed` — rating task failed
 - `task.completed` — any task completed
 - `task.failed` — any task failed
 - `all` — all events

@@ -11,6 +11,7 @@ Use this when asked whether Mynth can replace existing image-generation code.
 - Post-processing for output format/quality -> `output`.
 - Content rating calls -> `rating`.
 - Provider-specific reference/init image plumbing -> `inputs`.
+- Download-then-upload-to-own-storage pipelines -> `destination` (S3/R2/Bunny delivery).
 
 ## Analysis Workflow
 

@@ -22,6 +22,8 @@ Use REST for non-JS apps, mobile backends, or runtimes where the SDK is not appr
 }
 ```
 
+Optional fields: `negative_prompt`, `magic_prompt`, `inputs`, `rating` (see [image-rating.md](image-rating.md)), `destination` (see [destinations.md](destinations.md)), `metadata`.
+
 Response (201):
 
 ```json
@@ -62,11 +64,22 @@ PAT generation is enabled by default. Disable it with:
     "type": "image.generate",
     "status": "completed",
     "result": {
-      "images": [{ "url": "https://cdn.mynth.io/..." }]
+      "model": "black-forest-labs/flux.2-dev",
+      "images": [
+        {
+          "status": "success",
+          "url": "https://cdn.mynth.io/...",
+          "mynth_url": "https://cdn.mynth.io/...",
+          "cost": "0.01",
+          "size": "1920x1080"
+        }
+      ]
     }
   }
 }
 ```
+
+`url` is `null` when the image was delivered only to a user destination; `mynth_url` always points to the Mynth CDN.
 
 These polling endpoints are CORS-enabled for browser calls with PATs.
 
@@ -76,7 +89,7 @@ Returns `{ "data": ... }` with the full task object including cost, request, tim
 
 ## Upload
 
-`POST /image/upload`
+`POST /image/upload` — multipart form with `images` file fields, for input/reference images.
 
 Response (200):
 
@@ -90,18 +103,12 @@ Response (200):
 
 ## Rate
 
-`POST /image/rate`
+`POST /image/rate` — rate existing images by URL. Synchronous by default (`"sync": true`); returns 200 with results, or 202 with a pending task when `"sync": false`. Request and response shapes: see [image-rating.md](image-rating.md).
 
-Response (200):
+## Webhook Management
 
-```json
-{
-  "data": {
-    "task": {
-      "id": "tsk_...",
-      "cost": "0.01"
-    },
-    "results": [{ "status": "success", "url": "https://cdn.mynth.io/...", "level": "sfw" }]
-  }
-}
-```
+`POST /webhook`, `PUT /webhook/:id`, `DELETE /webhook/:id` — manage registered (signed) webhooks. See [webhooks.md](webhooks.md).
+
+## Destinations Management
+
+`POST /destinations`, `GET /destinations`, `GET /destinations/:id`, `PUT /destinations/:id`, `DELETE /destinations/:id`, `POST /destinations/:id/test` — manage storage destinations. See [destinations.md](destinations.md).

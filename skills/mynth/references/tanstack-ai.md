@@ -34,9 +34,8 @@ const result = await generateImage({
 Streaming:
 
 ```ts
-import { generateImage } from "@tanstack/ai";
+import { generateImage, toServerSentEventsResponse } from "@tanstack/ai";
 import { mynthImage } from "@mynthio/tanstack-ai-adapter";
-import { toServerSentEventsResponse } from "@tanstack/ai";
 
 const stream = generateImage({
   adapter: mynthImage("black-forest-labs/flux.2-dev"),
@@ -47,16 +46,21 @@ const stream = generateImage({
 return toServerSentEventsResponse(stream);
 ```
 
-Pass Mynth-specific fields through `modelOptions`:
+Use TanStack's top-level fields for `prompt`, `numberOfImages`, and shorthand `size`. Pass Mynth-specific fields through `modelOptions`:
 
 ```ts
 const result = await generateImage({
   adapter: mynthImage("black-forest-labs/flux.2-dev"),
   prompt: "A sunset",
+  numberOfImages: 2,
   modelOptions: {
     output: { format: "png", quality: 100 },
-    size: { type: "aspect_ratio", aspectRatio: "16:9" },
+    size: { type: "aspect_ratio", aspectRatio: "16:9" }, // overrides top-level size
     inputs: ["https://example.com/ref.jpg"],
+    negativePrompt: "text, watermark", // maps to negative_prompt
+    magicPrompt: true, // maps to magic_prompt
+    rating: true,
+    destination: "my-bucket",
     metadata: { userId: "u_123" },
   },
 });

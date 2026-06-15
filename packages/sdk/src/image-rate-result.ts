@@ -21,7 +21,7 @@ export type ImageRateResultItem<LevelT extends string = string> =
   | ImageRateResultItemError;
 
 /**
- * Represents the result of a synchronous image content rating request.
+ * Represents the result of a completed image content rating task.
  *
  * @template LevelT - Union of possible rating level strings (e.g. `"sfw" | "nsfw"`)
  */
@@ -39,6 +39,27 @@ export class ImageRateResult<LevelT extends string = "sfw" | "nsfw"> {
     this.task = data.task;
     this.taskId = data.task.id;
     this.results = data.results;
+  }
+
+  static fromTaskData<LevelT extends string = "sfw" | "nsfw">(
+    data: MynthSDKTypes.ImageRateTaskData,
+  ): ImageRateResult<LevelT> {
+    if (data.status !== "completed" || data.result === null) {
+      throw new Error(`Image rate task ${data.id} is not completed`);
+    }
+
+    if (data.cost === null) {
+      throw new Error(`Image rate task ${data.id} is missing cost`);
+    }
+
+    return new ImageRateResult<LevelT>({
+      task: {
+        id: data.id,
+        status: "completed",
+        cost: data.cost,
+      },
+      results: data.result.results as MynthSDKTypes.ImageRateResponseItem<LevelT>[],
+    });
   }
 
   /**

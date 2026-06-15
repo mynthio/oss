@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { MynthImage, TaskAsync } from "./index";
+import { Mynth, MynthImage, TaskAsync } from "./index";
 import type { MynthSDKTypes } from "./types";
 
 function jsonResponse(data: unknown, init: ResponseInit = {}) {
@@ -34,7 +34,30 @@ function createTaskData(
   } as MynthSDKTypes.ImageGenerationTaskData;
 }
 
-describe("MynthImage generation", () => {
+function createRateTaskData(
+  overrides: Partial<MynthSDKTypes.ImageRateTaskData> = {},
+): MynthSDKTypes.ImageRateTaskData {
+  return {
+    id: "task-rate-123",
+    status: "completed",
+    type: "image.rate",
+    apiKeyId: "api-key-123",
+    userId: "user-123",
+    cost: "0.01",
+    result: {
+      results: [{ status: "success", url: "https://cdn.test/image.webp", level: "sfw" }],
+    },
+    request: {
+      urls: ["https://cdn.test/image.webp"],
+      mode: "nsfw_sfw",
+    },
+    createdAt: "2026-01-29T12:00:00Z",
+    updatedAt: "2026-01-29T12:00:00Z",
+    ...overrides,
+  } as MynthSDKTypes.ImageRateTaskData;
+}
+
+describe("MynthImage", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
@@ -93,36 +116,155 @@ describe("MynthImage generation", () => {
     );
   });
 
-  test("rate returns wrapped image rating data", async () => {
+  test("rateAsync returns a pollable rate task without waiting", async () => {
+    // Arrange
     const fetchMock = vi.fn().mockResolvedValueOnce(
-      jsonResponse({
-        data: {
-          task: { id: "task-rate-123", cost: "0.01" },
-          results: [{ status: "success", url: "https://cdn.test/image.webp", level: "sfw" }],
+      jsonResponse(
+        {
+          data: {
+            task: { id: "task-rate-123", status: "pending" },
+          },
         },
-      }),
+        { status: 202 },
+      ),
     );
     vi.stubGlobal("fetch", fetchMock);
 
     const image = new MynthImage({ apiKey: "mak_test", baseUrl: "https://api.test" });
+
+    // Act
+    const task = await image.rateAsync({
+      urls: ["https://cdn.test/image.webp"],
+      mode: "nsfw_sfw",
+    });
+
+    // Assert
+    expect({
+      isTaskAsync: task instanceof TaskAsync,
+      id: task.id,
+      publicAccessToken: task.access.publicAccessToken,
+      fetchCall: fetchMock.mock.calls[0],
+    }).toEqual({
+      isTaskAsync: true,
+      id: "task-rate-123",
+      publicAccessToken: undefined,
+      fetchCall: [
+        "https://api.test/image/rate",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            urls: ["https://cdn.test/image.webp"],
+            mode: "nsfw_sfw",
+            sync: false,
+          }),
+        }),
+      ],
+    });
+  });
+
+  test("rate waits for the completed rate task result", async () => {
+    // Arrange
+    const taskData = createRateTaskData();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse(
+          {
+            data: {
+              task: { id: "task-rate-123", status: "pending" },
+            },
+          },
+          { status: 202 },
+        ),
+      )
+      .mockResolvedValueOnce(jsonResponse({ data: { status: "completed" } }))
+      .mockResolvedValueOnce(jsonResponse({ data: taskData }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const image = new MynthImage({ apiKey: "mak_test", baseUrl: "https://api.test" });
+
+    // Act
     const result = await image.rate({
       urls: ["https://cdn.test/image.webp"],
       mode: "nsfw_sfw",
     });
 
-    expect(result.taskId).toBe("task-rate-123");
-    expect(result.getRatings()).toEqual([
-      { status: "success", url: "https://cdn.test/image.webp", level: "sfw" },
-    ]);
-    expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.test/image/rate",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          urls: ["https://cdn.test/image.webp"],
-          mode: "nsfw_sfw",
-        }),
-      }),
+    // Assert
+    expect({
+      taskId: result.taskId,
+      task: result.task,
+      ratings: result.getRatings(),
+      errors: result.getErrors(),
+    }).toEqual({
+      taskId: "task-rate-123",
+      task: { id: "task-rate-123", status: "completed", cost: "0.01" },
+      ratings: [{ status: "success", url: "https://cdn.test/image.webp", level: "sfw" }],
+      errors: [],
+    });
+  });
+});
+
+describe("Mynth", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  test("models.list fetches the public model catalog without authorization", async () => {
+    // Arrange
+    const models: MynthSDKTypes.Model[] = [
+      {
+        id: "black-forest-labs/flux.2-pro",
+        displayName: "FLUX.2 Pro",
+        pricing: { perImage: { base: "0.05" } },
+      },
+    ];
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse({ data: models }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const mynth = new Mynth({ baseUrl: "https://api.test" });
+
+    // Act
+    const listedModels = await mynth.models.list();
+
+    // Assert
+    expect({
+      models: listedModels,
+      fetchCall: fetchMock.mock.calls[0],
+    }).toEqual({
+      models,
+      fetchCall: [
+        "https://api.test/models",
+        {
+          headers: {},
+        },
+      ],
+    });
+  });
+
+  test("models.list throws an API error when the endpoint fails", async () => {
+    // Arrange
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      jsonResponse(
+        {
+          error: "Models unavailable",
+          code: "models_unavailable",
+        },
+        { status: 503 },
+      ),
     );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const mynth = new Mynth({ baseUrl: "https://api.test" });
+
+    // Act
+    const listPromise = mynth.models.list();
+
+    // Assert
+    await expect(listPromise).rejects.toMatchObject({
+      name: "MynthAPIError",
+      message: "Models unavailable",
+      status: 503,
+      code: "models_unavailable",
+    });
   });
 });

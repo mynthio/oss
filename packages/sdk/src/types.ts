@@ -39,6 +39,27 @@ export namespace MynthSDKTypes {
       });
 
   export type ImageGenerationTaskData = Extract<TaskData, { type: "image.generate" }>;
+  export type ImageRateTaskData = Extract<TaskData, { type: "image.rate" }>;
+
+  // ============================================================
+  // Models
+  // ============================================================
+
+  export type ModelPricing = {
+    perImage: {
+      base: string;
+      "4k"?: string;
+    };
+    inputFee?: string;
+  };
+
+  export type Model = {
+    id: string;
+    displayName: string | null;
+    pricing: ModelPricing | null;
+  };
+
+  export type ModelsListResponse = ApiResponse<Model[]>;
 
   export type ImageGenerationModelId =
     | "alibaba/qwen-image-2.0"
@@ -54,6 +75,9 @@ export namespace MynthSDKTypes {
     | "google/gemini-3.1-flash-image"
     | "google/gemini-3-pro-image-preview"
     | "imagineart/imagineart-1.5-pro"
+    | "krea/krea-2-turbo"
+    | "krea/krea-2-medium"
+    | "krea/krea-2-large"
     | "openai/gpt-image-2"
     | "tongyi-mai/z-image-turbo"
     | "john6666/bismuth-illustrious-mix"
@@ -79,6 +103,7 @@ export namespace MynthSDKTypes {
 
   export type ImageGenerationRequestOutput = {
     format: ImageGenerationRequestOutputFormat;
+    /** Output quality 1-100. Defaults to 80 when output is omitted. */
     quality: number;
   };
 
@@ -290,30 +315,6 @@ export namespace MynthSDKTypes {
     magic_prompt?: ImageResultMagicPrompt;
   };
 
-  /**
-   * Webhook payload for task completion
-   */
-  export type WebhookTaskImageCompletedPayload = {
-    task: { id: string };
-    event: "task.image.generate.completed";
-    result: ImageResult;
-    request: ImageGenerationRequest;
-  };
-
-  /**
-   * Webhook payload for task failure
-   */
-  export type WebhookTaskImageFailedPayload = {
-    task: { id: string };
-    event: "task.image.generate.failed";
-    request: ImageGenerationRequest;
-  };
-
-  /**
-   * Webhook payload union
-   */
-  export type WebhookPayload = WebhookTaskImageCompletedPayload | WebhookTaskImageFailedPayload;
-
   // ============================================================
   // Image Rate
   // ============================================================
@@ -370,12 +371,72 @@ export namespace MynthSDKTypes {
   export type ImageRateResponse<LevelT extends string = string> = {
     task: {
       id: string;
+      status: "completed";
       cost: string;
     };
     results: ImageRateResponseItem<LevelT>[];
   };
 
+  /** Pending response from the image rate endpoint when async mode is used */
+  export type ImageRatePendingResponse = {
+    task: {
+      id: string;
+      status: "pending";
+    };
+  };
+
   export type ImageRateTaskResult<LevelT extends string = string> = {
     results: ImageRateResponseItem<LevelT>[];
   };
+
+  // ============================================================
+  // Webhooks
+  // ============================================================
+
+  /**
+   * Webhook payload for image generation task completion.
+   */
+  export type WebhookTaskImageCompletedPayload = {
+    task: { id: string };
+    event: "task.image.generate.completed";
+    result: ImageResult;
+    request: ImageGenerationRequest;
+  };
+
+  /**
+   * Webhook payload for image generation task failure.
+   */
+  export type WebhookTaskImageFailedPayload = {
+    task: { id: string };
+    event: "task.image.generate.failed";
+    request: ImageGenerationRequest;
+  };
+
+  /**
+   * Webhook payload for image rating task completion.
+   */
+  export type WebhookTaskImageRateCompletedPayload<LevelT extends string = string> = {
+    task: { id: string };
+    event: "task.image.rate.completed";
+    result: ImageRateTaskResult<LevelT>;
+    request: ImageRateRequest;
+  };
+
+  /**
+   * Webhook payload for image rating task failure.
+   */
+  export type WebhookTaskImageRateFailedPayload = {
+    task: { id: string };
+    event: "task.image.rate.failed";
+    request: ImageRateRequest;
+  };
+
+  /**
+   * Webhook payload union.
+   */
+  export type WebhookPayload =
+    | WebhookTaskImageCompletedPayload
+    | WebhookTaskImageFailedPayload
+    | WebhookTaskImageRateCompletedPayload
+    | WebhookTaskImageRateFailedPayload;
 }

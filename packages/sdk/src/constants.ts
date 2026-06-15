@@ -9,6 +9,7 @@ export const DESTINATION_ENV_VAR = "MYNTH_DESTINATION";
 
 export const GENERATE_IMAGE_PATH = "/image/generate";
 export const RATE_IMAGE_PATH = "/image/rate";
+export const MODELS_PATH = "/models";
 export const TASK_PATH = "/tasks";
 export const TASK_DETAILS_PATH = (id: string) => `${TASK_PATH}/${id}`;
 export const TASK_RESULT_PATH = (id: string) => `${TASK_PATH}/${id}/result`;
@@ -112,6 +113,21 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     id: "john6666/bismuth-illustrious-mix",
     label: "Bismuth Illustrious Mix",
     capabilities: ["mynth_magic_prompt", "negative_prompt"],
+  },
+  {
+    id: "krea/krea-2-turbo",
+    label: "Krea 2 Turbo",
+    capabilities: ["inputs"],
+  },
+  {
+    id: "krea/krea-2-medium",
+    label: "Krea 2 Medium",
+    capabilities: ["inputs"],
+  },
+  {
+    id: "krea/krea-2-large",
+    label: "Krea 2 Large",
+    capabilities: ["inputs"],
   },
   {
     id: "purplesmartai/pony-diffusion-v6-xl",

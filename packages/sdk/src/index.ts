@@ -5,6 +5,7 @@ import {
   AVAILABLE_MODELS,
   DESTINATION_ENV_VAR,
   GENERATE_IMAGE_PATH,
+  MODELS_PATH,
   RATE_IMAGE_PATH,
 } from "./constants";
 import { ImageGenerationResult } from "./image-generation-result";
@@ -39,6 +40,9 @@ type MynthOptions = {
    */
   destination?: string;
 };
+
+type MynthModel = MynthSDKTypes.Model;
+type MynthModelPricing = MynthSDKTypes.ModelPricing;
 
 // Extract metadata type from ImageGenerationRequest
 type ExtractMetadata<T extends MynthSDKTypes.ImageGenerationRequest> = T["metadata"];
@@ -262,13 +266,93 @@ class MynthImage {
   public async rate<const T extends MynthSDKTypes.ImageRateRequest>(
     request: T,
   ): Promise<ImageRateResult<ExtractRateLevelValues<T>>> {
+    const taskAsync = await this.createRateTask(request);
+
+    return taskAsync.wait();
+  }
+
+  /**
+   * Start image content rating without waiting for completion.
+   *
+   * @param request - URLs to rate and optional custom levels
+   * @returns A TaskAsync that can be polled for completion via `.wait()`
+   *
+   * @example
+   * ```typescript
+   * const taskAsync = await image.rateAsync({
+   *   urls: ["https://..."],
+   *   mode: "nsfw_sfw",
+   * });
+   *
+   * const result = await taskAsync.wait();
+   * console.log(result.getRatings());
+   * ```
+   */
+  public async rateAsync<const T extends MynthSDKTypes.ImageRateRequest>(
+    request: T,
+  ): Promise<TaskAsync<ImageRateResult<ExtractRateLevelValues<T>>>> {
+    return this.createRateTask(request);
+  }
+
+  private async createRateTask<const T extends MynthSDKTypes.ImageRateRequest>(
+    request: T,
+  ): Promise<TaskAsync<ImageRateResult<ExtractRateLevelValues<T>>>> {
     type LevelT = ExtractRateLevelValues<T>;
 
     const json = await this.client.post<
-      MynthSDKTypes.ApiResponse<MynthSDKTypes.ImageRateResponse<LevelT>>
-    >(RATE_IMAGE_PATH, request);
+      MynthSDKTypes.ApiResponse<MynthSDKTypes.ImageRatePendingResponse>
+    >(RATE_IMAGE_PATH, { ...request, sync: false });
 
-    return new ImageRateResult<LevelT>(json.data);
+    const data = json.data;
+    type Result = ImageRateResult<LevelT>;
+
+    const taskAsync = new TaskAsync<Result>(data.task.id, {
+      client: this.client,
+      resultFactory: (data) =>
+        ImageRateResult.fromTaskData<LevelT>(data as MynthSDKTypes.ImageRateTaskData) as Result,
+    });
+
+    return taskAsync;
+  }
+}
+
+/**
+ * Client for interacting with the public Mynth model catalog.
+ */
+class MynthModels {
+  private readonly client: MynthClient;
+
+  /**
+   * Creates a new MynthModels client instance.
+   *
+   * @param options - Configuration options
+   * @param options.baseUrl - Custom API base URL
+   */
+  constructor(options: Pick<MynthOptions, "baseUrl"> = {}) {
+    this.client = new MynthClient({
+      baseUrl: options.baseUrl,
+    });
+  }
+
+  /**
+   * List available image generation models.
+   *
+   * This endpoint is public and does not require a Mynth API key.
+   *
+   * @returns Available image generation models with display names and pricing metadata
+   *
+   * @example
+   * ```typescript
+   * const models = await mynth.models.list();
+   * console.log(models[0]?.id);
+   * ```
+   */
+  public async list(): Promise<MynthSDKTypes.Model[]> {
+    const json = await this.client.getOrThrow<MynthSDKTypes.ModelsListResponse>(MODELS_PATH, {
+      auth: false,
+    });
+
+    return json.data;
   }
 }
 
@@ -286,8 +370,11 @@ class MynthImage {
  * ```
  */
 class Mynth {
-  /** Image generation and rating client */
-  readonly image: MynthImage;
+  /** Public model catalog client */
+  readonly models: MynthModels;
+
+  private readonly options: MynthOptions;
+  private imageClient?: MynthImage;
 
   /**
    * Creates a new Mynth client instance.
@@ -297,7 +384,15 @@ class Mynth {
    * @param options.baseUrl - Custom API base URL
    */
   constructor(options: MynthOptions = {}) {
-    this.image = new MynthImage(options);
+    this.options = options;
+    this.models = new MynthModels({ baseUrl: options.baseUrl });
+  }
+
+  /** Image generation and rating client */
+  get image(): MynthImage {
+    this.imageClient ??= new MynthImage(this.options);
+
+    return this.imageClient;
   }
 }
 
@@ -307,6 +402,7 @@ export {
   ImageRateResult,
   Mynth,
   MynthImage,
+  MynthModels,
   TaskAsync,
   // Error classes
   MynthAPIError,
@@ -316,5 +412,13 @@ export {
   TaskAsyncTimeoutError,
   TaskAsyncUnauthorizedError,
 };
-export type { AvailableModel, ModelCapability, MynthOptions, MynthSDKTypes, TaskAsyncAccess };
+export type {
+  AvailableModel,
+  ModelCapability,
+  MynthModel,
+  MynthModelPricing,
+  MynthOptions,
+  MynthSDKTypes,
+  TaskAsyncAccess,
+};
 export default Mynth;

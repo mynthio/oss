@@ -51,11 +51,11 @@ export class TaskAsyncTaskFetchError extends Error {
 }
 
 /**
- * Error thrown when a task fails during generation.
+ * Error thrown when a task fails before completion.
  */
 export class TaskAsyncTaskFailedError extends Error {
   constructor(taskId: string) {
-    super(`Task ${taskId} failed during generation`);
+    super(`Task ${taskId} failed`);
     this.name = "TaskAsyncTaskFailedError";
   }
 }
@@ -123,7 +123,7 @@ export class TaskAsync<ResultT> {
    * @throws {TaskAsyncTimeoutError} If polling exceeds the timeout
    * @throws {TaskAsyncUnauthorizedError} If access is denied
    * @throws {TaskAsyncFetchError} If fetching status fails repeatedly
-   * @throws {TaskAsyncTaskFailedError} If the task fails during generation
+   * @throws {TaskAsyncTaskFailedError} If the task fails before completion
    */
   public async wait(): Promise<ResultT> {
     // Lazy init - only start polling when explicitly requested

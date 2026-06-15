@@ -23,15 +23,29 @@ type APIErrorResponse = {
   code?: string;
 };
 
+type MynthClientRequestOptions = {
+  headers?: Record<string, string>;
+  accessToken?: string;
+  auth?: boolean;
+};
+
+function createApiError(data: unknown, status: number) {
+  const errorResponse = data as APIErrorResponse;
+  const message =
+    errorResponse.error || errorResponse.message || `Request failed with status ${status}`;
+
+  return new MynthAPIError(message, status, errorResponse.code);
+}
+
 /**
  * Internal HTTP client for making API requests.
  * @internal
  */
 class MynthClient {
-  private readonly apiKey: string;
+  private readonly apiKey?: string;
   private readonly baseUrl: string;
 
-  constructor(options: { apiKey: string; baseUrl?: string }) {
+  constructor(options: { apiKey?: string; baseUrl?: string }) {
     this.apiKey = options.apiKey;
     this.baseUrl = options.baseUrl
       ? options.baseUrl.endsWith("/")
@@ -40,10 +54,14 @@ class MynthClient {
       : API_URL;
   }
 
-  getAuthHeaders(override?: { accessToken?: string }) {
-    return {
-      Authorization: `Bearer ${override?.accessToken ?? this.apiKey}`,
-    };
+  getAuthHeaders(override?: { accessToken?: string; auth?: boolean }): Record<string, string> {
+    if (override?.auth === false) {
+      return {};
+    }
+
+    const token = override?.accessToken ?? this.apiKey;
+
+    return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
   getUrl(path: string) {
@@ -63,12 +81,7 @@ class MynthClient {
     const json = await response.json();
 
     if (!response.ok) {
-      const errorResponse = json as APIErrorResponse;
-      const message =
-        errorResponse.error ||
-        errorResponse.message ||
-        `Request failed with status ${response.status}`;
-      throw new MynthAPIError(message, response.status, errorResponse.code);
+      throw createApiError(json, response.status);
     }
 
     return json as DataType;
@@ -76,11 +89,11 @@ class MynthClient {
 
   public async get<DataType>(
     path: string,
-    { headers, accessToken }: { headers?: Record<string, string>; accessToken?: string } = {},
+    { headers, accessToken, auth }: MynthClientRequestOptions = {},
   ): Promise<{ data: DataType; status: number; ok: boolean }> {
     const response = await fetch(this.getUrl(path), {
       headers: {
-        ...this.getAuthHeaders({ accessToken }),
+        ...this.getAuthHeaders({ accessToken, auth }),
         ...headers,
       },
     });
@@ -88,6 +101,19 @@ class MynthClient {
     const data = (await response.json()) as DataType;
 
     return { data, status: response.status, ok: response.ok };
+  }
+
+  public async getOrThrow<DataType>(
+    path: string,
+    options: MynthClientRequestOptions = {},
+  ): Promise<DataType> {
+    const response = await this.get<DataType>(path, options);
+
+    if (!response.ok) {
+      throw createApiError(response.data, response.status);
+    }
+
+    return response.data;
   }
 }
 

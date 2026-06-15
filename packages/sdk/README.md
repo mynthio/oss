@@ -61,7 +61,7 @@ const mynth = new Mynth({
 });
 ```
 
-- `apiKey`: optional if `MYNTH_API_KEY` is set
+- `apiKey`: required for image generation and rating unless `MYNTH_API_KEY` is set; not required for the public model catalog
 - `baseUrl`: optional override for proxies or tests
 
 ## Generate vs Generate Async
@@ -199,6 +199,8 @@ const task = await mynth.image.generate({
 
 `access.pat.enabled` controls whether the create-task response includes a short-lived Public Access Token for browser-side polling. It defaults to `true`.
 
+`output` is optional. When you provide it, include both `format` and `quality`; when omitted, Mynth defaults to WebP at quality 80.
+
 ## Prompt Options
 
 `prompt` is the positive text prompt. Use `negative_prompt` for exclusions and `magic_prompt: true` to ask Mynth to enhance the prompt before generation.
@@ -310,6 +312,20 @@ console.log(result.task.id);
 console.log(result.getRatings());
 ```
 
+Use `rateAsync()` when you want to create the rating task now and wait later:
+
+```ts
+const taskAsync = await mynth.image.rateAsync({
+  mode: "nsfw_sfw",
+  urls: ["https://example.com/image.webp"],
+});
+
+console.log(taskAsync.id);
+
+const result = await taskAsync.wait();
+console.log(result.getRatings());
+```
+
 ## Working With Results
 
 Completed tasks expose a few helpful accessors:
@@ -334,7 +350,20 @@ console.log(task.result?.magic_prompt);
 
 ## Available Models
 
-The SDK exports `AVAILABLE_MODELS`, which mirrors the current model list and capability metadata shipped with the package.
+Use `mynth.models.list()` to fetch the live public model catalog. This endpoint does not require an API key.
+
+```ts
+const models = await mynth.models.list();
+
+console.log(models[0]);
+// {
+//   id: "black-forest-labs/flux.2-pro",
+//   displayName: "FLUX.2 Pro",
+//   pricing: { perImage: { base: "0.05" } }
+// }
+```
+
+The SDK also exports `AVAILABLE_MODELS`, which mirrors the static model list and capability metadata shipped with the package.
 
 ```ts
 import { AVAILABLE_MODELS } from "@mynthio/sdk";
@@ -365,8 +394,11 @@ Current model IDs include:
 - `google/gemini-3.1-flash-image`
 - `google/gemini-3-pro-image-preview`
 - `imagineart/imagineart-1.5-pro`
-- `openai/gpt-image-2`
 - `john6666/bismuth-illustrious-mix`
+- `krea/krea-2-turbo`
+- `krea/krea-2-medium`
+- `krea/krea-2-large`
+- `openai/gpt-image-2`
 - `purplesmartai/pony-diffusion-v6-xl`
 - `recraft/recraft-v4`
 - `recraft/recraft-v4-pro`
@@ -402,6 +434,13 @@ export const mynthWebhook = mynthWebhookAction({
   imageTaskFailed: async (payload) => {
     console.error("Mynth task failed:", payload.task.id);
   },
+  imageRateTaskCompleted: async (payload) => {
+    console.log("Completed rating task:", payload.task.id);
+    console.log(payload.result.results);
+  },
+  imageRateTaskFailed: async (payload) => {
+    console.error("Mynth rating task failed:", payload.task.id);
+  },
 });
 ```
 
@@ -409,7 +448,7 @@ Set `MYNTH_WEBHOOK_SECRET` in your environment, or pass `webhookSecret` explicit
 
 ## Error Handling
 
-`generate()` and `generateAsync()` may throw `MynthAPIError` if the initial request fails. Polling can also throw task-specific errors:
+`generate()`, `generateAsync()`, `rate()`, `rateAsync()`, and `models.list()` may throw `MynthAPIError` if the request fails. Polling can also throw task-specific errors:
 
 ```ts
 import {
@@ -436,7 +475,7 @@ try {
   } else if (error instanceof TaskAsyncFetchError) {
     console.error("Repeated status fetch failures");
   } else if (error instanceof TaskAsyncTaskFailedError) {
-    console.error("The generation task failed");
+    console.error("The task failed");
   } else if (error instanceof TaskAsyncTaskFetchError) {
     console.error("Fetching the completed task failed");
   }

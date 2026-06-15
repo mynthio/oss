@@ -22,6 +22,16 @@ export type EventHandlers<T extends GenericActionCtx<any> = GenericActionCtx<any
     payload: MynthSDKTypes.WebhookTaskImageFailedPayload,
     context: { context: T; request: Request },
   ) => Promise<void>;
+  /** Called when an image rating task completes successfully */
+  imageRateTaskCompleted?: (
+    payload: MynthSDKTypes.WebhookTaskImageRateCompletedPayload,
+    context: { context: T; request: Request },
+  ) => Promise<void>;
+  /** Called when an image rating task fails */
+  imageRateTaskFailed?: (
+    payload: MynthSDKTypes.WebhookTaskImageRateFailedPayload,
+    context: { context: T; request: Request },
+  ) => Promise<void>;
 };
 
 /**
@@ -53,6 +63,12 @@ export type MynthWebhookActionOptions = {
  *   },
  *   imageTaskFailed: async (payload, { context }) => {
  *     console.error("Task failed:", payload.task.id);
+ *   },
+ *   imageRateTaskCompleted: async (payload, { context }) => {
+ *     await context.runMutation(internal.images.saveRatings, {
+ *       taskId: payload.task.id,
+ *       results: payload.result.results,
+ *     });
  *   },
  * });
  * ```
@@ -105,6 +121,18 @@ export const mynthWebhookAction = (
         break;
       case "task.image.generate.failed":
         await eventHandlers.imageTaskFailed?.(payload, {
+          context: ctx,
+          request,
+        });
+        break;
+      case "task.image.rate.completed":
+        await eventHandlers.imageRateTaskCompleted?.(payload, {
+          context: ctx,
+          request,
+        });
+        break;
+      case "task.image.rate.failed":
+        await eventHandlers.imageRateTaskFailed?.(payload, {
           context: ctx,
           request,
         });

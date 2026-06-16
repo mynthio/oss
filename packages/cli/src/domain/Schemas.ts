@@ -116,7 +116,10 @@ export const TaskDataSchema = z.object({
   cost: z.string().nullable(),
   request: JsonValueSchema,
   result: JsonValueSchema,
-  errors: z.array(z.object({ code: z.string() })).optional(),
+  errors: z
+    .array(z.object({ code: z.string() }))
+    .nullable()
+    .optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

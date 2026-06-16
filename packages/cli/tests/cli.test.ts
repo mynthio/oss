@@ -172,7 +172,7 @@ describe("mynth cli", () => {
       cost: null,
       request: { prompt: "test", count: 1, output: { format: "webp", quality: 80 } },
       result: null,
-      errors: [{ code: "PROVIDER_ERROR" }],
+      errors: null,
       createdAt: "2026-01-29T12:00:00.000Z",
       updatedAt: "2026-01-29T12:00:05.000Z",
     };

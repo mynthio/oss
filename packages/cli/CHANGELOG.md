@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.10](https://github.com/mynthio/oss/compare/cli-v0.0.9...cli-v0.0.10) (2026-06-16)
+
+
+### Bug Fixes
+
+* **cli:** accept null task errors ([b675c42](https://github.com/mynthio/oss/commit/b675c4213aceaac325a72b43d53b898685d829dc))
+
 ## [0.0.9](https://github.com/mynthio/oss/compare/cli-v0.0.8...cli-v0.0.9) (2026-06-16)
 
 

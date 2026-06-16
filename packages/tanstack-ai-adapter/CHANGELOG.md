@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.14](https://github.com/mynthio/oss/compare/tan-ai-v0.0.13...tan-ai-v0.0.14) (2026-06-16)
+
+
+### Features
+
+* **tanstack-ai-adapter:** support latest sdk models ([8f0277e](https://github.com/mynthio/oss/commit/8f0277e30492c83f127f41d3c1f6b888aee10cf7))
+
 ## [0.0.13](https://github.com/mynthio/oss/compare/tan-ai-v0.0.12...tan-ai-v0.0.13) (2026-05-13)
 
 

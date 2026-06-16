@@ -38,7 +38,7 @@ import { generateImage } from "@tanstack/ai";
 import { mynthImage } from "@mynthio/tanstack-ai-adapter";
 
 const result = await generateImage({
-  adapter: mynthImage("black-forest-labs/flux.2-dev"),
+  adapter: mynthImage("krea/krea-2-large"),
   prompt: "Editorial product photo of a ceramic mug on a linen tablecloth",
   numberOfImages: 1,
   size: "portrait",

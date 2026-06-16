@@ -167,7 +167,7 @@ export class MynthImageAdapter<TModel extends MynthImageModel> extends BaseImage
  * })
  *
  * const result = await generateImage({
- *   adapter: mynth('black-forest-labs/flux.2-dev'),
+ *   adapter: mynth('krea/krea-2-large'),
  *   prompt: 'A serene mountain landscape at sunset',
  * })
  *
@@ -190,7 +190,7 @@ const defaultMynthImageProvider = createMynthImage();
  *
  * This is the ergonomic shorthand for `createMynthImage()(model, config)`.
  *
- * @param model - The Mynth model name (e.g., 'black-forest-labs/flux.2-dev')
+ * @param model - The Mynth model name (e.g., 'krea/krea-2-large')
  * @param config - Optional adapter configuration, including apiKey overrides.
  * If apiKey is omitted, the Mynth SDK falls back to MYNTH_API_KEY.
  * @returns Configured Mynth image adapter instance
@@ -202,7 +202,7 @@ const defaultMynthImageProvider = createMynthImage();
  * import { mynthImage } from '@mynthio/tanstack-ai-adapter'
  *
  * const result = await generateImage({
- *   adapter: mynthImage('black-forest-labs/flux.2-dev'),
+ *   adapter: mynthImage('krea/krea-2-large'),
  *   prompt: 'A beautiful sunset over mountains',
  * })
  *

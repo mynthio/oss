@@ -33,7 +33,7 @@ vi.mock("@mynthio/sdk", () => {
   };
 });
 
-const DEFAULT_MODEL = "black-forest-labs/flux.2-dev" as const;
+const DEFAULT_MODEL = "krea/krea-2-large" as const;
 
 const { MynthImageAdapter, createMynthImage, mynthImage } = await import("../src/adapter");
 

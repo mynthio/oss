@@ -5,8 +5,10 @@ import { MynthApiError } from "../domain/Errors.ts";
 import {
   GenerateResponseSchema,
   RateResponseSchema,
+  TaskResponseSchema,
   TaskStatusSchema,
   UploadResponseSchema,
+  type TaskData,
 } from "../domain/Schemas.ts";
 import { MynthApi, readJson, readText } from "./MynthApi.ts";
 
@@ -27,6 +29,7 @@ export type RateResultItem =
 export type RateResponse = {
   readonly task: {
     readonly id: string;
+    readonly status: "completed";
     readonly cost: string;
   };
   readonly results: ReadonlyArray<RateResultItem>;
@@ -37,21 +40,12 @@ export type GenerateResponse = {
   readonly pat?: string;
 };
 
-export type TaskData = {
-  readonly id: string;
-  readonly status: "pending" | "completed" | "failed";
-  readonly type: string;
-  readonly result: unknown;
-  readonly request: unknown;
-  readonly cost: string | null;
-  readonly createdAt: string;
-  readonly updatedAt: string;
-};
-
 export type UploadedImage = {
   readonly path: string;
   readonly url: string;
 };
+
+export type { TaskData };
 
 const POLL_TIMEOUT_MS = 5 * 60 * 1000;
 const POLL_FAST_PHASE_MS = 12_000;
@@ -210,7 +204,7 @@ export class ImageService {
     await requireSuccess(response, "rate");
 
     const json = await parseResponse(response, RateResponseSchema, "invalid rate response");
-    return json.data as RateResponse;
+    return json.data;
   }
 
   async generate(args: {
@@ -265,14 +259,8 @@ export class ImageService {
   async getTaskDetails(taskId: string): Promise<TaskData> {
     const response = await this.api.execute(`/tasks/${taskId}`);
     await requireSuccess(response, "task details");
-    const json = (await readJson(response)) as { readonly data?: unknown };
-    if (json.data === undefined) {
-      throw new MynthApiError({
-        message: "invalid task details response: missing data",
-        status: response.status,
-      });
-    }
-    return json.data as TaskData;
+    const json = await parseResponse(response, TaskResponseSchema, "invalid task details response");
+    return json.data;
   }
 
   async downloadImages(args: {

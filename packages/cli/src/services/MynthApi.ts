@@ -42,6 +42,18 @@ export class MynthApi {
     return this.attempt(path, init, true);
   }
 
+  async executePublic(path: string, init: RequestInit = {}): Promise<Response> {
+    try {
+      return await fetch(`${this.baseUrl}${path}`, init);
+    } catch (cause) {
+      throw new MynthApiError({
+        message: `request failed: ${(cause as Error).message}`,
+        status: 0,
+        cause,
+      });
+    }
+  }
+
   private async attempt(path: string, init: RequestInit, forceRefresh: boolean): Promise<Response> {
     const auth = await this.getAuth(forceRefresh);
     const headers = new Headers(init.headers);

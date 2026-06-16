@@ -51,6 +51,19 @@ export type ApiKeyCredentials = z.infer<typeof ApiKeyCredentialsSchema>;
 export const CredentialsSchema = z.union([OAuthCredentialsSchema, ApiKeyCredentialsSchema]);
 export type Credentials = z.infer<typeof CredentialsSchema>;
 
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+
+const JsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(JsonValueSchema),
+    z.record(JsonValueSchema),
+  ]),
+);
+
 export const UploadResponseSchema = z.object({
   data: z.object({
     urls: z.array(z.string()),
@@ -70,6 +83,7 @@ export const RateResponseSchema = z.object({
   data: z.object({
     task: z.object({
       id: z.string(),
+      status: z.literal("completed"),
       cost: z.string(),
     }),
     results: z.array(RateResultItemSchema),
@@ -81,7 +95,7 @@ export const GenerateResponseSchema = z.object({
     taskId: z.string(),
     access: z
       .object({
-        publicAccessToken: z.string().optional(),
+        publicAccessToken: z.string(),
       })
       .optional(),
   }),
@@ -91,4 +105,42 @@ export const TaskStatusSchema = z.object({
   data: z.object({
     status: z.union([z.literal("pending"), z.literal("completed"), z.literal("failed")]),
   }),
+});
+
+export const TaskDataSchema = z.object({
+  id: z.string(),
+  type: z.union([z.literal("image.generate"), z.literal("image.rate")]),
+  status: z.union([z.literal("pending"), z.literal("completed"), z.literal("failed")]),
+  userId: z.string(),
+  apiKeyId: z.string().nullable(),
+  cost: z.string().nullable(),
+  request: JsonValueSchema,
+  result: JsonValueSchema,
+  errors: z.array(z.object({ code: z.string() })).optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type TaskData = z.infer<typeof TaskDataSchema>;
+
+export const TaskResponseSchema = z.object({
+  data: TaskDataSchema,
+});
+
+export const ModelPricingSchema = z.object({
+  perImage: z.object({
+    base: z.string(),
+    "4k": z.string().optional(),
+  }),
+  inputFee: z.string().optional(),
+});
+
+export const ModelSchema = z.object({
+  id: z.string(),
+  displayName: z.string().nullable(),
+  pricing: ModelPricingSchema.nullable(),
+});
+export type Model = z.infer<typeof ModelSchema>;
+
+export const ModelsListResponseSchema = z.object({
+  data: z.array(ModelSchema),
 });

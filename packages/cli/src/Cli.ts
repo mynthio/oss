@@ -4,6 +4,7 @@ import {
   createAuthCommand,
   createConfigCommand,
   createImageCommand,
+  createModelsCommand,
   createTaskCommand,
   createWhoamiCommand,
 } from "./commands/index.ts";
@@ -27,11 +28,12 @@ export const createProgram = (): Command => {
   const ctx = createCliContext();
   const program = new Command("mynth");
 
-  program.description("Official Mynth CLI").version("0.0.7");
+  program.description("Official Mynth CLI").version("0.0.9");
 
   program.addCommand(createAuthCommand(ctx));
   program.addCommand(createConfigCommand(ctx));
   program.addCommand(createImageCommand(ctx));
+  program.addCommand(createModelsCommand(ctx));
   program.addCommand(createTaskCommand(ctx));
   program.addCommand(createWhoamiCommand(ctx));
 

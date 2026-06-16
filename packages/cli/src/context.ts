@@ -2,6 +2,7 @@ import { Auth } from "./services/Auth.ts";
 import { getAppConfig } from "./services/AppConfig.ts";
 import { CredentialsStore } from "./services/CredentialsStore.ts";
 import { ImageService } from "./services/ImageService.ts";
+import { ModelsService } from "./services/ModelsService.ts";
 import { MynthApi } from "./services/MynthApi.ts";
 import { TaskService } from "./services/TaskService.ts";
 import { WorkOS } from "./services/WorkOS.ts";
@@ -10,6 +11,7 @@ export type CliContext = {
   readonly auth: Auth;
   readonly credentialsStore: CredentialsStore;
   readonly images: ImageService;
+  readonly models: ModelsService;
   readonly tasks: TaskService;
   readonly workos: WorkOS;
 };
@@ -24,6 +26,7 @@ export const createCliContext = (): CliContext => {
     auth,
     credentialsStore,
     images: new ImageService(api),
+    models: new ModelsService(api),
     tasks: new TaskService(api),
     workos,
   };

@@ -1,31 +1,30 @@
 import { MynthApiError } from "../domain/Errors.ts";
-import { TaskResponseSchema, type TaskData } from "../domain/Schemas.ts";
+import { ModelsListResponseSchema, type Model } from "../domain/Schemas.ts";
 import { MynthApi, readJson, readText } from "./MynthApi.ts";
 
-export class TaskService {
+export class ModelsService {
   constructor(private readonly api: MynthApi) {}
 
-  async getTask(taskId: string): Promise<TaskData> {
-    const response = await this.api.execute(`/tasks/${taskId}`);
+  async list(): Promise<ReadonlyArray<Model>> {
+    const response = await this.api.executePublic("/models");
 
     if (response.status < 200 || response.status >= 300) {
       const bodyText = await readText(response);
       throw new MynthApiError({
-        message: `task fetch failed (${response.status}): ${bodyText || "no body"}`,
+        message: `models fetch failed (${response.status}): ${bodyText || "no body"}`,
         status: response.status,
       });
     }
 
-    const parsed = TaskResponseSchema.safeParse(await readJson(response));
+    const parsed = ModelsListResponseSchema.safeParse(await readJson(response));
     if (!parsed.success) {
       throw new MynthApiError({
-        message: "invalid task response",
+        message: "invalid models response",
         status: response.status,
         cause: parsed.error,
       });
     }
+
     return parsed.data.data;
   }
 }
-
-export type { TaskData };

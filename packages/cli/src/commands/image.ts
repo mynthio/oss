@@ -18,6 +18,8 @@ import { print } from "../utils/output.ts";
 import { withSpinner } from "../utils/spinner.ts";
 
 const MAX_GENERATE_INPUTS = 8;
+const DEFAULT_OUTPUT_FORMAT = "webp";
+const DEFAULT_OUTPUT_QUALITY = 80;
 const INPUT_ROLES = ["auto", "init", "reference"] as const;
 
 type InputRole = (typeof INPUT_ROLES)[number];
@@ -70,6 +72,14 @@ const parseInteger = (value: string): number => {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isInteger(parsed) || String(parsed) !== value) {
     throw new CliUsageError(`invalid integer: "${value}"`);
+  }
+  return parsed;
+};
+
+const parseQuality = (value: string): number => {
+  const parsed = parseInteger(value);
+  if (parsed < 1 || parsed > 100) {
+    throw new CliUsageError(`invalid quality: "${value}" (expected 1-100)`);
   }
   return parsed;
 };
@@ -280,10 +290,21 @@ const renderTaskHuman = (
         const url = (image["url"] as string | null) ?? (image["mynth_url"] as string);
         print(`  ${ok} ${url}${ratingSuffix}`);
       } else {
-        print(`  ${fail} ${(image["error"] as string) ?? "unknown error"}`);
+        print(`  ${fail} ${formatImageError(image["error"])}`);
       }
     }
   }
+};
+
+const formatImageError = (error: unknown): string => {
+  if (typeof error === "string") return error;
+  if (error !== null && typeof error === "object") {
+    const obj = error as Record<string, unknown>;
+    const code = typeof obj["code"] === "string" ? obj["code"] : "unknown error";
+    const message = typeof obj["message"] === "string" ? obj["message"] : undefined;
+    return message !== undefined ? `${code}: ${message}` : code;
+  }
+  return "unknown error";
 };
 
 const summarizeTask = (task: {
@@ -429,7 +450,10 @@ export const createImageCommand = (ctx: CliContext): Command => {
     }
   });
 
-  const generate = image.command("generate").description("Generate images with Mynth");
+  const generate = image
+    .command("generate")
+    .description("Generate images with Mynth")
+    .addHelpText("after", "\nModels: mynth models list");
   generate
     .option("-p, --prompt <text>", "Text prompt describing the image to generate")
     .option("-n, --negative <text>", "Negative prompt (elements to exclude)")
@@ -452,7 +476,7 @@ export const createImageCommand = (ctx: CliContext): Command => {
         "webp",
       ]),
     )
-    .option("-q, --quality <number>", "Output quality 0-100 (default: 80)", parseInteger)
+    .option("-q, --quality <number>", "Output quality 1-100 (default: 80)", parseQuality)
     .option(
       "-i, --input <value>",
       `Input image as "[role:]path-or-url" (repeatable, up to ${MAX_GENERATE_INPUTS}). Role is one of: auto, init, reference (default: reference). Examples: -i ./img.jpg, -i reference:https://example.com/a.png, -i init:./seed.png`,
@@ -522,9 +546,13 @@ export const createImageCommand = (ctx: CliContext): Command => {
       },
     }));
 
-    const output: Record<string, unknown> = {};
-    if (options.format !== undefined) output["format"] = options.format;
-    if (options.quality !== undefined) output["quality"] = options.quality;
+    const output =
+      options.format !== undefined || options.quality !== undefined
+        ? {
+            format: options.format ?? DEFAULT_OUTPUT_FORMAT,
+            quality: options.quality ?? DEFAULT_OUTPUT_QUALITY,
+          }
+        : undefined;
 
     const contentRatingCfg =
       customLevels !== undefined
@@ -539,7 +567,7 @@ export const createImageCommand = (ctx: CliContext): Command => {
     if (options.enhance === "prefer_magic") request["magic_prompt"] = true;
     if (options.size !== undefined) request["size"] = options.size;
     if (options.count !== undefined) request["count"] = options.count;
-    if (Object.keys(output).length > 0) request["output"] = output;
+    if (output !== undefined) request["output"] = output;
     if (resolvedInputs.length > 0) request["inputs"] = resolvedInputs;
     if (options.destination !== undefined) request["destination"] = options.destination;
     if (contentRatingCfg !== undefined) request["rating"] = contentRatingCfg;

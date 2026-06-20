@@ -120,6 +120,70 @@ describe("mynth cli", () => {
     }
   });
 
+  it("sends image inputs using current API intent fields", async () => {
+    const requests: Array<{ readonly body: unknown }> = [];
+    const server = createServer((request, response) => {
+      let body = "";
+      request.setEncoding("utf8");
+      request.on("data", (chunk) => {
+        body += chunk;
+      });
+      request.on("end", () => {
+        requests.push({ body: JSON.parse(body) });
+        response.statusCode = 201;
+        response.setHeader("Content-Type", "application/json");
+        response.end(JSON.stringify({ data: { taskId: "tsk_inputs" } }));
+      });
+    });
+
+    await new Promise<void>((resolvePromise) => server.listen(0, "127.0.0.1", resolvePromise));
+    const address = server.address() as AddressInfo;
+    const env = {
+      MYNTH_API_URL: `http://127.0.0.1:${address.port}`,
+      MYNTH_API_KEY: "mak_test",
+    };
+
+    try {
+      const result = await runCliAsync(
+        [
+          "image",
+          "generate",
+          "-p",
+          "test",
+          "--async",
+          "--input",
+          "product:https://cdn.test/product.webp",
+          "--input",
+          "https://cdn.test/reference.webp",
+        ],
+        env,
+      );
+
+      expect(result).toMatchObject({ status: 0, stderr: "" });
+      expect(requests.map((request) => request.body)).toEqual([
+        {
+          prompt: "test",
+          inputs: [
+            {
+              type: "image",
+              intent: "product",
+              source: { type: "url", url: "https://cdn.test/product.webp" },
+            },
+            {
+              type: "image",
+              source: { type: "url", url: "https://cdn.test/reference.webp" },
+            },
+          ],
+          access: { pat: { enabled: true } },
+        },
+      ]);
+    } finally {
+      await new Promise<void>((resolvePromise, reject) => {
+        server.close((error) => (error ? reject(error) : resolvePromise()));
+      });
+    }
+  });
+
   it("rejects image output quality outside the API range", () => {
     const result = runCli("image", "generate", "-p", "test", "--quality", "0");
 

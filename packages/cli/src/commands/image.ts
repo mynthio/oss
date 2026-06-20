@@ -17,14 +17,24 @@ import {
 import { print } from "../utils/output.ts";
 import { withSpinner } from "../utils/spinner.ts";
 
-const MAX_GENERATE_INPUTS = 8;
+const MAX_GENERATE_INPUTS = 20;
 const DEFAULT_OUTPUT_FORMAT = "webp";
 const DEFAULT_OUTPUT_QUALITY = 80;
-const INPUT_ROLES = ["auto", "init", "reference"] as const;
+const INPUT_INTENTS = [
+  "auto",
+  "person",
+  "garment",
+  "pose",
+  "style",
+  "background",
+  "product",
+  "object",
+  "character",
+] as const;
 
-type InputRole = (typeof INPUT_ROLES)[number];
+type InputIntent = (typeof INPUT_INTENTS)[number];
 type ParsedInput = {
-  readonly role: InputRole;
+  readonly intent?: InputIntent;
   readonly value: string;
   readonly isFile: boolean;
 };
@@ -190,15 +200,20 @@ const resolveLevels = async (input: {
 const parseInputSpec = (raw: string): ParsedInput => {
   const colonIdx = raw.indexOf(":");
   const looksLikeUrl = /^https?:/i.test(raw);
-  let role: InputRole = "reference";
+  let intent: InputIntent | undefined;
   let rest = raw;
 
   if (colonIdx > 0 && !looksLikeUrl) {
-    const maybeRole = raw.slice(0, colonIdx);
-    if ((INPUT_ROLES as ReadonlyArray<string>).includes(maybeRole)) {
-      role = maybeRole as InputRole;
-      rest = raw.slice(colonIdx + 1);
+    const maybeIntent = raw.slice(0, colonIdx);
+    if (!(INPUT_INTENTS as ReadonlyArray<string>).includes(maybeIntent)) {
+      throw new MynthApiError({
+        message: `invalid --input intent "${maybeIntent}". Expected one of: ${INPUT_INTENTS.join(", ")}`,
+        status: 0,
+      });
     }
+
+    intent = maybeIntent as InputIntent;
+    rest = raw.slice(colonIdx + 1);
   }
 
   if (rest.length === 0) {
@@ -208,7 +223,11 @@ const parseInputSpec = (raw: string): ParsedInput => {
     });
   }
 
-  return { role, value: rest, isFile: !isUrl(rest) };
+  return {
+    ...(intent !== undefined ? { intent } : {}),
+    value: rest,
+    isFile: !isUrl(rest),
+  };
 };
 
 const parseMetadata = (raw: string): Record<string, unknown> => {
@@ -479,7 +498,7 @@ export const createImageCommand = (ctx: CliContext): Command => {
     .option("-q, --quality <number>", "Output quality 1-100 (default: 80)", parseQuality)
     .option(
       "-i, --input <value>",
-      `Input image as "[role:]path-or-url" (repeatable, up to ${MAX_GENERATE_INPUTS}). Role is one of: auto, init, reference (default: reference). Examples: -i ./img.jpg, -i reference:https://example.com/a.png, -i init:./seed.png`,
+      `Input image as "[intent:]path-or-url" (repeatable, up to ${MAX_GENERATE_INPUTS}). Intent is optional and must be one of: ${INPUT_INTENTS.join(", ")}. Examples: -i ./img.jpg, -i product:https://example.com/a.png, -i pose:./seed.png`,
       collect,
     )
     .option(
@@ -539,7 +558,7 @@ export const createImageCommand = (ctx: CliContext): Command => {
 
     const resolvedInputs = parsedInputs.map((input) => ({
       type: "image" as const,
-      role: input.role,
+      ...(input.intent ? { intent: input.intent } : {}),
       source: {
         type: "url" as const,
         url: input.isFile ? (uploadedByPath.get(input.value) ?? input.value) : input.value,

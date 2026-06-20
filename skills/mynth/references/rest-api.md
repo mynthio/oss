@@ -89,7 +89,7 @@ Returns `{ "data": ... }` with the full task object including cost, request, tim
 
 ## Upload
 
-`POST /image/upload` — multipart form with `images` file fields, for input/reference images.
+`POST /image/upload` — multipart form with `images` file fields, for input images.
 
 Response (200):
 

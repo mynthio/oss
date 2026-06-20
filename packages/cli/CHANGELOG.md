@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.11](https://github.com/mynthio/oss/compare/cli-v0.0.10...cli-v0.0.11) (2026-06-20)
+
+
+### Features
+
+* **cli:** support image input intents ([836c138](https://github.com/mynthio/oss/commit/836c1384a0f7dda6706eba2bac64782c28b7899c))
+
 ## [0.0.10](https://github.com/mynthio/oss/compare/cli-v0.0.9...cli-v0.0.10) (2026-06-16)
 
 

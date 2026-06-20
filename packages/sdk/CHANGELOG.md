@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.0.19](https://github.com/mynthio/oss/compare/sdk-v0.0.18...sdk-v0.0.19) (2026-06-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* **sdk:** Structured image inputs no longer use the role field; use the optional intent field instead.
+
+### Features
+
+* **sdk:** add image input intents ([1926793](https://github.com/mynthio/oss/commit/192679369d3690603b296222f28da10cac64e3cb))
+
 ## [0.0.18](https://github.com/mynthio/oss/compare/sdk-v0.0.17...sdk-v0.0.18) (2026-06-15)
 
 

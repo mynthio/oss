@@ -19,7 +19,7 @@ export const TASK_STATUS_PATH = (id: string) => `${TASK_PATH}/${id}/status`;
  * Model capabilities that affect available generation options.
  * - `mynth_magic_prompt`: Supports Mynth-side prompt enhancement
  * - `negative_prompt`: Supports structured negative prompts
- * - `inputs`: Supports reference/input images
+ * - `inputs`: Supports input images
  * - `4k`: Supports 4k resolution output
  * - `native_enhance_prompt`: Supports provider-native prompt enhancement
  * - `native_auto_size`: Supports provider-driven auto sizing

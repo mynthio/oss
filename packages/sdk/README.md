@@ -183,7 +183,6 @@ const task = await mynth.image.generate({
     "https://example.com/reference-1.jpg",
     {
       type: "image",
-      role: "reference",
       source: {
         type: "url",
         url: "https://example.com/reference-2.jpg",
@@ -251,14 +250,13 @@ size: { type: "auto", provider: "native" };
 
 ## Input Images
 
-Use `inputs` to send reference or init images:
+Use `inputs` to send input images:
 
 ```ts
 inputs: [
   "https://example.com/input-image.jpg",
   {
     type: "image",
-    role: "reference",
     source: {
       type: "url",
       url: "https://example.com/reference-image.jpg",
@@ -267,7 +265,7 @@ inputs: [
 ];
 ```
 
-String URLs are a shorthand for image inputs. Structured inputs let you control the role explicitly with `"auto"`, `"init"`, or `"reference"`.
+String URLs are a shorthand for image inputs. Structured inputs use `type` and `source`.
 
 ## Rating
 

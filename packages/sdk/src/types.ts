@@ -210,12 +210,21 @@ export namespace MynthSDKTypes {
     url: string;
   };
 
-  export type ImageGenerationRequestInputRole = "auto" | "init" | "reference";
+  export type ImageGenerationRequestInputIntent =
+    | "auto"
+    | "person"
+    | "garment"
+    | "pose"
+    | "style"
+    | "background"
+    | "product"
+    | "object"
+    | "character";
 
   /** Structured image input */
   export type ImageGenerationRequestInput = {
     type: "image";
-    role: ImageGenerationRequestInputRole;
+    intent?: ImageGenerationRequestInputIntent;
     source: ImageGenerationRequestInputSource;
   };
 

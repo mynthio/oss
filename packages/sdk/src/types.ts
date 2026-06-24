@@ -50,7 +50,7 @@ export namespace MynthSDKTypes {
       base: string;
       "4k"?: string;
     };
-    inputFee?: string;
+    perInput?: string;
   };
 
   export type Model = {
@@ -72,6 +72,7 @@ export namespace MynthSDKTypes {
     | "black-forest-labs/flux.2-flex"
     | "black-forest-labs/flux.2-max"
     | "black-forest-labs/flux.2-klein-4b"
+    | "black-forest-labs/flux-virtual-try-on"
     | "google/gemini-3.1-flash-image"
     | "google/gemini-3-pro-image-preview"
     | "imagineart/imagineart-1.5-pro"
@@ -79,6 +80,7 @@ export namespace MynthSDKTypes {
     | "krea/krea-2-medium"
     | "krea/krea-2-large"
     | "openai/gpt-image-2"
+    | "prunaai/p-image-try-on"
     | "tongyi-mai/z-image-turbo"
     | "john6666/bismuth-illustrious-mix"
     | "purplesmartai/pony-diffusion-v6-xl"
@@ -144,11 +146,6 @@ export namespace MynthSDKTypes {
     | "landscape"
     | "portrait_tall"
     | "landscape_wide"
-    | "square_4k"
-    | "portrait_4k"
-    | "landscape_4k"
-    | "portrait_tall_4k"
-    | "landscape_wide_4k"
     | "1:1"
     | "2:3"
     | "3:2"
@@ -201,7 +198,6 @@ export namespace MynthSDKTypes {
   /** Structured auto size configuration */
   export type ImageGenerationRequestSizeAuto = {
     type: "auto";
-    provider?: "mynth" | "native";
   };
 
   /** Image input source */
@@ -210,7 +206,7 @@ export namespace MynthSDKTypes {
     url: string;
   };
 
-  export type ImageGenerationRequestInputIntent =
+  export type ImageGenerationRequestInputAs =
     | "auto"
     | "person"
     | "garment"
@@ -224,7 +220,7 @@ export namespace MynthSDKTypes {
   /** Structured image input */
   export type ImageGenerationRequestInput = {
     type: "image";
-    intent?: ImageGenerationRequestInputIntent;
+    as?: ImageGenerationRequestInputAs;
     source: ImageGenerationRequestInputSource;
   };
 

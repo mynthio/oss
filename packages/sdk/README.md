@@ -245,7 +245,7 @@ size: "landscape";
 size: "auto";
 size: { type: "aspect_ratio", aspectRatio: "16:9" };
 size: { type: "aspect_ratio", aspectRatio: "4:5", scale: "4k" };
-size: { type: "auto", provider: "native" };
+size: { type: "auto" };
 ```
 
 ## Input Images
@@ -372,7 +372,7 @@ console.log(model);
 // {
 //   id: "google/gemini-3.1-flash-image",
 //   label: "Nano Banana 2",
-//   capabilities: ["inputs", "4k", "native_enhance_prompt", "native_auto_size"]
+//   capabilities: ["inputs", "4k", "native_enhance_prompt"]
 // }
 ```
 

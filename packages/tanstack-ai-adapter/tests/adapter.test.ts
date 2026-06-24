@@ -338,6 +338,149 @@ describe("MynthImageAdapter", () => {
       await expect(result).rejects.toThrow("generate failed");
     });
   });
+
+  describe("media prompts", () => {
+    it("splits a content-part prompt into text and image inputs", async () => {
+      // Arrange
+      generateMock.mockResolvedValue(createMockTask());
+      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
+
+      // Act
+      await adapter.generateImages(
+        createOptions({
+          prompt: [
+            { type: "text", content: "Put the person in this outfit" },
+            {
+              type: "image",
+              source: { type: "url", value: "https://example.com/person.jpg" },
+              metadata: { role: "character" },
+            },
+            {
+              type: "image",
+              source: { type: "url", value: "https://example.com/outfit.jpg" },
+            },
+          ],
+        }),
+      );
+
+      // Assert
+      expect(generateMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: "Put the person in this outfit",
+          inputs: [
+            {
+              type: "image",
+              source: { type: "url", url: "https://example.com/person.jpg" },
+              as: "character",
+            },
+            {
+              type: "image",
+              source: { type: "url", url: "https://example.com/outfit.jpg" },
+            },
+          ],
+        }),
+      );
+    });
+
+    it("encodes inline data sources as data URIs", async () => {
+      // Arrange
+      generateMock.mockResolvedValue(createMockTask());
+      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
+
+      // Act
+      await adapter.generateImages(
+        createOptions({
+          prompt: [
+            { type: "text", content: "edit this" },
+            {
+              type: "image",
+              source: { type: "data", value: "QUJD", mimeType: "image/png" },
+            },
+          ],
+        }),
+      );
+
+      // Assert
+      expect(generateMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          inputs: [
+            {
+              type: "image",
+              source: { type: "url", url: "data:image/png;base64,QUJD" },
+            },
+          ],
+        }),
+      );
+    });
+
+    it("appends provider modelOptions.inputs after prompt-derived inputs", async () => {
+      // Arrange
+      generateMock.mockResolvedValue(createMockTask());
+      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
+
+      // Act
+      await adapter.generateImages(
+        createOptions({
+          prompt: [
+            { type: "text", content: "blend" },
+            {
+              type: "image",
+              source: { type: "url", value: "https://example.com/from-prompt.jpg" },
+            },
+          ],
+          modelOptions: {
+            inputs: [
+              {
+                type: "image",
+                as: "style",
+                source: { type: "url", url: "https://example.com/style.jpg" },
+              },
+            ],
+          },
+        }),
+      );
+
+      // Assert
+      expect(generateMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          inputs: [
+            {
+              type: "image",
+              source: { type: "url", url: "https://example.com/from-prompt.jpg" },
+            },
+            {
+              type: "image",
+              as: "style",
+              source: { type: "url", url: "https://example.com/style.jpg" },
+            },
+          ],
+        }),
+      );
+    });
+  });
+
+  describe("logging", () => {
+    it("logs the request and rethrows with an error log on failure", async () => {
+      // Arrange
+      const logger = { request: vi.fn(), errors: vi.fn() };
+      generateMock.mockRejectedValue(new Error("boom"));
+      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
+
+      // Act
+      const result = adapter.generateImages(createOptions({ logger: logger as never }));
+
+      // Assert
+      await expect(result).rejects.toThrow("boom");
+      expect(logger.request).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ provider: "mynth", model: DEFAULT_MODEL }),
+      );
+      expect(logger.errors).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ error: "boom" }),
+      );
+    });
+  });
 });
 
 describe("createMynthImage", () => {

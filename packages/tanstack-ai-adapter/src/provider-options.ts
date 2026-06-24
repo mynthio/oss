@@ -1,5 +1,5 @@
 import type { MynthSDKTypes } from "@mynthio/sdk";
-import type { MynthImageModel } from "./model-meta";
+import type { MynthImageInputModel, MynthImageModel } from "./model-meta";
 
 // ============================================================================
 // Size Types
@@ -81,4 +81,16 @@ export type MynthImageModelProviderOptionsByName = {
  */
 export type MynthImageModelSizeByName = {
   [K in MynthImageModel]: MynthImageShorthandSize;
+};
+
+/**
+ * Type-only map from model name to the non-text prompt modalities it accepts.
+ *
+ * Models that support image inputs accept `"image"` content parts in the
+ * TanStack `prompt` (image-to-image, reference-guided, edit, try-on); the
+ * adapter maps those parts onto Mynth's `inputs`. Text-only models map to an
+ * empty tuple so passing image parts fails at compile time.
+ */
+export type MynthImageModelInputModalitiesByName = {
+  [K in MynthImageModel]: K extends MynthImageInputModel ? readonly ["image"] : readonly [];
 };

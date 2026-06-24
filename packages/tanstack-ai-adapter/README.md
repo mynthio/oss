@@ -13,6 +13,7 @@ It lets you use Mynth models with `generateImage()` while keeping TanStack AI's 
 - `createMynthImage(config?)` for reusable provider configuration
 - Typed `MYNTH_IMAGE_MODELS` and `MynthImageModel` exports for model pickers and guards
 - Support for both TanStack image options and Mynth-specific provider options
+- Image-to-image via TanStack content-part prompts, mapped onto Mynth `inputs`
 - Normalized image results, including `revisedPrompt` when Mynth enhances the prompt
 
 ## Installation
@@ -143,6 +144,48 @@ Notes:
 
 Use `scale: "4k"` when you want the higher tier and the model supports it.
 
+## Image inputs (image-to-image)
+
+Models that support image inputs accept TanStack AI's content-part prompts, so
+you can interleave instruction text with reference images for image-to-image,
+reference-guided, edit, and try-on flows. The adapter maps the image parts onto
+Mynth's `inputs`:
+
+```ts
+import { generateImage } from "@tanstack/ai";
+import { mynthImage } from "@mynthio/tanstack-ai-adapter";
+
+const result = await generateImage({
+  adapter: mynthImage("black-forest-labs/flux-virtual-try-on"),
+  prompt: [
+    { type: "text", content: "Dress the person in this garment" },
+    {
+      type: "image",
+      source: { type: "url", value: "https://example.com/person.jpg" },
+      metadata: { role: "character" },
+    },
+    {
+      type: "image",
+      source: { type: "url", value: "https://example.com/garment.jpg" },
+    },
+  ],
+});
+```
+
+Notes:
+
+- Only the models in `MYNTH_IMAGE_INPUT_MODELS` accept image parts; passing image
+  parts to a text-only model is a compile-time error.
+- Both URL sources (`{ type: "url", value }`) and inline data sources
+  (`{ type: "data", value, mimeType }`, encoded as a data URI) are supported.
+- A content part's `metadata.role` maps to Mynth's input intent (`as`).
+  `"character"` maps directly; other generic roles fall back to Mynth's
+  automatic detection. For finer-grained intents (`person`, `garment`, `pose`,
+  `style`, `background`, `product`, `object`), pass `modelOptions.inputs` with an
+  explicit `as`.
+- Image parts from the prompt and entries in `modelOptions.inputs` are combined,
+  prompt-derived inputs first.
+
 ## Available Models
 
 The package exports both a runtime array and a type union for Mynth image models:
@@ -213,6 +256,14 @@ Readonly array of supported Mynth image model IDs.
 ### `MynthImageModel`
 
 Type union of all supported model IDs.
+
+### `MYNTH_IMAGE_INPUT_MODELS`
+
+Readonly array of model IDs that accept image inputs (image-to-image, try-on).
+
+### `MynthImageInputModel`
+
+Type union of the model IDs that accept image inputs.
 
 ## Development
 

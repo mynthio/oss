@@ -9,14 +9,15 @@ export type { MynthImageProvider } from "./adapter";
 // Model Metadata
 // ============================================================================
 
-export { MYNTH_IMAGE_MODELS } from "./model-meta";
-export type { MynthImageModel } from "./model-meta";
+export { MYNTH_IMAGE_INPUT_MODELS, MYNTH_IMAGE_MODELS } from "./model-meta";
+export type { MynthImageInputModel, MynthImageModel } from "./model-meta";
 
 // ============================================================================
 // Provider Types
 // ============================================================================
 
 export type {
+  MynthImageModelInputModalitiesByName,
   MynthImageModelProviderOptionsByName,
   MynthImageModelSizeByName,
   MynthImagePromptStructured,

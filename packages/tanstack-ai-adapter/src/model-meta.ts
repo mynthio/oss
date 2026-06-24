@@ -19,6 +19,7 @@ export const MYNTH_IMAGE_MODELS = [
   "black-forest-labs/flux.2-flex",
   "black-forest-labs/flux.2-max",
   "black-forest-labs/flux.2-klein-4b",
+  "black-forest-labs/flux-virtual-try-on",
   "john6666/bismuth-illustrious-mix",
   "krea/krea-2-turbo",
   "krea/krea-2-medium",
@@ -30,6 +31,7 @@ export const MYNTH_IMAGE_MODELS = [
   "google/gemini-3-pro-image-preview",
   "imagineart/imagineart-1.5-pro",
   "openai/gpt-image-2",
+  "prunaai/p-image-try-on",
   "wan/wan2.6-image",
   "xai/grok-imagine-image",
 ] as const satisfies ReadonlyArray<MynthSDKTypes.ImageGenerationModel>;
@@ -38,3 +40,35 @@ export const MYNTH_IMAGE_MODELS = [
  * Union of all Mynth image model IDs.
  */
 export type MynthImageModel = (typeof MYNTH_IMAGE_MODELS)[number];
+
+/**
+ * Mynth image models that accept image inputs (image-to-image,
+ * reference-guided, edit, try-on). These are the models for which TanStack AI
+ * allows passing image content parts in the `prompt`; the adapter maps those
+ * parts onto Mynth's `inputs`. Mirrors the `inputs` capability in the SDK's
+ * `AVAILABLE_MODELS`.
+ */
+export const MYNTH_IMAGE_INPUT_MODELS = [
+  "alibaba/qwen-image-2.0",
+  "alibaba/qwen-image-2.0-pro",
+  "bytedance/seedream-5.0-lite",
+  "black-forest-labs/flux.2-dev",
+  "black-forest-labs/flux.2-pro",
+  "black-forest-labs/flux.2-flex",
+  "black-forest-labs/flux.2-max",
+  "black-forest-labs/flux.2-klein-4b",
+  "black-forest-labs/flux-virtual-try-on",
+  "krea/krea-2-turbo",
+  "krea/krea-2-medium",
+  "krea/krea-2-large",
+  "google/gemini-3.1-flash-image",
+  "google/gemini-3-pro-image-preview",
+  "openai/gpt-image-2",
+  "prunaai/p-image-try-on",
+  "xai/grok-imagine-image",
+] as const satisfies ReadonlyArray<MynthImageModel>;
+
+/**
+ * Union of Mynth image model IDs that accept image inputs.
+ */
+export type MynthImageInputModel = (typeof MYNTH_IMAGE_INPUT_MODELS)[number];

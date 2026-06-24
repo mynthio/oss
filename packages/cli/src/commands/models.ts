@@ -20,7 +20,7 @@ const renderHuman = (models: ReadonlyArray<Model>): void => {
     name: model.displayName ?? "-",
     base: formatPrice(model.pricing?.perImage.base),
     fourK: formatPrice(model.pricing?.perImage["4k"]),
-    inputFee: formatPrice(model.pricing?.inputFee),
+    inputFee: formatPrice(model.pricing?.perInput),
   }));
 
   const widths = {

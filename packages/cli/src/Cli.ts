@@ -28,7 +28,7 @@ export const createProgram = (): Command => {
   const ctx = createCliContext();
   const program = new Command("mynth");
 
-  program.description("Official Mynth CLI").version("0.0.11");
+  program.description("Official Mynth CLI").version("0.0.12");
 
   program.addCommand(createAuthCommand(ctx));
   program.addCommand(createConfigCommand(ctx));

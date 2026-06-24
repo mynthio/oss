@@ -45,7 +45,7 @@ describe("mynth cli", () => {
     expect(true).toBe(true);
   });
 
-  it("requires image generate prompt as an option", () => {
+  it("exposes the prompt as an optional option", () => {
     const help = runCli("image", "generate", "--help");
 
     expect(help.status).toBe(0);
@@ -53,13 +53,6 @@ describe("mynth cli", () => {
     expect(help.stdout).toContain("Models: mynth models list");
     expect(help.stdout).toContain("Output quality 1-100");
     expect(help.stdout).not.toContain("<prompt>");
-
-    const missingPrompt = runCli("image", "generate");
-
-    expect(missingPrompt.status).toBe(1);
-    expect(`${missingPrompt.stdout}${missingPrompt.stderr}`).toContain(
-      "Expected to find option: '--prompt'",
-    );
   });
 
   it("sends optional image output settings as a complete output object", async () => {
@@ -120,7 +113,7 @@ describe("mynth cli", () => {
     }
   });
 
-  it("sends image inputs using current API intent fields", async () => {
+  it("sends image inputs using current API as fields", async () => {
     const requests: Array<{ readonly body: unknown }> = [];
     const server = createServer((request, response) => {
       let body = "";
@@ -166,7 +159,7 @@ describe("mynth cli", () => {
           inputs: [
             {
               type: "image",
-              intent: "product",
+              as: "product",
               source: { type: "url", url: "https://cdn.test/product.webp" },
             },
             {
@@ -293,7 +286,7 @@ describe("mynth cli", () => {
             {
               id: "black-forest-labs/flux.2-pro",
               displayName: "FLUX.2 Pro",
-              pricing: { perImage: { base: "0.03", "4k": "0.06" }, inputFee: "0.01" },
+              pricing: { perImage: { base: "0.03", "4k": "0.06" }, perInput: "0.01" },
             },
           ],
         }),
@@ -314,7 +307,7 @@ describe("mynth cli", () => {
         {
           id: "black-forest-labs/flux.2-pro",
           displayName: "FLUX.2 Pro",
-          pricing: { perImage: { base: "0.03", "4k": "0.06" }, inputFee: "0.01" },
+          pricing: { perImage: { base: "0.03", "4k": "0.06" }, perInput: "0.01" },
         },
       ]);
       expect(requests).toEqual([{ url: "/models", authorization: undefined }]);

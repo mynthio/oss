@@ -134,7 +134,7 @@ export const ModelPricingSchema = z.object({
     base: z.string(),
     "4k": z.string().optional(),
   }),
-  inputFee: z.string().optional(),
+  perInput: z.string().optional(),
 });
 
 export const ModelSchema = z.object({

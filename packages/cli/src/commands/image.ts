@@ -20,7 +20,7 @@ import { withSpinner } from "../utils/spinner.ts";
 const MAX_GENERATE_INPUTS = 20;
 const DEFAULT_OUTPUT_FORMAT = "webp";
 const DEFAULT_OUTPUT_QUALITY = 80;
-const INPUT_INTENTS = [
+const INPUT_AS = [
   "auto",
   "person",
   "garment",
@@ -32,9 +32,9 @@ const INPUT_INTENTS = [
   "character",
 ] as const;
 
-type InputIntent = (typeof INPUT_INTENTS)[number];
+type InputAs = (typeof INPUT_AS)[number];
 type ParsedInput = {
-  readonly intent?: InputIntent;
+  readonly as?: InputAs;
   readonly value: string;
   readonly isFile: boolean;
 };
@@ -200,19 +200,19 @@ const resolveLevels = async (input: {
 const parseInputSpec = (raw: string): ParsedInput => {
   const colonIdx = raw.indexOf(":");
   const looksLikeUrl = /^https?:/i.test(raw);
-  let intent: InputIntent | undefined;
+  let as: InputAs | undefined;
   let rest = raw;
 
   if (colonIdx > 0 && !looksLikeUrl) {
-    const maybeIntent = raw.slice(0, colonIdx);
-    if (!(INPUT_INTENTS as ReadonlyArray<string>).includes(maybeIntent)) {
+    const maybeAs = raw.slice(0, colonIdx);
+    if (!(INPUT_AS as ReadonlyArray<string>).includes(maybeAs)) {
       throw new MynthApiError({
-        message: `invalid --input intent "${maybeIntent}". Expected one of: ${INPUT_INTENTS.join(", ")}`,
+        message: `invalid --input as "${maybeAs}". Expected one of: ${INPUT_AS.join(", ")}`,
         status: 0,
       });
     }
 
-    intent = maybeIntent as InputIntent;
+    as = maybeAs as InputAs;
     rest = raw.slice(colonIdx + 1);
   }
 
@@ -224,7 +224,7 @@ const parseInputSpec = (raw: string): ParsedInput => {
   }
 
   return {
-    ...(intent !== undefined ? { intent } : {}),
+    ...(as !== undefined ? { as } : {}),
     value: rest,
     isFile: !isUrl(rest),
   };
@@ -266,7 +266,7 @@ const addLevelOptions = (command: Command) =>
     );
 
 const renderTaskHuman = (
-  task: { readonly id: string; readonly result: unknown },
+  task: { readonly id: string; readonly cost: string | null; readonly result: unknown },
   uploadedCount: number,
 ): void => {
   const result = (task.result ?? {}) as TaskResult;
@@ -284,11 +284,7 @@ const renderTaskHuman = (
   );
 
   if (result.model !== undefined) print(`  Model: ${result.model}`);
-  if (result.size_auto?.value !== undefined) {
-    print(`  Size: ${result.size_auto.value} (auto, ${result.size_auto.source})`);
-  }
-  if (result.cost?.total !== undefined) print(`  Cost: ${result.cost.total}`);
-  if (result.destination?.name !== undefined) print(`  Destination: ${result.destination.name}`);
+  if (task.cost !== null) print(`  Cost: ${task.cost}`);
 
   if (result.magic_prompt?.positive !== undefined) {
     print("");
@@ -329,6 +325,7 @@ const formatImageError = (error: unknown): string => {
 const summarizeTask = (task: {
   readonly id: string;
   readonly status: string;
+  readonly cost: string | null;
   readonly result: unknown;
 }) => {
   const result = (task.result ?? {}) as TaskResult;
@@ -351,7 +348,7 @@ const summarizeTask = (task: {
     status: task.status,
     images,
     ...(result.magic_prompt ? { magic_prompt: result.magic_prompt } : {}),
-    ...(result.cost?.total !== undefined ? { cost: result.cost.total } : {}),
+    ...(task.cost !== null ? { cost: task.cost } : {}),
     ...(result.model !== undefined ? { model: result.model } : {}),
   };
 };
@@ -374,11 +371,8 @@ const downloadSucceededImages = async (
 
 type TaskResult = {
   images?: ReadonlyArray<Record<string, unknown>>;
-  cost?: { total?: string };
   model?: string;
   magic_prompt?: { positive?: string; negative?: string };
-  destination?: { name?: string };
-  size_auto?: { value?: string; source?: string };
 };
 
 export const createImageCommand = (ctx: CliContext): Command => {
@@ -498,7 +492,7 @@ export const createImageCommand = (ctx: CliContext): Command => {
     .option("-q, --quality <number>", "Output quality 1-100 (default: 80)", parseQuality)
     .option(
       "-i, --input <value>",
-      `Input image as "[intent:]path-or-url" (repeatable, up to ${MAX_GENERATE_INPUTS}). Intent is optional and must be one of: ${INPUT_INTENTS.join(", ")}. Examples: -i ./img.jpg, -i product:https://example.com/a.png, -i pose:./seed.png`,
+      `Input image as "[as:]path-or-url" (repeatable, up to ${MAX_GENERATE_INPUTS}). as is optional and must be one of: ${INPUT_AS.join(", ")}. Examples: -i ./img.jpg, -i product:https://example.com/a.png, -i pose:./seed.png`,
       collect,
     )
     .option(
@@ -523,9 +517,9 @@ export const createImageCommand = (ctx: CliContext): Command => {
   addLevelOptions(generate);
 
   generate.action(async (options: GenerateOptions) => {
-    if (options.prompt === undefined || options.prompt.length === 0) {
-      throw new CliUsageError("Expected to find option: '--prompt'");
-    }
+    // The prompt is always sent but may be empty: some models (e.g. virtual
+    // try-on) work best with no prompt at all.
+    const prompt = options.prompt ?? "";
 
     if (options.enhance === "prefer_native") {
       throw new MynthApiError({
@@ -558,7 +552,7 @@ export const createImageCommand = (ctx: CliContext): Command => {
 
     const resolvedInputs = parsedInputs.map((input) => ({
       type: "image" as const,
-      ...(input.intent ? { intent: input.intent } : {}),
+      ...(input.as ? { as: input.as } : {}),
       source: {
         type: "url" as const,
         url: input.isFile ? (uploadedByPath.get(input.value) ?? input.value) : input.value,
@@ -580,7 +574,7 @@ export const createImageCommand = (ctx: CliContext): Command => {
           ? true
           : undefined;
 
-    const request: Record<string, unknown> = { prompt: options.prompt };
+    const request: Record<string, unknown> = { prompt };
     if (options.model !== undefined) request["model"] = options.model;
     if (options.negative !== undefined) request["negative_prompt"] = options.negative;
     if (options.enhance === "prefer_magic") request["magic_prompt"] = true;

@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.0.20](https://github.com/mynthio/oss/compare/sdk-v0.0.19...sdk-v0.0.20) (2026-06-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* **sdk:** image input intent is now as; legacy size variants, auto provider selection, inputFee, and retired capabilities are removed.
+
+### Features
+
+* **sdk:** update image generation API fields ([#51](https://github.com/mynthio/oss/issues/51)) ([c827fea](https://github.com/mynthio/oss/commit/c827fea95f3c44a42165c1997c81d1449ed08abb))
+
 ## [0.0.19](https://github.com/mynthio/oss/compare/sdk-v0.0.18...sdk-v0.0.19) (2026-06-20)
 
 

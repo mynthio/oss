@@ -1,3 +1,18 @@
+---
+title: Mynth
+id: mynth-adapter
+description: "Generate images with Mynth models — Flux, Recraft, Gemini, Qwen, Seedream, Wan, and Grok Imagine — in TanStack AI via the Mynth community adapter."
+keywords:
+  - tanstack ai
+  - mynth
+  - image generation
+  - flux
+  - recraft
+  - qwen
+  - seedream
+  - community adapter
+---
+
 # Mynth
 
 > **Alpha:** Mynth is currently in public alpha. We are publishing TanStack AI adapters early to gather feedback on the API, supported models, and integration experience while the platform is still evolving.
@@ -27,6 +42,8 @@ Set your Mynth API key in the environment:
 MYNTH_API_KEY=mak_...
 ```
 
+Keep `MYNTH_API_KEY` on the server only. Never expose it in browser code or public client environment variables, or it may end up in a client bundle.
+
 You can also pass `apiKey` directly in the adapter config. `baseUrl` is optional and useful for proxies, tests, or custom deployments.
 
 If you need a key, create one in the [Mynth API keys dashboard](https://mynth.io/dashboard/keys).
@@ -38,10 +55,10 @@ import { generateImage } from "@tanstack/ai";
 import { mynthImage } from "@mynthio/tanstack-ai-adapter";
 
 const result = await generateImage({
-  adapter: mynthImage("krea/krea-2-large"),
+  adapter: mynthImage("black-forest-labs/flux.2-dev"),
   prompt: "Editorial product photo of a ceramic mug on a linen tablecloth",
   numberOfImages: 1,
-  size: "portrait",
+  size: "square",
 });
 
 console.log(result.id);
@@ -75,6 +92,10 @@ console.log(result.images[0]?.url);
 You can still override shared config per adapter:
 
 ```ts
+import { createMynthImage } from "@mynthio/tanstack-ai-adapter";
+
+const mynth = createMynthImage();
+
 const adapter = mynth("auto", {
   baseUrl: "https://proxy.example.com",
 });
@@ -89,16 +110,20 @@ import { generateImage } from "@tanstack/ai";
 import { mynthImage } from "@mynthio/tanstack-ai-adapter";
 
 const result = await generateImage({
-  adapter: mynthImage("google/gemini-3.1-flash-image"),
-  prompt: "Modern poster design for a jazz festival",
+  adapter: mynthImage("recraft/recraft-v4"),
+  prompt: "Ignored when promptStructured is provided",
   numberOfImages: 2,
-  size: "landscape",
+  size: "portrait",
   modelOptions: {
-    negativePrompt: "watermark, blurry text",
-    magicPrompt: true,
+    promptStructured: {
+      positive: "Modern poster design for a jazz festival",
+      negative: "watermark, blurry text",
+      enhance: "prefer_magic",
+    },
     size: {
       type: "aspect_ratio",
       aspectRatio: "4:5",
+      scale: "4k",
     },
     output: {
       format: "png",
@@ -108,12 +133,7 @@ const result = await generateImage({
     webhook: {
       dashboard: false,
     },
-    access: {
-      pat: {
-        enabled: false,
-      },
-    },
-    rating: true,
+    contentRating: true,
     metadata: {
       requestId: "req_123",
     },
@@ -123,15 +143,10 @@ const result = await generateImage({
 
 Notes:
 
-- `modelOptions.negativePrompt` maps to Mynth's `negative_prompt`
-- `modelOptions.magicPrompt` maps to Mynth's `magic_prompt`
-- `modelOptions.promptStructured` remains supported for compatibility and expands to `prompt`, `negative_prompt`, and `magic_prompt`
+- `modelOptions.promptStructured` overrides the plain `prompt`
 - `modelOptions.size` overrides the top-level `size`
-- Top-level `size` is for shorthand values such as `"auto"` and preset strings
-- Use `modelOptions.size` when you need structured request sizes, including aspect ratios and an optional `scale: "4k"`
-- `modelOptions.access` lets you disable the default Public Access Token response when you do not need browser-side polling
-
-Use `scale: "4k"` when you want the higher tier and the model supports it.
+- Top-level `size` is for shorthand values such as `"auto"`, preset strings, and `"1024x1024"`
+- Use `modelOptions.size` when you need structured Mynth size objects
 
 ## Available Models
 

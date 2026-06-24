@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.0.15](https://github.com/mynthio/oss/compare/tan-ai-v0.0.14...tan-ai-v0.0.15) (2026-06-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* **tanstack-ai-adapter:** require @tanstack/ai 0.34 or newer.
+
+### Features
+
+* **tanstack-ai-adapter:** support image input prompts ([7231906](https://github.com/mynthio/oss/commit/72319069d860007c6cec9ec8ebbff03ce306485d))
+
 ## [0.0.14](https://github.com/mynthio/oss/compare/tan-ai-v0.0.13...tan-ai-v0.0.14) (2026-06-16)
 
 

@@ -17,20 +17,12 @@ export const TASK_STATUS_PATH = (id: string) => `${TASK_PATH}/${id}/status`;
 
 /**
  * Model capabilities that affect available generation options.
- * - `mynth_magic_prompt`: Supports Mynth-side prompt enhancement
  * - `negative_prompt`: Supports structured negative prompts
  * - `inputs`: Supports input images
  * - `4k`: Supports 4k resolution output
  * - `native_enhance_prompt`: Supports provider-native prompt enhancement
- * - `native_auto_size`: Supports provider-driven auto sizing
  */
-export type ModelCapability =
-  | "inputs"
-  | "mynth_magic_prompt"
-  | "negative_prompt"
-  | "4k"
-  | "native_enhance_prompt"
-  | "native_auto_size";
+export type ModelCapability = "inputs" | "negative_prompt" | "4k" | "native_enhance_prompt";
 
 /**
  * Information about an available image generation model.
@@ -72,22 +64,22 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
   {
     id: "black-forest-labs/flux.1-dev",
     label: "FLUX.1 Dev",
-    capabilities: ["mynth_magic_prompt"],
+    capabilities: [],
   },
   {
     id: "black-forest-labs/flux-1-schnell",
     label: "FLUX.1 Schnell",
-    capabilities: ["mynth_magic_prompt"],
+    capabilities: [],
   },
   {
     id: "tongyi-mai/z-image-turbo",
     label: "Z Image Turbo",
-    capabilities: ["mynth_magic_prompt"],
+    capabilities: [],
   },
   {
     id: "black-forest-labs/flux.2-dev",
     label: "FLUX.2 Dev",
-    capabilities: ["inputs", "mynth_magic_prompt"],
+    capabilities: ["inputs"],
   },
   {
     id: "black-forest-labs/flux.2-pro",
@@ -110,9 +102,14 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["inputs"],
   },
   {
+    id: "black-forest-labs/flux-virtual-try-on",
+    label: "FLUX Virtual Try-On",
+    capabilities: ["inputs"],
+  },
+  {
     id: "john6666/bismuth-illustrious-mix",
     label: "Bismuth Illustrious Mix",
-    capabilities: ["mynth_magic_prompt", "negative_prompt"],
+    capabilities: ["negative_prompt"],
   },
   {
     id: "krea/krea-2-turbo",
@@ -147,12 +144,12 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
   {
     id: "google/gemini-3.1-flash-image",
     label: "Nano Banana 2",
-    capabilities: ["inputs", "4k", "native_enhance_prompt", "native_auto_size"],
+    capabilities: ["inputs", "4k", "native_enhance_prompt"],
   },
   {
     id: "google/gemini-3-pro-image-preview",
     label: "Nano Banana Pro",
-    capabilities: ["4k", "native_enhance_prompt"],
+    capabilities: ["inputs", "4k", "native_enhance_prompt"],
   },
   {
     id: "imagineart/imagineart-1.5-pro",
@@ -165,6 +162,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["inputs"],
   },
   {
+    id: "prunaai/p-image-try-on",
+    label: "P-Image Try-On",
+    capabilities: ["inputs"],
+  },
+  {
     id: "wan/wan2.6-image",
     label: "Wan 2.6 Image",
     capabilities: [],
@@ -172,6 +174,6 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
   {
     id: "xai/grok-imagine-image",
     label: "Grok Imagine Image",
-    capabilities: ["inputs", "native_auto_size"],
+    capabilities: ["inputs"],
   },
 ];

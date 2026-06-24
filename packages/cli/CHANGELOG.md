@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.0.12](https://github.com/mynthio/oss/compare/cli-v0.0.11...cli-v0.0.12) (2026-06-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* **cli:** input intent prefixes are now sent using the API's as field.
+
+### Features
+
+* **cli:** align image generation with current API ([db1f000](https://github.com/mynthio/oss/commit/db1f00068b7f0ed4705550f33968604a360f36e4))
+
 ## [0.0.11](https://github.com/mynthio/oss/compare/cli-v0.0.10...cli-v0.0.11) (2026-06-20)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.21](https://github.com/mynthio/oss/compare/sdk-v0.0.20...sdk-v0.0.21) (2026-06-25)
+
+
+### Features
+
+* **sdk:** add Grok Imagine quality model ([20dea45](https://github.com/mynthio/oss/commit/20dea45a317a93faecbb5b2c0815229320deccc4))
+
 ## [0.0.20](https://github.com/mynthio/oss/compare/sdk-v0.0.19...sdk-v0.0.20) (2026-06-24)
 
 

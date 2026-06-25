@@ -34,6 +34,7 @@ export const MYNTH_IMAGE_MODELS = [
   "prunaai/p-image-try-on",
   "wan/wan2.6-image",
   "xai/grok-imagine-image",
+  "xai/grok-imagine-image-quality",
 ] as const satisfies ReadonlyArray<MynthSDKTypes.ImageGenerationModel>;
 
 /**
@@ -66,6 +67,7 @@ export const MYNTH_IMAGE_INPUT_MODELS = [
   "openai/gpt-image-2",
   "prunaai/p-image-try-on",
   "xai/grok-imagine-image",
+  "xai/grok-imagine-image-quality",
 ] as const satisfies ReadonlyArray<MynthImageModel>;
 
 /**

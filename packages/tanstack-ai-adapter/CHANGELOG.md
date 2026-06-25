@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.16](https://github.com/mynthio/oss/compare/tan-ai-v0.0.15...tan-ai-v0.0.16) (2026-06-25)
+
+
+### Features
+
+* **tanstack-ai-adapter:** add Grok Imagine quality model ([3b28a93](https://github.com/mynthio/oss/commit/3b28a93c8b3b5bb0f19a40723b8093de8984502e))
+
 ## [0.0.15](https://github.com/mynthio/oss/compare/tan-ai-v0.0.14...tan-ai-v0.0.15) (2026-06-24)
 
 

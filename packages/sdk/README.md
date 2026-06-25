@@ -403,6 +403,7 @@ Current model IDs include:
 - `tongyi-mai/z-image-turbo`
 - `wan/wan2.6-image`
 - `xai/grok-imagine-image`
+- `xai/grok-imagine-image-quality`
 
 ## TypeScript Types
 

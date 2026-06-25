@@ -87,7 +87,8 @@ export namespace MynthSDKTypes {
     | "recraft/recraft-v4"
     | "recraft/recraft-v4-pro"
     | "wan/wan2.6-image"
-    | "xai/grok-imagine-image";
+    | "xai/grok-imagine-image"
+    | "xai/grok-imagine-image-quality";
 
   export type ImageGenerationModel = ImageGenerationModelId | "auto";
 

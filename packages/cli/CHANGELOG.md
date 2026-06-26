@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.13](https://github.com/mynthio/oss/compare/cli-v0.0.12...cli-v0.0.13) (2026-06-26)
+
+
+### Bug Fixes
+
+* **cli:** align image input roles with api ([3628d17](https://github.com/mynthio/oss/commit/3628d17b43b640f3bf98b8297d96d40103c472aa))
+
 ## [0.0.12](https://github.com/mynthio/oss/compare/cli-v0.0.11...cli-v0.0.12) (2026-06-24)
 
 

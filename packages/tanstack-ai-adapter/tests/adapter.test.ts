@@ -353,7 +353,7 @@ describe("MynthImageAdapter", () => {
             {
               type: "image",
               source: { type: "url", value: "https://example.com/person.jpg" },
-              metadata: { role: "character" },
+              metadata: { role: "reference" },
             },
             {
               type: "image",
@@ -371,7 +371,7 @@ describe("MynthImageAdapter", () => {
             {
               type: "image",
               source: { type: "url", url: "https://example.com/person.jpg" },
-              as: "character",
+              as: "reference",
             },
             {
               type: "image",
@@ -413,6 +413,39 @@ describe("MynthImageAdapter", () => {
       );
     });
 
+    it("maps TanStack character media roles to Mynth references", async () => {
+      // Arrange
+      generateMock.mockResolvedValue(createMockTask());
+      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
+
+      // Act
+      await adapter.generateImages(
+        createOptions({
+          prompt: [
+            { type: "text", content: "Use this character as guidance" },
+            {
+              type: "image",
+              source: { type: "url", value: "https://example.com/character.jpg" },
+              metadata: { role: "character" },
+            },
+          ],
+        }),
+      );
+
+      // Assert
+      expect(generateMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          inputs: [
+            {
+              type: "image",
+              source: { type: "url", url: "https://example.com/character.jpg" },
+              as: "reference",
+            },
+          ],
+        }),
+      );
+    });
+
     it("appends provider modelOptions.inputs after prompt-derived inputs", async () => {
       // Arrange
       generateMock.mockResolvedValue(createMockTask());
@@ -432,7 +465,7 @@ describe("MynthImageAdapter", () => {
             inputs: [
               {
                 type: "image",
-                as: "style",
+                as: "reference",
                 source: { type: "url", url: "https://example.com/style.jpg" },
               },
             ],
@@ -450,7 +483,7 @@ describe("MynthImageAdapter", () => {
             },
             {
               type: "image",
-              as: "style",
+              as: "reference",
               source: { type: "url", url: "https://example.com/style.jpg" },
             },
           ],

@@ -46,7 +46,7 @@ export interface MynthImageProviderOptions {
   magicPrompt?: true;
   /** Public Access Token response configuration */
   access?: MynthSDKTypes.ImageGenerationRequestAccess;
-  /** Image inputs (reference, init, context) */
+  /** Image inputs. Structured inputs can use SDK-supported `as` roles such as `source` or `reference`. */
   inputs?: (string | MynthSDKTypes.ImageGenerationRequestInput)[];
   /** Size config (presets, aspect ratio, auto) */
   size?: MynthSDKTypes.ImageGenerationRequestSize;

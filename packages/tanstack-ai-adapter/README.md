@@ -162,7 +162,7 @@ const result = await generateImage({
     {
       type: "image",
       source: { type: "url", value: "https://example.com/person.jpg" },
-      metadata: { role: "character" },
+      metadata: { role: "reference" },
     },
     {
       type: "image",
@@ -178,11 +178,11 @@ Notes:
   parts to a text-only model is a compile-time error.
 - Both URL sources (`{ type: "url", value }`) and inline data sources
   (`{ type: "data", value, mimeType }`, encoded as a data URI) are supported.
-- A content part's `metadata.role` maps to Mynth's input intent (`as`).
-  `"character"` maps directly; other generic roles fall back to Mynth's
-  automatic detection. For finer-grained intents (`person`, `garment`, `pose`,
-  `style`, `background`, `product`, `object`), pass `modelOptions.inputs` with an
-  explicit `as`.
+- A content part's `metadata.role` maps to Mynth's input role (`as`).
+  `"reference"` and `"character"` map to Mynth's `"reference"` guidance role.
+  Other generic roles fall back to Mynth's default source/edit behavior. For
+  explicit routing, pass `modelOptions.inputs` with SDK-supported `as` values
+  such as `"source"`, `"reference"`, `"person"`, `"garment"`, or `"pose"`.
 - Image parts from the prompt and entries in `modelOptions.inputs` are combined,
   prompt-derived inputs first.
 

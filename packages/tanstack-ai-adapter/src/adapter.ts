@@ -21,18 +21,16 @@ import type {
 import type { MynthImageConfig } from "./types";
 
 /**
- * Map a TanStack media-input role onto a Mynth image input intent (`as`).
+ * Map a TanStack media-input role onto a Mynth image input role (`as`).
  *
- * TanStack's generic roles only partially overlap with Mynth's richer intent
- * set. `"character"` maps directly; every other role falls back to Mynth's
- * automatic intent detection (`as` omitted). For finer-grained intents
- * (`person`, `garment`, `pose`, `style`, `background`, `product`, `object`),
- * pass `modelOptions.inputs` with an explicit `as`.
+ * TanStack's generic roles only partially overlap with Mynth's SDK input-role
+ * set. Reference-like roles map to Mynth's `"reference"` guidance role; every
+ * other role is omitted so Mynth treats the image as a source/edit input.
  */
 function mapRoleToInputAs(
   role: MediaInputRole | undefined,
 ): MynthSDKTypes.ImageGenerationRequestInputAs | undefined {
-  return role === "character" ? "character" : undefined;
+  return role === "reference" || role === "character" ? "reference" : undefined;
 }
 
 /**

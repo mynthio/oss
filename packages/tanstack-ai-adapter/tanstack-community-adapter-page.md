@@ -169,8 +169,8 @@ A few things worth knowing:
 
 - Only models in `MYNTH_IMAGE_INPUT_MODELS` accept image parts. Passing image parts to a text-only model is a compile-time error
 - Both URL sources (`{ type: "url", value }`) and inline data sources (`{ type: "data", value, mimeType }`, encoded as a data URI) are supported
-- A part's `metadata.role` maps to Mynth's input intent. TanStack's `"character"` maps directly, and the other generic roles fall back to Mynth's automatic detection
-- For Mynth's finer-grained intents (`person`, `garment`, `pose`, `style`, `background`, `product`, `object`), pass `modelOptions.inputs` with an explicit `as`
+- A part's `metadata.role` maps to Mynth's input role. TanStack's `"reference"` and `"character"` roles map to Mynth's `"reference"` guidance role, and the other generic roles fall back to Mynth's default source/edit behavior
+- For explicit routing, pass `modelOptions.inputs` with SDK-supported `as` values such as `"source"`, `"reference"`, `"person"`, `"garment"`, or `"pose"`
 - Image parts from the prompt and entries in `modelOptions.inputs` are combined, with prompt parts first
 
 ## Available Models

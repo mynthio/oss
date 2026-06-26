@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.0.22](https://github.com/mynthio/oss/compare/sdk-v0.0.21...sdk-v0.0.22) (2026-06-26)
+
+
+### ⚠ BREAKING CHANGES
+
+* **sdk:** Image input roles now use source and reference instead of style, background, product, object, and character.
+
+### Features
+
+* **sdk:** add source and reference image roles ([840aa27](https://github.com/mynthio/oss/commit/840aa274655b199b8f22579dcc3ee8ffb0f09bc0))
+
 ## [0.0.21](https://github.com/mynthio/oss/compare/sdk-v0.0.20...sdk-v0.0.21) (2026-06-25)
 
 

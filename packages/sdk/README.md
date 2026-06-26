@@ -267,6 +267,21 @@ inputs: [
 
 String URLs are a shorthand for image inputs. Structured inputs use `type` and `source`.
 
+Structured inputs can declare a role with `as` to guide the model. Valid values are
+`"auto"` (default), `"person"`, `"garment"`, `"pose"`, `"source"`, and `"reference"`.
+Most models auto-detect the kind from the image. Unified models such as Luma UNI-1 split
+inputs by the declared role: `"source"` is the image being transformed or edited, and
+`"reference"` is guidance only (style, character, composition). A request where every
+input is `"reference"` runs as text-to-image guided by those references; any `"source"`
+(or an untagged input, which defaults to the source) makes it an edit.
+
+```ts
+inputs: [
+  { type: "image", as: "source", source: { type: "url", url: "https://.../product.png" } },
+  { type: "image", as: "reference", source: { type: "url", url: "https://.../style.png" } },
+];
+```
+
 ## Rating
 
 Enable per-image content rating during generation with `rating`.
@@ -389,6 +404,7 @@ Current model IDs include:
 - `black-forest-labs/flux.2-flex`
 - `black-forest-labs/flux.2-max`
 - `black-forest-labs/flux.2-klein-4b`
+- `black-forest-labs/flux-virtual-try-on`
 - `google/gemini-3.1-flash-image`
 - `google/gemini-3-pro-image-preview`
 - `imagineart/imagineart-1.5-pro`
@@ -396,7 +412,10 @@ Current model IDs include:
 - `krea/krea-2-turbo`
 - `krea/krea-2-medium`
 - `krea/krea-2-large`
+- `luma/uni-1`
+- `luma/uni-1-max`
 - `openai/gpt-image-2`
+- `prunaai/p-image-try-on`
 - `purplesmartai/pony-diffusion-v6-xl`
 - `recraft/recraft-v4`
 - `recraft/recraft-v4-pro`

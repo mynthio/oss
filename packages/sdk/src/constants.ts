@@ -127,6 +127,16 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["inputs"],
   },
   {
+    id: "luma/uni-1",
+    label: "Luma UNI-1",
+    capabilities: ["inputs"],
+  },
+  {
+    id: "luma/uni-1-max",
+    label: "Luma UNI-1 Max",
+    capabilities: ["inputs"],
+  },
+  {
     id: "purplesmartai/pony-diffusion-v6-xl",
     label: "Pony Diffusion V6 XL",
     capabilities: ["negative_prompt"],

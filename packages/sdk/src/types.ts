@@ -79,6 +79,8 @@ export namespace MynthSDKTypes {
     | "krea/krea-2-turbo"
     | "krea/krea-2-medium"
     | "krea/krea-2-large"
+    | "luma/uni-1"
+    | "luma/uni-1-max"
     | "openai/gpt-image-2"
     | "prunaai/p-image-try-on"
     | "tongyi-mai/z-image-turbo"
@@ -212,11 +214,8 @@ export namespace MynthSDKTypes {
     | "person"
     | "garment"
     | "pose"
-    | "style"
-    | "background"
-    | "product"
-    | "object"
-    | "character";
+    | "source"
+    | "reference";
 
   /** Structured image input */
   export type ImageGenerationRequestInput = {

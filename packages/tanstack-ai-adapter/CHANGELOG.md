@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.17](https://github.com/mynthio/oss/compare/tan-ai-v0.0.16...tan-ai-v0.0.17) (2026-06-26)
+
+
+### Features
+
+* **tanstack-ai-adapter:** add Luma UNI input model support ([2547ad4](https://github.com/mynthio/oss/commit/2547ad42454d754b2b688f1327ead3b1b1482799))
+
 ## [0.0.16](https://github.com/mynthio/oss/compare/tan-ai-v0.0.15...tan-ai-v0.0.16) (2026-06-25)
 
 

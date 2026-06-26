@@ -20,17 +20,7 @@ import { withSpinner } from "../utils/spinner.ts";
 const MAX_GENERATE_INPUTS = 20;
 const DEFAULT_OUTPUT_FORMAT = "webp";
 const DEFAULT_OUTPUT_QUALITY = 80;
-const INPUT_AS = [
-  "auto",
-  "person",
-  "garment",
-  "pose",
-  "style",
-  "background",
-  "product",
-  "object",
-  "character",
-] as const;
+const INPUT_AS = ["auto", "person", "garment", "pose", "source", "reference"] as const;
 
 type InputAs = (typeof INPUT_AS)[number];
 type ParsedInput = {
@@ -492,7 +482,7 @@ export const createImageCommand = (ctx: CliContext): Command => {
     .option("-q, --quality <number>", "Output quality 1-100 (default: 80)", parseQuality)
     .option(
       "-i, --input <value>",
-      `Input image as "[as:]path-or-url" (repeatable, up to ${MAX_GENERATE_INPUTS}). as is optional and must be one of: ${INPUT_AS.join(", ")}. Examples: -i ./img.jpg, -i product:https://example.com/a.png, -i pose:./seed.png`,
+      `Input image as "[as:]path-or-url" (repeatable, up to ${MAX_GENERATE_INPUTS}). as is optional and must be one of: ${INPUT_AS.join(", ")}. Examples: -i ./img.jpg, -i source:https://example.com/a.png, -i reference:./style.png`,
       collect,
     )
     .option(

@@ -145,7 +145,7 @@ describe("mynth cli", () => {
           "test",
           "--async",
           "--input",
-          "product:https://cdn.test/product.webp",
+          "source:https://cdn.test/product.webp",
           "--input",
           "https://cdn.test/reference.webp",
         ],
@@ -159,7 +159,7 @@ describe("mynth cli", () => {
           inputs: [
             {
               type: "image",
-              as: "product",
+              as: "source",
               source: { type: "url", url: "https://cdn.test/product.webp" },
             },
             {

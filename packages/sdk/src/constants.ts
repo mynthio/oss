@@ -157,6 +157,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: [],
   },
   {
+    id: "google/gemini-3.1-flash-lite-image",
+    label: "Nano Banana 2 Lite",
+    capabilities: ["inputs", "native_enhance_prompt"],
+  },
+  {
     id: "google/gemini-3.1-flash-image",
     label: "Nano Banana 2",
     capabilities: ["inputs", "4k", "native_enhance_prompt"],
@@ -170,6 +175,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     id: "imagineart/imagineart-1.5-pro",
     label: "ImagineArt 1.5 Pro",
     capabilities: ["4k"],
+  },
+  {
+    id: "imagineart/imagineart-2.0",
+    label: "ImagineArt 2.0",
+    capabilities: ["inputs"],
   },
   {
     id: "openai/gpt-image-2",

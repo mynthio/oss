@@ -405,9 +405,11 @@ Current model IDs include:
 - `black-forest-labs/flux.2-max`
 - `black-forest-labs/flux.2-klein-4b`
 - `black-forest-labs/flux-virtual-try-on`
+- `google/gemini-3.1-flash-lite-image`
 - `google/gemini-3.1-flash-image`
 - `google/gemini-3-pro-image-preview`
 - `imagineart/imagineart-1.5-pro`
+- `imagineart/imagineart-2.0`
 - `john6666/bismuth-illustrious-mix`
 - `krea/krea-2-turbo`
 - `krea/krea-2-medium`

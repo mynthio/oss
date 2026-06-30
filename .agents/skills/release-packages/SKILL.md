@@ -25,7 +25,7 @@ This will trigger release please pipelines.
 
 Using `gh` CLI you have all the rights to finish the release process, including merge and approvals. Use it to check the pipeline status. If all pipelines are sucesfull, finish the release process by merging the PRs and waiting for release to happen. Verify that all passed and new version is published to npm.
 
-Always pull latyest changes to keep repo in sync after merges.
+Always pull latest changes to keep repo in sync after merges.
 
 # SDK dependent packages
 
@@ -40,3 +40,5 @@ Skills, or README changes does not need a release process. For this changes, jus
 # Notes
 
 If there's something unexpected, uncommon, issue, bug or a problem. Stop and report to the user, rather than trying to fix. Your scope is release process, not a development work.
+
+When every pipeline check passes, and user did not instruct otherwise in prompt, finish entire release process without asking.

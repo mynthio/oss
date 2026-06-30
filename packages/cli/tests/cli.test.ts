@@ -269,6 +269,21 @@ describe("mynth cli", () => {
     expect(listHelp.stdout).toContain("(--json)");
   });
 
+  it("documents the documentation commands", () => {
+    // Arrange & Act
+    const rootHelp = runCli("--help");
+    const getHelp = runCli("docs", "get", "--help");
+    const listHelp = runCli("docs", "list", "--help");
+
+    // Assert
+    expect({
+      root: rootHelp.stdout.includes("docs"),
+      get: getHelp.stdout.includes("Fetch a documentation page as Markdown"),
+      list: listHelp.stdout.includes("Fetch the complete documentation index"),
+      json: [getHelp.stdout.includes("(--json)"), listHelp.stdout.includes("(--json)")],
+    }).toEqual({ root: true, get: true, list: true, json: [true, true] });
+  });
+
   it("lists models from the public API without authorization", async () => {
     const requests: Array<{
       readonly url: string | undefined;

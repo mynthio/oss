@@ -3,6 +3,7 @@ import { createCliContext } from "./context.ts";
 import {
   createAuthCommand,
   createConfigCommand,
+  createDocsCommand,
   createImageCommand,
   createModelsCommand,
   createTaskCommand,
@@ -32,6 +33,7 @@ export const createProgram = (): Command => {
 
   program.addCommand(createAuthCommand(ctx));
   program.addCommand(createConfigCommand(ctx));
+  program.addCommand(createDocsCommand(ctx));
   program.addCommand(createImageCommand(ctx));
   program.addCommand(createModelsCommand(ctx));
   program.addCommand(createTaskCommand(ctx));

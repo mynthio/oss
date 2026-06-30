@@ -25,6 +25,25 @@ mynth image generate --prompt "A cinematic product photo of a glass keyboard"
 mynth image generate -p "A watercolor city skyline" --size 16:9 --count 2
 ```
 
+### Documentation
+
+Fetch one page as Markdown or retrieve the complete documentation index:
+
+```bash
+mynth docs get guides/async-and-polling
+mynth docs list
+```
+
+Add `--json` to any documentation command for machine-readable output:
+
+```bash
+mynth docs get reference/webhooks --json
+mynth docs list --json
+```
+
+`docs get` accepts a documentation path with an optional leading slash. Do not include the `.md`
+suffix. Documentation commands do not require Mynth authentication.
+
 Run `mynth --help` for the full command list.
 
 ## Development

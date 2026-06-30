@@ -1,0 +1,1 @@
+- Never edit Tanstack Adapter package automatically, without explicit user instructions to edit it

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.14](https://github.com/mynthio/oss/compare/cli-v0.0.13...cli-v0.0.14) (2026-06-30)
+
+
+### Features
+
+* **cli:** add documentation commands ([e43bda8](https://github.com/mynthio/oss/commit/e43bda801fc4b9b102783ea5bd3d7944a7de745f))
+
 ## [0.0.13](https://github.com/mynthio/oss/compare/cli-v0.0.12...cli-v0.0.13) (2026-06-26)
 
 

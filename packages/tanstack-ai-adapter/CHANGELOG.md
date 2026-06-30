@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.18](https://github.com/mynthio/oss/compare/tan-ai-v0.0.17...tan-ai-v0.0.18) (2026-06-30)
+
+
+### Bug Fixes
+
+* **tanstack-ai-adapter:** sync SDK dependency to 0.0.23 ([b6668cc](https://github.com/mynthio/oss/commit/b6668cc74e4ec7e1fbd7f315a600b25a8110cb95))
+
 ## [0.0.17](https://github.com/mynthio/oss/compare/tan-ai-v0.0.16...tan-ai-v0.0.17) (2026-06-26)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.24](https://github.com/mynthio/oss/compare/sdk-v0.0.23...sdk-v0.0.24) (2026-06-30)
+
+
+### Features
+
+* **sdk:** add Gemini Flash Lite and ImagineArt 2.0 models ([d88de4b](https://github.com/mynthio/oss/commit/d88de4baa6fc593bf62e7bf39599ce93924b2854))
+
 ## [0.0.23](https://github.com/mynthio/oss/compare/sdk-v0.0.22...sdk-v0.0.23) (2026-06-30)
 
 

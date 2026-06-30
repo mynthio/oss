@@ -13,6 +13,7 @@ export const MYNTH_IMAGE_MODELS = [
   "bytedance/seedream-5.0-lite",
   "black-forest-labs/flux.1-dev",
   "black-forest-labs/flux-1-schnell",
+  "tongyi-mai/z-image",
   "tongyi-mai/z-image-turbo",
   "black-forest-labs/flux.2-dev",
   "black-forest-labs/flux.2-pro",
@@ -35,6 +36,8 @@ export const MYNTH_IMAGE_MODELS = [
   "openai/gpt-image-2",
   "prunaai/p-image-try-on",
   "wan/wan2.6-image",
+  "wan/wan2.7-image",
+  "wan/wan2.7-image-pro",
   "xai/grok-imagine-image",
   "xai/grok-imagine-image-quality",
 ] as const satisfies ReadonlyArray<MynthSDKTypes.ImageGenerationModel>;
@@ -55,6 +58,7 @@ export const MYNTH_IMAGE_INPUT_MODELS = [
   "alibaba/qwen-image-2.0",
   "alibaba/qwen-image-2.0-pro",
   "bytedance/seedream-5.0-lite",
+  "tongyi-mai/z-image",
   "black-forest-labs/flux.2-dev",
   "black-forest-labs/flux.2-pro",
   "black-forest-labs/flux.2-flex",
@@ -70,6 +74,8 @@ export const MYNTH_IMAGE_INPUT_MODELS = [
   "google/gemini-3-pro-image-preview",
   "openai/gpt-image-2",
   "prunaai/p-image-try-on",
+  "wan/wan2.7-image",
+  "wan/wan2.7-image-pro",
   "xai/grok-imagine-image",
   "xai/grok-imagine-image-quality",
 ] as const satisfies ReadonlyArray<MynthImageModel>;

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.23](https://github.com/mynthio/oss/compare/sdk-v0.0.22...sdk-v0.0.23) (2026-06-30)
+
+
+### Features
+
+* **sdk:** add Z Image and Wan 2.7 models ([e4e40fe](https://github.com/mynthio/oss/commit/e4e40fe569232b439730c8871fe56081ca020945))
+
 ## [0.0.22](https://github.com/mynthio/oss/compare/sdk-v0.0.21...sdk-v0.0.22) (2026-06-26)
 
 

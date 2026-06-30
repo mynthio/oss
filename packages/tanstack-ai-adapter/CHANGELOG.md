@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.19](https://github.com/mynthio/oss/compare/tan-ai-v0.0.18...tan-ai-v0.0.19) (2026-06-30)
+
+
+### Features
+
+* **tanstack-ai-adapter:** add Z Image and Wan 2.7 models ([23d6503](https://github.com/mynthio/oss/commit/23d6503d55c132cc33d6a58e1dc873939b821a8a))
+
 ## [0.0.18](https://github.com/mynthio/oss/compare/tan-ai-v0.0.17...tan-ai-v0.0.18) (2026-06-30)
 
 

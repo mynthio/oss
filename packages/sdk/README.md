@@ -419,8 +419,11 @@ Current model IDs include:
 - `purplesmartai/pony-diffusion-v6-xl`
 - `recraft/recraft-v4`
 - `recraft/recraft-v4-pro`
+- `tongyi-mai/z-image`
 - `tongyi-mai/z-image-turbo`
 - `wan/wan2.6-image`
+- `wan/wan2.7-image`
+- `wan/wan2.7-image-pro`
 - `xai/grok-imagine-image`
 - `xai/grok-imagine-image-quality`
 

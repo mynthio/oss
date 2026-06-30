@@ -83,12 +83,15 @@ export namespace MynthSDKTypes {
     | "luma/uni-1-max"
     | "openai/gpt-image-2"
     | "prunaai/p-image-try-on"
+    | "tongyi-mai/z-image"
     | "tongyi-mai/z-image-turbo"
     | "john6666/bismuth-illustrious-mix"
     | "purplesmartai/pony-diffusion-v6-xl"
     | "recraft/recraft-v4"
     | "recraft/recraft-v4-pro"
     | "wan/wan2.6-image"
+    | "wan/wan2.7-image"
+    | "wan/wan2.7-image-pro"
     | "xai/grok-imagine-image"
     | "xai/grok-imagine-image-quality";
 

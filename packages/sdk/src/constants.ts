@@ -72,6 +72,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: [],
   },
   {
+    id: "tongyi-mai/z-image",
+    label: "Z Image",
+    capabilities: ["inputs"],
+  },
+  {
     id: "tongyi-mai/z-image-turbo",
     label: "Z Image Turbo",
     capabilities: [],
@@ -180,6 +185,16 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     id: "wan/wan2.6-image",
     label: "Wan 2.6 Image",
     capabilities: [],
+  },
+  {
+    id: "wan/wan2.7-image",
+    label: "Wan 2.7 Image",
+    capabilities: ["inputs"],
+  },
+  {
+    id: "wan/wan2.7-image-pro",
+    label: "Wan 2.7 Image Pro",
+    capabilities: ["inputs", "4k"],
   },
   {
     id: "xai/grok-imagine-image",

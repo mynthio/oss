@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.25](https://github.com/mynthio/oss/compare/sdk-v0.0.24...sdk-v0.0.25) (2026-07-01)
+
+
+### Features
+
+* **sdk:** add Kling IMAGE 3.0 and Kling IMAGE O3 models ([6df44dc](https://github.com/mynthio/oss/commit/6df44dc93852969fd08eed8d6226a732189eb4c4))
+
 ## [0.0.24](https://github.com/mynthio/oss/compare/sdk-v0.0.23...sdk-v0.0.24) (2026-06-30)
 
 

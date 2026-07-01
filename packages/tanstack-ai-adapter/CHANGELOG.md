@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.0.20](https://github.com/mynthio/oss/compare/tan-ai-v0.0.19...tan-ai-v0.0.20) (2026-07-01)
+
+
+### Features
+
+* **tanstack-ai-adapter:** add Kling IMAGE 3.0, Kling IMAGE O3, Gemini Flash Lite, and ImagineArt 2.0 models ([828f460](https://github.com/mynthio/oss/commit/828f4609546338802d6e11a4beed7411aaa92c19))
+
+
+### Bug Fixes
+
+* **tanstack-ai-adapter:** sync SDK dependency to 0.0.25 ([c15f7be](https://github.com/mynthio/oss/commit/c15f7be8eb744ccabb9de029e8ef7dc5a59e3d74))
+
 ## [0.0.19](https://github.com/mynthio/oss/compare/tan-ai-v0.0.18...tan-ai-v0.0.19) (2026-06-30)
 
 

@@ -117,6 +117,16 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["negative_prompt"],
   },
   {
+    id: "klingai/kling-image-3.0",
+    label: "Kling IMAGE 3.0",
+    capabilities: ["inputs"],
+  },
+  {
+    id: "klingai/kling-image-o3",
+    label: "Kling IMAGE O3",
+    capabilities: ["inputs", "4k"],
+  },
+  {
     id: "krea/krea-2-turbo",
     label: "Krea 2 Turbo",
     capabilities: ["inputs"],

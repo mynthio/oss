@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.16](https://github.com/mynthio/oss/compare/cli-v0.0.15...cli-v0.0.16) (2026-07-05)
+
+
+### Features
+
+* **cli:** add distinct error exit codes ([b7607c5](https://github.com/mynthio/oss/commit/b7607c51d3d77f32b2d439db219f893c95757d29))
+
 ## [0.0.15](https://github.com/mynthio/oss/compare/cli-v0.0.14...cli-v0.0.15) (2026-07-05)
 
 

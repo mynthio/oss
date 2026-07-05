@@ -93,6 +93,7 @@ export namespace MynthSDKTypes {
     | "purplesmartai/pony-diffusion-v6-xl"
     | "recraft/recraft-v4"
     | "recraft/recraft-v4-pro"
+    | "sourceful/riverflow-2.0-pro"
     | "wan/wan2.6-image"
     | "wan/wan2.7-image"
     | "wan/wan2.7-image-pro"

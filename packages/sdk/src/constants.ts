@@ -167,6 +167,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: [],
   },
   {
+    id: "sourceful/riverflow-2.0-pro",
+    label: "Riverflow 2.0 Pro",
+    capabilities: ["inputs", "4k", "native_enhance_prompt"],
+  },
+  {
     id: "google/gemini-3.1-flash-lite-image",
     label: "Nano Banana 2 Lite",
     capabilities: ["inputs", "native_enhance_prompt"],

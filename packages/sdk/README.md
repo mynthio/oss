@@ -286,6 +286,8 @@ inputs: [
 
 Enable per-image content rating during generation with `rating`.
 
+Rating labels describe detected content. They do not override the [Mynth Terms of Service](https://mynth.io/legal/terms) or permit otherwise prohibited generation.
+
 ```ts
 const task = await mynth.image.generate({
   prompt: "A fashion editorial image",
@@ -421,6 +423,7 @@ Current model IDs include:
 - `purplesmartai/pony-diffusion-v6-xl`
 - `recraft/recraft-v4`
 - `recraft/recraft-v4-pro`
+- `sourceful/riverflow-2.0-pro`
 - `tongyi-mai/z-image`
 - `tongyi-mai/z-image-turbo`
 - `wan/wan2.6-image`

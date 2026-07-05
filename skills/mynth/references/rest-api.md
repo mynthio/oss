@@ -87,6 +87,10 @@ These polling endpoints are CORS-enabled for browser calls with PATs.
 
 Returns `{ "data": ... }` with the full task object including cost, request, timestamps.
 
+`GET /tasks?limit=20&after=tsk_...` — API key or OAuth (owner)
+
+Lists recent tasks, newest first. With an API key, only tasks created by that key; with OAuth, all of the user's tasks. `limit` is optional (1-100, default 20). `after` is an optional cursor: returns tasks created before that task ID (pass the last ID of the previous page). Returns `{ "data": [...] }` with summary items: `id`, `type`, `status`, `cost`, `createdAt`, `updatedAt`.
+
 ## Upload
 
 `POST /image/upload` — multipart form with `images` file fields, for input images.

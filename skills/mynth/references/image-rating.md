@@ -2,6 +2,8 @@
 
 AI classification of image content. Two entry points: rate images during generation (`rating` field) or rate existing images by URL (`/image/rate`).
 
+Rating labels describe detected content. They do not override the [Mynth Terms of Service](https://mynth.io/legal/terms) or permit otherwise prohibited generation.
+
 ## Rating Modes
 
 - Default: `{ "mode": "nsfw_sfw" }` — outputs `"sfw"` or `"nsfw"`

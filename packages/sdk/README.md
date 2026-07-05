@@ -410,6 +410,7 @@ Current model IDs include:
 - `google/gemini-3.1-flash-lite-image`
 - `google/gemini-3.1-flash-image`
 - `google/gemini-3-pro-image-preview`
+- `ideogram/remove-background`
 - `imagineart/imagineart-1.5-pro`
 - `imagineart/imagineart-2.0`
 - `john6666/bismuth-illustrious-mix`

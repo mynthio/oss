@@ -112,6 +112,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["inputs"],
   },
   {
+    id: "ideogram/remove-background",
+    label: "Ideogram Remove Background",
+    capabilities: ["inputs"],
+  },
+  {
     id: "john6666/bismuth-illustrious-mix",
     label: "Bismuth Illustrious Mix",
     capabilities: ["negative_prompt"],

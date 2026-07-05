@@ -76,6 +76,7 @@ export namespace MynthSDKTypes {
     | "google/gemini-3.1-flash-lite-image"
     | "google/gemini-3.1-flash-image"
     | "google/gemini-3-pro-image-preview"
+    | "ideogram/remove-background"
     | "imagineart/imagineart-1.5-pro"
     | "imagineart/imagineart-2.0"
     | "klingai/kling-image-3.0"

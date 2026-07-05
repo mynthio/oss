@@ -255,7 +255,7 @@ const addLevelOptions = (command: Command) =>
       'Inline JSON array of { "value": string, "description": string } (2-7 items). Alternative to --level / --levels-file.',
     );
 
-const renderTaskHuman = (
+export const renderTaskHuman = (
   task: { readonly id: string; readonly cost: string | null; readonly result: unknown },
   uploadedCount: number,
 ): void => {
@@ -312,7 +312,7 @@ const formatImageError = (error: unknown): string => {
   return "unknown error";
 };
 
-const summarizeTask = (task: {
+export const summarizeTask = (task: {
   readonly id: string;
   readonly status: string;
   readonly cost: string | null;

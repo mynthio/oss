@@ -129,6 +129,20 @@ export const TaskResponseSchema = z.object({
   data: TaskDataSchema,
 });
 
+export const TaskListItemSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  status: z.string(),
+  cost: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type TaskListItem = z.infer<typeof TaskListItemSchema>;
+
+export const TaskListResponseSchema = z.object({
+  data: z.array(TaskListItemSchema),
+});
+
 export const ModelPricingSchema = z.object({
   perImage: z.object({
     base: z.string(),

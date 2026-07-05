@@ -332,4 +332,172 @@ describe("mynth cli", () => {
       });
     }
   });
+
+  it("waits for a task and prints the sync-generate summary", async () => {
+    const task = {
+      id: "tsk_wait",
+      type: "image.generate",
+      status: "completed",
+      userId: "user_1",
+      apiKeyId: null,
+      cost: "0.01250000",
+      request: { prompt: "test" },
+      result: {
+        model: "black-forest-labs/flux.2-pro",
+        images: [
+          {
+            status: "success",
+            url: "https://cdn.test/image.webp",
+            mynth_url: "https://cdn.test/mynth.webp",
+            size: "1024x1024",
+          },
+        ],
+      },
+      createdAt: "2026-07-04T10:00:00.000Z",
+      updatedAt: "2026-07-04T10:00:05.000Z",
+    };
+    const urls: Array<string | undefined> = [];
+    const server = createServer((request, response) => {
+      urls.push(request.url);
+      response.setHeader("Content-Type", "application/json");
+      const payload =
+        request.url === "/tasks/tsk_wait/status"
+          ? { data: { status: "completed" } }
+          : { data: task };
+      response.end(JSON.stringify(payload));
+    });
+
+    await new Promise<void>((resolvePromise) => server.listen(0, "127.0.0.1", resolvePromise));
+    const address = server.address() as AddressInfo;
+
+    try {
+      const result = await runCliAsync(["task", "wait", "tsk_wait", "--json"], {
+        MYNTH_API_URL: `http://127.0.0.1:${address.port}`,
+        MYNTH_API_KEY: "mak_test",
+      });
+
+      expect(result).toMatchObject({ status: 0, stderr: "" });
+      expect(JSON.parse(result.stdout)).toEqual({
+        taskId: "tsk_wait",
+        status: "completed",
+        images: [
+          {
+            status: "success",
+            url: "https://cdn.test/image.webp",
+            mynth_url: "https://cdn.test/mynth.webp",
+            size: "1024x1024",
+            rating: undefined,
+          },
+        ],
+        cost: "0.01250000",
+        model: "black-forest-labs/flux.2-pro",
+      });
+      expect(urls).toEqual(["/tasks/tsk_wait/status", "/tasks/tsk_wait"]);
+    } finally {
+      await new Promise<void>((resolvePromise, reject) => {
+        server.close((error) => (error ? reject(error) : resolvePromise()));
+      });
+    }
+  });
+
+  it("exits non-zero when a waited task failed", async () => {
+    const server = createServer((request, response) => {
+      response.setHeader("Content-Type", "application/json");
+      if (request.url === "/tasks/tsk_failed/status") {
+        response.end(JSON.stringify({ data: { status: "failed" } }));
+        return;
+      }
+      response.end(
+        JSON.stringify({
+          data: {
+            id: "tsk_failed",
+            type: "image.generate",
+            status: "failed",
+            userId: "user_1",
+            apiKeyId: null,
+            cost: null,
+            request: { prompt: "test" },
+            result: null,
+            errors: [{ code: "GENERATION_FAILED" }],
+            createdAt: "2026-07-04T10:00:00.000Z",
+            updatedAt: "2026-07-04T10:00:05.000Z",
+          },
+        }),
+      );
+    });
+
+    await new Promise<void>((resolvePromise) => server.listen(0, "127.0.0.1", resolvePromise));
+    const address = server.address() as AddressInfo;
+
+    try {
+      const result = await runCliAsync(["task", "wait", "tsk_failed"], {
+        MYNTH_API_URL: `http://127.0.0.1:${address.port}`,
+        MYNTH_API_KEY: "mak_test",
+      });
+
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("✗ Task tsk_failed");
+    } finally {
+      await new Promise<void>((resolvePromise, reject) => {
+        server.close((error) => (error ? reject(error) : resolvePromise()));
+      });
+    }
+  });
+
+  it("rejects a non-positive task wait timeout", () => {
+    const result = runCli("task", "wait", "tsk_x", "--timeout", "0");
+
+    expect(result.status).toBe(1);
+    expect(`${result.stdout}${result.stderr}`).toContain(
+      'invalid --timeout: "0" (expected a positive integer)',
+    );
+  });
+
+  it("lists tasks with a limit", async () => {
+    const tasks = [
+      {
+        id: "tsk_2",
+        type: "image.generate",
+        status: "completed",
+        cost: "0.01250000",
+        createdAt: "2026-07-04T10:05:00.000Z",
+        updatedAt: "2026-07-04T10:05:10.000Z",
+      },
+      {
+        id: "tsk_1",
+        type: "image.rate",
+        status: "failed",
+        cost: null,
+        createdAt: "2026-07-04T10:00:00.000Z",
+        updatedAt: "2026-07-04T10:00:05.000Z",
+      },
+    ];
+    const urls: Array<string | undefined> = [];
+    const server = createServer((request, response) => {
+      urls.push(request.url);
+      response.setHeader("Content-Type", "application/json");
+      response.end(JSON.stringify({ data: tasks }));
+    });
+
+    await new Promise<void>((resolvePromise) => server.listen(0, "127.0.0.1", resolvePromise));
+    const address = server.address() as AddressInfo;
+
+    try {
+      const result = await runCliAsync(
+        ["task", "list", "--limit", "2", "--after", "tsk_9", "--json"],
+        {
+          MYNTH_API_URL: `http://127.0.0.1:${address.port}`,
+          MYNTH_API_KEY: "mak_test",
+        },
+      );
+
+      expect(result).toMatchObject({ status: 0, stderr: "" });
+      expect(JSON.parse(result.stdout)).toEqual({ tasks });
+      expect(urls).toEqual(["/tasks?limit=2&after=tsk_9"]);
+    } finally {
+      await new Promise<void>((resolvePromise, reject) => {
+        server.close((error) => (error ? reject(error) : resolvePromise()));
+      });
+    }
+  });
 });

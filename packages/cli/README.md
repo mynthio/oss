@@ -25,6 +25,21 @@ mynth image generate --prompt "A cinematic product photo of a glass keyboard"
 mynth image generate -p "A watercolor city skyline" --size 16:9 --count 2
 ```
 
+### Tasks
+
+Async workflows: fire a generation with `--async`, do other work, then wait for the result.
+
+```bash
+task_id=$(mynth image generate -p "A neon koi pond" --async --json | jq -r .taskId)
+mynth task wait "$task_id" --json          # blocks until completed/failed, prints like sync generate
+mynth task wait "$task_id" --timeout 600   # wait up to 10 minutes (default: 300s)
+mynth task get "$task_id"                  # fetch once, no waiting
+mynth task list --limit 10                 # recent tasks, newest first
+mynth task list --after tsk_...            # next page: tasks created before that ID
+```
+
+`task wait` exits non-zero if the task fails or the timeout is reached.
+
 ### Documentation
 
 Fetch one page as Markdown or retrieve the complete documentation index:

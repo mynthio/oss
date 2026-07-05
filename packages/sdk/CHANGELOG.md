@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.26](https://github.com/mynthio/oss/compare/sdk-v0.0.25...sdk-v0.0.26) (2026-07-05)
+
+
+### Features
+
+* **sdk:** add Riverflow 2.0 Pro model ([de1c51a](https://github.com/mynthio/oss/commit/de1c51af06a742ad7c8d7016b3be1cea887f7565))
+
 ## [0.0.25](https://github.com/mynthio/oss/compare/sdk-v0.0.24...sdk-v0.0.25) (2026-07-01)
 
 

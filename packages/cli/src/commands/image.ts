@@ -4,7 +4,7 @@ import { Command, Option } from "commander";
 import chalk from "chalk";
 import { z } from "zod";
 import type { CliContext } from "../context.ts";
-import { CliUsageError, MynthApiError } from "../domain/Errors.ts";
+import { CliUsageError } from "../domain/Errors.ts";
 import {
   ImageService,
   MAX_RATE_IMAGES,
@@ -87,10 +87,7 @@ const parseQuality = (value: string): number => {
 const parseLevelPair = (raw: string): RateLevel => {
   const idx = raw.indexOf("=");
   if (idx <= 0) {
-    throw new MynthApiError({
-      message: `invalid --level "${raw}": expected "value=description"`,
-      status: 0,
-    });
+    throw new CliUsageError(`invalid --level "${raw}": expected "value=description"`);
   }
 
   const level = {
@@ -99,10 +96,7 @@ const parseLevelPair = (raw: string): RateLevel => {
   };
 
   if (level.value.length === 0 || level.description.length === 0) {
-    throw new MynthApiError({
-      message: `invalid --level "${raw}": value and description must be non-empty`,
-      status: 0,
-    });
+    throw new CliUsageError(`invalid --level "${raw}": value and description must be non-empty`);
   }
 
   return level;
@@ -113,20 +107,14 @@ const parseLevelsJson = (source: string, origin: string): ReadonlyArray<RateLeve
   try {
     parsed = JSON.parse(source);
   } catch (cause) {
-    throw new MynthApiError({
-      message: `invalid JSON in ${origin}: ${(cause as Error).message}`,
-      status: 0,
-      cause,
-    });
+    throw new CliUsageError(`invalid JSON in ${origin}: ${(cause as Error).message}`);
   }
 
   const result = LevelArraySchema.safeParse(parsed);
   if (!result.success) {
-    throw new MynthApiError({
-      message: `invalid levels in ${origin}: expected array of { value, description }`,
-      status: 0,
-      cause: result.error,
-    });
+    throw new CliUsageError(
+      `invalid levels in ${origin}: expected array of { value, description }`,
+    );
   }
   return result.data;
 };
@@ -144,10 +132,7 @@ const resolveLevels = async (input: {
 
   if (sources.length === 0) return undefined;
   if (sources.length > 1) {
-    throw new MynthApiError({
-      message: `conflicting level options: ${sources.join(", ")} - use only one`,
-      status: 0,
-    });
+    throw new CliUsageError(`conflicting level options: ${sources.join(", ")} - use only one`);
   }
 
   let levels: ReadonlyArray<RateLevel>;
@@ -158,11 +143,7 @@ const resolveLevels = async (input: {
     try {
       contents = await readFile(input.levelsFile, "utf8");
     } catch (cause) {
-      throw new MynthApiError({
-        message: `could not read ${input.levelsFile}: ${(cause as Error).message}`,
-        status: 0,
-        cause,
-      });
+      throw new CliUsageError(`could not read ${input.levelsFile}: ${(cause as Error).message}`);
     }
     levels = parseLevelsJson(contents, input.levelsFile);
   } else {
@@ -170,16 +151,15 @@ const resolveLevels = async (input: {
   }
 
   if (levels.length < MIN_RATE_LEVELS || levels.length > MAX_RATE_LEVELS) {
-    throw new MynthApiError({
-      message: `levels must have between ${MIN_RATE_LEVELS} and ${MAX_RATE_LEVELS} items (got ${levels.length})`,
-      status: 0,
-    });
+    throw new CliUsageError(
+      `levels must have between ${MIN_RATE_LEVELS} and ${MAX_RATE_LEVELS} items (got ${levels.length})`,
+    );
   }
 
   const values = new Set<string>();
   for (const level of levels) {
     if (values.has(level.value)) {
-      throw new MynthApiError({ message: `duplicate level value: "${level.value}"`, status: 0 });
+      throw new CliUsageError(`duplicate level value: "${level.value}"`);
     }
     values.add(level.value);
   }
@@ -196,10 +176,9 @@ const parseInputSpec = (raw: string): ParsedInput => {
   if (colonIdx > 0 && !looksLikeUrl) {
     const maybeAs = raw.slice(0, colonIdx);
     if (!(INPUT_AS as ReadonlyArray<string>).includes(maybeAs)) {
-      throw new MynthApiError({
-        message: `invalid --input as "${maybeAs}". Expected one of: ${INPUT_AS.join(", ")}`,
-        status: 0,
-      });
+      throw new CliUsageError(
+        `invalid --input as "${maybeAs}". Expected one of: ${INPUT_AS.join(", ")}`,
+      );
     }
 
     as = maybeAs as InputAs;
@@ -207,10 +186,7 @@ const parseInputSpec = (raw: string): ParsedInput => {
   }
 
   if (rest.length === 0) {
-    throw new MynthApiError({
-      message: `invalid --input "${raw}": missing path or URL`,
-      status: 0,
-    });
+    throw new CliUsageError(`invalid --input "${raw}": missing path or URL`);
   }
 
   return {
@@ -225,15 +201,11 @@ const parseMetadata = (raw: string): Record<string, unknown> => {
   try {
     parsed = JSON.parse(raw);
   } catch (cause) {
-    throw new MynthApiError({
-      message: `invalid --metadata JSON: ${(cause as Error).message}`,
-      status: 0,
-      cause,
-    });
+    throw new CliUsageError(`invalid --metadata JSON: ${(cause as Error).message}`);
   }
 
   if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new MynthApiError({ message: "--metadata must be a JSON object", status: 0 });
+    throw new CliUsageError("--metadata must be a JSON object");
   }
 
   return parsed as Record<string, unknown>;
@@ -256,7 +228,11 @@ const addLevelOptions = (command: Command) =>
     );
 
 export const renderTaskHuman = (
-  task: { readonly id: string; readonly cost: string | null; readonly result: unknown },
+  task: {
+    readonly id: string;
+    readonly cost: string | null;
+    readonly result: unknown;
+  },
   uploadedCount: number,
 ): void => {
   const result = (task.result ?? {}) as TaskResult;
@@ -330,7 +306,11 @@ export const summarizeTask = (task: {
         rating: obj["rating"],
       };
     }
-    return { status: "failed", error: obj["error"], mynth_url: obj["mynth_url"] ?? null };
+    return {
+      status: "failed",
+      error: obj["error"],
+      mynth_url: obj["mynth_url"] ?? null,
+    };
   });
 
   return {
@@ -375,10 +355,7 @@ export const createImageCommand = (ctx: CliContext): Command => {
     .addOption(createJsonOption())
     .action(async (files: ReadonlyArray<string>, options: JsonOption) => {
       if (files.length > MAX_UPLOAD_FILES) {
-        throw new MynthApiError({
-          message: `too many files: ${files.length} (max ${MAX_UPLOAD_FILES})`,
-          status: 0,
-        });
+        throw new CliUsageError(`too many files: ${files.length} (max ${MAX_UPLOAD_FILES})`);
       }
 
       const uploaded = await ctx.images.upload(files);
@@ -405,10 +382,7 @@ export const createImageCommand = (ctx: CliContext): Command => {
   addLevelOptions(rate);
   rate.action(async (inputs: ReadonlyArray<string>, options: RateOptions) => {
     if (inputs.length > MAX_RATE_IMAGES) {
-      throw new MynthApiError({
-        message: `too many images: ${inputs.length} (max ${MAX_RATE_IMAGES})`,
-        status: 0,
-      });
+      throw new CliUsageError(`too many images: ${inputs.length} (max ${MAX_RATE_IMAGES})`);
     }
 
     const levels = await resolveLevels({
@@ -425,7 +399,10 @@ export const createImageCommand = (ctx: CliContext): Command => {
       isUrl(input) ? input : (uploadedByPath.get(input) ?? input),
     );
 
-    const result = await ctx.images.rate({ urls, ...(levels ? { levels } : {}) });
+    const result = await ctx.images.rate({
+      urls,
+      ...(levels ? { levels } : {}),
+    });
     if (options.json) {
       print(JSON.stringify(result, null, 2));
       return;
@@ -512,19 +489,16 @@ export const createImageCommand = (ctx: CliContext): Command => {
     const prompt = options.prompt ?? "";
 
     if (options.enhance === "prefer_native") {
-      throw new MynthApiError({
-        message:
-          '--enhance prefer_native is no longer supported by the API; use "prefer_magic" or "none"',
-        status: 0,
-      });
+      throw new CliUsageError(
+        '--enhance prefer_native is no longer supported by the API; use "prefer_magic" or "none"',
+      );
     }
 
     const inputs = options.input ?? [];
     if (inputs.length > MAX_GENERATE_INPUTS) {
-      throw new MynthApiError({
-        message: `too many --input values: ${inputs.length} (max ${MAX_GENERATE_INPUTS})`,
-        status: 0,
-      });
+      throw new CliUsageError(
+        `too many --input values: ${inputs.length} (max ${MAX_GENERATE_INPUTS})`,
+      );
     }
 
     const parsedInputs = inputs.map(parseInputSpec);

@@ -6,7 +6,7 @@ import {
   type TaskData,
   type TaskListItem,
 } from "../domain/Schemas.ts";
-import { MynthApi, readJson, readText } from "./MynthApi.ts";
+import { MynthApi, readJson, requireSuccess } from "./MynthApi.ts";
 
 export const DEFAULT_WAIT_TIMEOUT_MS = 5 * 60 * 1000;
 const WAIT_FAST_PHASE_MS = 12_000;
@@ -21,13 +21,7 @@ export class TaskService {
   async getTask(taskId: string): Promise<TaskData> {
     const response = await this.api.execute(`/tasks/${taskId}`);
 
-    if (response.status < 200 || response.status >= 300) {
-      const bodyText = await readText(response);
-      throw new MynthApiError({
-        message: `task fetch failed (${response.status}): ${bodyText || "no body"}`,
-        status: response.status,
-      });
-    }
+    await requireSuccess(response, "task fetch");
 
     const parsed = TaskResponseSchema.safeParse(await readJson(response));
     if (!parsed.success) {
@@ -49,13 +43,7 @@ export class TaskService {
     const query = params.size > 0 ? `?${params}` : "";
     const response = await this.api.execute(`/tasks${query}`);
 
-    if (response.status < 200 || response.status >= 300) {
-      const bodyText = await readText(response);
-      throw new MynthApiError({
-        message: `task list failed (${response.status}): ${bodyText || "no body"}`,
-        status: response.status,
-      });
-    }
+    await requireSuccess(response, "task list");
 
     const parsed = TaskListResponseSchema.safeParse(await readJson(response));
     if (!parsed.success) {
@@ -71,13 +59,7 @@ export class TaskService {
   async getTaskStatus(taskId: string): Promise<"pending" | "completed" | "failed"> {
     const response = await this.api.execute(`/tasks/${taskId}/status`);
 
-    if (response.status < 200 || response.status >= 300) {
-      const bodyText = await readText(response);
-      throw new MynthApiError({
-        message: `task status failed (${response.status}): ${bodyText || "no body"}`,
-        status: response.status,
-      });
-    }
+    await requireSuccess(response, "task status");
 
     const parsed = TaskStatusSchema.safeParse(await readJson(response));
     if (!parsed.success) {

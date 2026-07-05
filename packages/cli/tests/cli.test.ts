@@ -180,7 +180,7 @@ describe("mynth cli", () => {
   it("rejects image output quality outside the API range", () => {
     const result = runCli("image", "generate", "-p", "test", "--quality", "0");
 
-    expect(result.status).toBe(1);
+    expect(result.status).toBe(2);
     expect(`${result.stdout}${result.stderr}`).toContain('invalid quality: "0" (expected 1-100)');
   });
 
@@ -447,10 +447,122 @@ describe("mynth cli", () => {
   it("rejects a non-positive task wait timeout", () => {
     const result = runCli("task", "wait", "tsk_x", "--timeout", "0");
 
-    expect(result.status).toBe(1);
+    expect(result.status).toBe(2);
     expect(`${result.stdout}${result.stderr}`).toContain(
       'invalid --timeout: "0" (expected a positive integer)',
     );
+  });
+
+  describe("exit codes", () => {
+    const withApiError = async (
+      response: { readonly status: number; readonly body: unknown },
+      args: ReadonlyArray<string>,
+    ) => {
+      const server = createServer((_request, res) => {
+        res.statusCode = response.status;
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify(response.body));
+      });
+      await new Promise<void>((resolvePromise) => server.listen(0, "127.0.0.1", resolvePromise));
+      const address = server.address() as AddressInfo;
+      try {
+        return await runCliAsync(args, {
+          MYNTH_API_URL: `http://127.0.0.1:${address.port}`,
+          MYNTH_API_KEY: "mak_test",
+        });
+      } finally {
+        await new Promise<void>((resolvePromise, reject) => {
+          server.close((error) => (error ? reject(error) : resolvePromise()));
+        });
+      }
+    };
+
+    it("documents the exit codes in --help", () => {
+      const help = runCli("--help");
+
+      expect(help.status).toBe(0);
+      expect(help.stdout).toContain("Exit codes:");
+      expect(help.stdout).toContain("5  blocked by content moderation");
+    });
+
+    it("exits 2 on unknown options", () => {
+      const result = runCli("task", "list", "--nope");
+
+      expect(result.status).toBe(2);
+    });
+
+    it("exits 3 on authentication failures", async () => {
+      const result = await withApiError(
+        { status: 401, body: { code: "UNAUTHORIZED", message: "Invalid API key" } },
+        ["task", "get", "tsk_x"],
+      );
+
+      expect(result.status).toBe(3);
+      expect(result.stderr).toContain("UNAUTHORIZED");
+    });
+
+    it("exits 4 on insufficient credits", async () => {
+      const result = await withApiError(
+        { status: 422, body: { code: "INSUFFICIENT_BALANCE", message: "Insufficient balance." } },
+        ["image", "generate", "-p", "test", "--async"],
+      );
+
+      expect(result.status).toBe(4);
+    });
+
+    it("exits 6 when rate limited", async () => {
+      const result = await withApiError(
+        { status: 429, body: { code: "RATE_LIMITED", message: "Too many requests" } },
+        ["task", "list"],
+      );
+
+      expect(result.status).toBe(6);
+    });
+
+    it("exits 5 when a waited task was blocked by content moderation", async () => {
+      const server = createServer((request, response) => {
+        response.setHeader("Content-Type", "application/json");
+        if (request.url === "/tasks/tsk_mod/status") {
+          response.end(JSON.stringify({ data: { status: "failed" } }));
+          return;
+        }
+        response.end(
+          JSON.stringify({
+            data: {
+              id: "tsk_mod",
+              type: "image.generate",
+              status: "failed",
+              userId: "user_1",
+              apiKeyId: null,
+              cost: null,
+              request: { prompt: "test" },
+              result: {
+                images: [{ status: "failed", error: { code: "RESTRICTED_CONTENT" } }],
+              },
+              errors: null,
+              createdAt: "2026-07-04T10:00:00.000Z",
+              updatedAt: "2026-07-04T10:00:05.000Z",
+            },
+          }),
+        );
+      });
+
+      await new Promise<void>((resolvePromise) => server.listen(0, "127.0.0.1", resolvePromise));
+      const address = server.address() as AddressInfo;
+
+      try {
+        const result = await runCliAsync(["task", "wait", "tsk_mod"], {
+          MYNTH_API_URL: `http://127.0.0.1:${address.port}`,
+          MYNTH_API_KEY: "mak_test",
+        });
+
+        expect(result.status).toBe(5);
+      } finally {
+        await new Promise<void>((resolvePromise, reject) => {
+          server.close((error) => (error ? reject(error) : resolvePromise()));
+        });
+      }
+    });
   });
 
   it("lists tasks with a limit", async () => {

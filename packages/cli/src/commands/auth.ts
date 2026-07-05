@@ -6,6 +6,7 @@ import {
   AuthorizationExpiredError,
   AuthorizationPendingError,
   MynthCliError,
+  NotAuthenticatedError,
   WorkOSError,
 } from "../domain/Errors.ts";
 import { print } from "../utils/output.ts";
@@ -151,7 +152,7 @@ export const createWhoamiCommand = (ctx: CliContext): Command =>
     switch (status.kind) {
       case "none":
         print("not authenticated");
-        throw new MynthCliError({ message: "not authenticated" });
+        throw new NotAuthenticatedError();
       case "env":
         print("env:MYNTH_API_KEY");
         return;

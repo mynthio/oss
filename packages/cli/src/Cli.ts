@@ -31,6 +31,19 @@ export const createProgram = (): Command => {
 
   program.description("Official Mynth CLI").version("0.0.12");
 
+  program.addHelpText(
+    "after",
+    `
+Exit codes:
+  0  success
+  1  error (network, server, or unexpected failure)
+  2  usage error (invalid arguments, flags, or request)
+  3  authentication error (missing or invalid credentials)
+  4  insufficient credits
+  5  blocked by content moderation
+  6  rate limited`,
+  );
+
   program.addCommand(createAuthCommand(ctx));
   program.addCommand(createConfigCommand(ctx));
   program.addCommand(createDocsCommand(ctx));

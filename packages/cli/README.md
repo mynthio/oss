@@ -61,6 +61,24 @@ suffix. Documentation commands do not require Mynth authentication.
 
 Run `mynth --help` for the full command list.
 
+## Exit codes
+
+The CLI uses distinct exit codes so scripts and AI agents can branch without parsing error
+messages:
+
+| Code | Meaning                                               |
+| ---- | ----------------------------------------------------- |
+| 0    | Success                                               |
+| 1    | Error (network, server, or unexpected failure)        |
+| 2    | Usage error (invalid arguments, flags, or request)    |
+| 3    | Authentication error (missing or invalid credentials) |
+| 4    | Insufficient credits                                  |
+| 5    | Blocked by content moderation                         |
+| 6    | Rate limited                                          |
+
+`task wait` also uses these for the awaited task's outcome: a task that failed due to content
+moderation exits 5, any other failure exits 1.
+
 ## Development
 
 ```bash

@@ -25,6 +25,25 @@ export const readText = async (response: Response): Promise<string> => {
   }
 };
 
+// Throws on non-2xx, preserving the API error `code` (e.g. UNAUTHORIZED,
+// INSUFFICIENT_BALANCE) so it can be mapped to a distinct exit code.
+export const requireSuccess = async (response: Response, label: string): Promise<void> => {
+  if (response.status >= 200 && response.status < 300) return;
+  const bodyText = await readText(response);
+  let code: string | undefined;
+  try {
+    const parsed = JSON.parse(bodyText) as { code?: unknown };
+    if (typeof parsed.code === "string") code = parsed.code;
+  } catch {
+    // Non-JSON error body; classify by HTTP status alone.
+  }
+  throw new MynthApiError({
+    message: `${label} failed (${response.status}): ${bodyText || "no body"}`,
+    status: response.status,
+    ...(code !== undefined ? { code } : {}),
+  });
+};
+
 export class MynthApi {
   readonly baseUrl: string;
   private cachedAuth: ResolvedAuth | undefined;

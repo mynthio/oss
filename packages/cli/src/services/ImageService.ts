@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { basename, extname, join, resolve } from "node:path";
 import type { z } from "zod";
-import { MynthApiError } from "../domain/Errors.ts";
+import { MynthApiError, taskFailureCode } from "../domain/Errors.ts";
 import {
   GenerateResponseSchema,
   RateResponseSchema,
@@ -10,7 +10,7 @@ import {
   UploadResponseSchema,
   type TaskData,
 } from "../domain/Schemas.ts";
-import { MynthApi, readJson, readText } from "./MynthApi.ts";
+import { MynthApi, readJson, requireSuccess } from "./MynthApi.ts";
 
 export const MAX_UPLOAD_FILES = 10;
 export const MAX_RATE_IMAGES = 10;
@@ -107,19 +107,6 @@ const parseResponse = async <T>(
     throw new MynthApiError({ message, status: response.status, cause: parsed.error });
   }
   return parsed.data;
-};
-
-const requireSuccess = async (
-  response: Response,
-  label: string,
-  statusOverride?: number,
-): Promise<void> => {
-  if (response.status >= 200 && response.status < 300) return;
-  const bodyText = await readText(response);
-  throw new MynthApiError({
-    message: `${label} failed (${response.status}): ${bodyText || "no body"}`,
-    status: statusOverride ?? response.status,
-  });
 };
 
 const mapLimit = async <A, B>(
@@ -245,9 +232,13 @@ export class ImageService {
       const status = await this.getTaskStatus(taskId, pat);
       if (status === "completed") return this.getTaskDetails(taskId);
       if (status === "failed") {
+        // Fetch the task so moderation blocks surface with their error code.
+        const task = await this.getTaskDetails(taskId).catch(() => undefined);
+        const code = task !== undefined ? taskFailureCode(task) : undefined;
         throw new MynthApiError({
-          message: `task ${taskId} failed during generation`,
+          message: `task ${taskId} failed during generation${code !== undefined ? ` (${code})` : ""}`,
           status: 0,
+          ...(code !== undefined ? { code } : {}),
         });
       }
 

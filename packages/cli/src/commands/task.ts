@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import type { CliContext } from "../context.ts";
-import { CliUsageError } from "../domain/Errors.ts";
+import { CliUsageError, exitCodeForFailedTask } from "../domain/Errors.ts";
 import type { TaskData, TaskListItem } from "../services/TaskService.ts";
 import { print } from "../utils/output.ts";
 import { withSpinner } from "../utils/spinner.ts";
@@ -110,7 +110,7 @@ export const createTaskCommand = (ctx: CliContext): Command => {
       const wait = ctx.tasks.waitForTask(id, timeoutMs);
       const data = options.json ? await wait : await withSpinner(wait);
 
-      if (data.status === "failed") process.exitCode = 1;
+      if (data.status === "failed") process.exitCode = exitCodeForFailedTask(data);
 
       // image.generate output matches sync `image generate`; other task types
       // fall back to the `task get` rendering.

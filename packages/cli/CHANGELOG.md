@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.17](https://github.com/mynthio/oss/compare/cli-v0.0.16...cli-v0.0.17) (2026-07-05)
+
+
+### Features
+
+* **cli:** add account balance and cost estimates ([75e0242](https://github.com/mynthio/oss/commit/75e02428ee787cbdfce3ee3831be0e2d5923dae5))
+
 ## [0.0.16](https://github.com/mynthio/oss/compare/cli-v0.0.15...cli-v0.0.16) (2026-07-05)
 
 

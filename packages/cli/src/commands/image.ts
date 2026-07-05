@@ -55,7 +55,12 @@ type GenerateOptions = RateOptions & {
   readonly contentRating?: boolean;
   readonly async?: boolean;
   readonly detailed?: boolean;
+  readonly dryRun?: boolean;
 };
+
+// Stands in for local file inputs during --dry-run: the estimate only needs
+// input count and roles, so nothing is uploaded.
+const DRY_RUN_INPUT_URL = "https://dry-run.mynth.io/input";
 
 const ok = chalk.green("✓");
 const fail = chalk.red("✗");
@@ -478,6 +483,10 @@ export const createImageCommand = (ctx: CliContext): Command => {
       "--content-rating",
       "Enable content rating classification using default sfw/nsfw levels. For custom levels use --level / --levels-file / --levels-json.",
     )
+    .option(
+      "--dry-run",
+      "Validate the request and print the estimated cost without generating anything",
+    )
     .option("--async", "Return the task ID immediately instead of polling until completion")
     .option("--detailed", "Include full task data (all fields) in the output")
     .addOption(createJsonOption());
@@ -511,7 +520,8 @@ export const createImageCommand = (ctx: CliContext): Command => {
 
     const filePaths = parsedInputs.filter((input) => input.isFile).map((input) => input.value);
     const uniqueFilePaths = Array.from(new Set(filePaths));
-    const uploaded = uniqueFilePaths.length > 0 ? await ctx.images.upload(uniqueFilePaths) : [];
+    const uploaded =
+      uniqueFilePaths.length > 0 && !options.dryRun ? await ctx.images.upload(uniqueFilePaths) : [];
     const uploadedByPath = new Map(uploaded.map((upload) => [upload.path, upload.url] as const));
 
     const resolvedInputs = parsedInputs.map((input) => ({
@@ -519,7 +529,8 @@ export const createImageCommand = (ctx: CliContext): Command => {
       ...(input.as ? { as: input.as } : {}),
       source: {
         type: "url" as const,
-        url: input.isFile ? (uploadedByPath.get(input.value) ?? input.value) : input.value,
+        // The placeholder is only reachable in --dry-run, where files are not uploaded.
+        url: input.isFile ? (uploadedByPath.get(input.value) ?? DRY_RUN_INPUT_URL) : input.value,
       },
     }));
 
@@ -549,6 +560,17 @@ export const createImageCommand = (ctx: CliContext): Command => {
     if (options.destination !== undefined) request["destination"] = options.destination;
     if (contentRatingCfg !== undefined) request["rating"] = contentRatingCfg;
     if (metadata !== undefined) request["metadata"] = metadata;
+
+    if (options.dryRun) {
+      const estimate = await ctx.images.estimate(request);
+      if (options.json) {
+        print(JSON.stringify(estimate, null, 2));
+        return;
+      }
+      const suffix = estimate.estimateKind === "upper_bound" ? " (upper bound)" : "";
+      print(`${ok} Estimated cost: $${estimate.estimatedCost}${suffix}`);
+      return;
+    }
 
     if (options.async) {
       const created = await ctx.images.generate({ request, requestPat: true });

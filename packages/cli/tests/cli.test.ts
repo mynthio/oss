@@ -612,4 +612,80 @@ describe("mynth cli", () => {
       });
     }
   });
+
+  it("shows the balance and estimates generation cost with --dry-run", async () => {
+    const seen: Array<{ readonly url: string | undefined; readonly body: unknown }> = [];
+    const server = createServer((request, response) => {
+      let body = "";
+      request.setEncoding("utf8");
+      request.on("data", (chunk) => {
+        body += chunk;
+      });
+      request.on("end", () => {
+        seen.push({ url: request.url, body: body.length > 0 ? JSON.parse(body) : undefined });
+        response.setHeader("Content-Type", "application/json");
+        if (request.url === "/balance") {
+          response.end(
+            JSON.stringify({
+              data: { balance: "12.5", reserved: "0.2", available: "12.3", currency: "usd" },
+            }),
+          );
+          return;
+        }
+        response.end(
+          JSON.stringify({
+            data: { estimatedCost: "0.008", currency: "usd", estimateKind: "exact" },
+          }),
+        );
+      });
+    });
+
+    await new Promise<void>((resolvePromise) => server.listen(0, "127.0.0.1", resolvePromise));
+    const address = server.address() as AddressInfo;
+    const env = {
+      MYNTH_API_URL: `http://127.0.0.1:${address.port}`,
+      MYNTH_API_KEY: "mak_test",
+    };
+
+    try {
+      const balance = await runCliAsync(["balance", "--json"], env);
+      const dryRun = await runCliAsync(
+        [
+          "image",
+          "generate",
+          "-p",
+          "test",
+          "-m",
+          "black-forest-labs/flux.1-dev",
+          "-c",
+          "2",
+          "--dry-run",
+        ],
+        env,
+      );
+
+      expect(balance).toMatchObject({ status: 0, stderr: "" });
+      expect(JSON.parse(balance.stdout)).toEqual({
+        balance: "12.5",
+        reserved: "0.2",
+        available: "12.3",
+        currency: "usd",
+      });
+
+      expect(dryRun).toMatchObject({ status: 0, stderr: "" });
+      expect(dryRun.stdout).toContain("Estimated cost: $0.008");
+
+      expect(seen).toEqual([
+        { url: "/balance", body: undefined },
+        {
+          url: "/image/generate/estimate",
+          body: { prompt: "test", model: "black-forest-labs/flux.1-dev", count: 2 },
+        },
+      ]);
+    } finally {
+      await new Promise<void>((resolvePromise, reject) => {
+        server.close((error) => (error ? reject(error) : resolvePromise()));
+      });
+    }
+  });
 });

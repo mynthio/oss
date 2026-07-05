@@ -25,6 +25,19 @@ mynth image generate --prompt "A cinematic product photo of a glass keyboard"
 mynth image generate -p "A watercolor city skyline" --size 16:9 --count 2
 ```
 
+### Cost and balance
+
+Check spend before a batch run:
+
+```bash
+mynth balance                              # balance, reserved, available (+ key spending limit)
+mynth image generate -p "A neon koi pond" -m black-forest-labs/flux.1-dev -c 10 --dry-run
+```
+
+`--dry-run` validates the request server-side and prints the estimated cost without generating
+anything. Estimates for `--model auto` are an upper bound. Add `--json` to either command for
+machine-readable output.
+
 ### Tasks
 
 Async workflows: fire a generation with `--async`, do other work, then wait for the result.

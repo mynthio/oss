@@ -1,3 +1,4 @@
+import { AccountService } from "./services/AccountService.ts";
 import { Auth } from "./services/Auth.ts";
 import { getAppConfig } from "./services/AppConfig.ts";
 import { CredentialsStore } from "./services/CredentialsStore.ts";
@@ -9,6 +10,7 @@ import { TaskService } from "./services/TaskService.ts";
 import { WorkOS } from "./services/WorkOS.ts";
 
 export type CliContext = {
+  readonly account: AccountService;
   readonly auth: Auth;
   readonly credentialsStore: CredentialsStore;
   readonly docs: DocsService;
@@ -25,6 +27,7 @@ export const createCliContext = (): CliContext => {
   const auth = new Auth(config, credentialsStore, workos);
   const api = new MynthApi(config, auth);
   return {
+    account: new AccountService(api),
     auth,
     credentialsStore,
     docs: new DocsService(config),

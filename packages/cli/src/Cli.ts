@@ -2,6 +2,7 @@ import { Command, Help, Option } from "commander";
 import { createCliContext } from "./context.ts";
 import {
   createAuthCommand,
+  createBalanceCommand,
   createConfigCommand,
   createDocsCommand,
   createImageCommand,
@@ -45,6 +46,7 @@ Exit codes:
   );
 
   program.addCommand(createAuthCommand(ctx));
+  program.addCommand(createBalanceCommand(ctx));
   program.addCommand(createConfigCommand(ctx));
   program.addCommand(createDocsCommand(ctx));
   program.addCommand(createImageCommand(ctx));

@@ -93,6 +93,7 @@ export const RateResponseSchema = z.object({
 export const GenerateResponseSchema = z.object({
   data: z.object({
     taskId: z.string(),
+    estimatedCost: z.string().optional(),
     access: z
       .object({
         publicAccessToken: z.string(),
@@ -100,6 +101,50 @@ export const GenerateResponseSchema = z.object({
       .optional(),
   }),
 });
+
+export const EstimateResponseSchema = z.object({
+  data: z.object({
+    estimatedCost: z.string(),
+    currency: z.string(),
+    estimateKind: z.union([z.literal("exact"), z.literal("upper_bound")]),
+  }),
+});
+export type Estimate = z.infer<typeof EstimateResponseSchema>["data"];
+
+export const MeResponseSchema = z.object({
+  data: z.object({
+    userId: z.string(),
+    auth: z.object({
+      method: z.string(),
+      apiKey: z
+        .object({
+          id: z.string(),
+          name: z.string().nullable(),
+          keyPreview: z.string(),
+        })
+        .optional(),
+    }),
+  }),
+});
+export type Me = z.infer<typeof MeResponseSchema>["data"];
+
+export const BalanceResponseSchema = z.object({
+  data: z.object({
+    balance: z.string(),
+    reserved: z.string(),
+    available: z.string(),
+    currency: z.string(),
+    apiKey: z
+      .object({
+        spendingLimit: z.string(),
+        spendingLimitPeriod: z.string(),
+        usedInPeriod: z.string(),
+        remainingInPeriod: z.string(),
+      })
+      .optional(),
+  }),
+});
+export type Balance = z.infer<typeof BalanceResponseSchema>["data"];
 
 export const TaskStatusSchema = z.object({
   data: z.object({

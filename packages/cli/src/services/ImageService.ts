@@ -3,11 +3,13 @@ import { basename, extname, join, resolve } from "node:path";
 import type { z } from "zod";
 import { MynthApiError, taskFailureCode } from "../domain/Errors.ts";
 import {
+  EstimateResponseSchema,
   GenerateResponseSchema,
   RateResponseSchema,
   TaskResponseSchema,
   TaskStatusSchema,
   UploadResponseSchema,
+  type Estimate,
   type TaskData,
 } from "../domain/Schemas.ts";
 import { MynthApi, readJson, requireSuccess } from "./MynthApi.ts";
@@ -216,6 +218,18 @@ export class ImageService {
 
     const pat = json.data.access?.publicAccessToken;
     return { taskId: json.data.taskId, ...(pat !== undefined ? { pat } : {}) };
+  }
+
+  async estimate(request: Record<string, unknown>): Promise<Estimate> {
+    const response = await this.api.execute("/image/generate/estimate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    });
+    await requireSuccess(response, "estimate");
+
+    const json = await parseResponse(response, EstimateResponseSchema, "invalid estimate response");
+    return json.data;
   }
 
   async waitForTask(taskId: string, pat?: string): Promise<TaskData> {

@@ -147,19 +147,29 @@ export const createAuthCommand = (ctx: CliContext): Command => {
 };
 
 export const createWhoamiCommand = (ctx: CliContext): Command =>
-  new Command("whoami").description("Print the active Mynth identity").action(async () => {
-    const status = await ctx.auth.status();
-    switch (status.kind) {
-      case "none":
+  new Command("whoami")
+    .description("Print the active Mynth identity, verified against the API")
+    .action(async () => {
+      const status = await ctx.auth.status();
+      if (status.kind === "none") {
         print("not authenticated");
         throw new NotAuthenticatedError();
-      case "env":
-        print("env:MYNTH_API_KEY");
-        return;
-      case "api_key":
-        print("api-key");
-        return;
-      case "oauth":
-        print(status.user?.email ?? status.user?.id ?? "oauth");
-    }
-  });
+      }
+
+      const label =
+        status.kind === "env"
+          ? "env:MYNTH_API_KEY"
+          : status.kind === "api_key"
+            ? "api-key"
+            : (status.user?.email ?? status.user?.id ?? "oauth");
+
+      // Server round-trip so revoked credentials fail here instead of on the
+      // first real command.
+      const me = await ctx.account.me();
+
+      print(label);
+      print(`  user: ${me.userId}`);
+      if (me.auth.apiKey) {
+        print(`  key: ${me.auth.apiKey.name ?? "unnamed"} (${me.auth.apiKey.keyPreview})`);
+      }
+    });

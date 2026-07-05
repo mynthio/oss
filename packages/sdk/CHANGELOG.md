@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.27](https://github.com/mynthio/oss/compare/sdk-v0.0.26...sdk-v0.0.27) (2026-07-05)
+
+
+### Features
+
+* **sdk:** add support for ideogram/remove-background model ([5807821](https://github.com/mynthio/oss/commit/5807821d38025633a03e1d4b98c6c47cea460196))
+
 ## [0.0.26](https://github.com/mynthio/oss/compare/sdk-v0.0.25...sdk-v0.0.26) (2026-07-05)
 
 

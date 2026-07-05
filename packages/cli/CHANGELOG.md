@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.15](https://github.com/mynthio/oss/compare/cli-v0.0.14...cli-v0.0.15) (2026-07-05)
+
+
+### Features
+
+* **cli:** add task wait and list commands ([3736e3c](https://github.com/mynthio/oss/commit/3736e3c215352ac694533af62b8ede6898d77db3))
+
 ## [0.0.14](https://github.com/mynthio/oss/compare/cli-v0.0.13...cli-v0.0.14) (2026-06-30)
 
 

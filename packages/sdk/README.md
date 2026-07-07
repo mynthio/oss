@@ -1,8 +1,8 @@
 # @mynthio/sdk
 
-Official SDK for the [Mynth](https://mynth.io) image generation API.
+Official SDK for the [Mynth](https://mynth.io) image API.
 
-The SDK gives you a typed `Mynth` client, sync and async generation flows, model metadata, and a Convex webhook helper.
+The SDK gives you a typed `Mynth` client, sync and async generation, rating, and alt text flows, model metadata, and a Convex webhook helper.
 
 ## Installation
 
@@ -61,7 +61,7 @@ const mynth = new Mynth({
 });
 ```
 
-- `apiKey`: required for image generation and rating unless `MYNTH_API_KEY` is set; not required for the public model catalog
+- `apiKey`: required for image generation, rating, and alt text unless `MYNTH_API_KEY` is set; not required for the public model catalog
 - `baseUrl`: optional override for proxies or tests
 
 ## Generate vs Generate Async
@@ -341,6 +341,34 @@ const result = await taskAsync.wait();
 console.log(result.getRatings());
 ```
 
+## Alt Text
+
+Generate short alt text for existing image URLs:
+
+```ts
+const result = await mynth.image.alt({
+  urls: ["https://example.com/image.webp"], // 1-10 URLs
+});
+
+console.log(result.task.id);
+console.log(result.getAltTexts());
+// [{ status: "success", url: "https://example.com/image.webp", alt: "..." }]
+```
+
+Use `altAsync()` when you want to create the alt text task now and wait later:
+
+```ts
+const taskAsync = await mynth.image.altAsync({
+  urls: ["https://example.com/image.webp"],
+});
+
+console.log(taskAsync.id);
+
+const result = await taskAsync.wait();
+console.log(result.getAltTexts());
+console.log(result.getErrors());
+```
+
 ## Working With Results
 
 Completed tasks expose a few helpful accessors:
@@ -468,6 +496,13 @@ export const mynthWebhook = mynthWebhookAction({
   imageRateTaskFailed: async (payload) => {
     console.error("Mynth rating task failed:", payload.task.id);
   },
+  imageAltTaskCompleted: async (payload) => {
+    console.log("Completed alt text task:", payload.task.id);
+    console.log(payload.result.results);
+  },
+  imageAltTaskFailed: async (payload) => {
+    console.error("Mynth alt text task failed:", payload.task.id);
+  },
 });
 ```
 
@@ -475,7 +510,7 @@ Set `MYNTH_WEBHOOK_SECRET` in your environment, or pass `webhookSecret` explicit
 
 ## Error Handling
 
-`generate()`, `generateAsync()`, `rate()`, `rateAsync()`, and `models.list()` may throw `MynthAPIError` if the request fails. Polling can also throw task-specific errors:
+`generate()`, `generateAsync()`, `rate()`, `rateAsync()`, `alt()`, `altAsync()`, and `models.list()` may throw `MynthAPIError` if the request fails. Polling can also throw task-specific errors:
 
 ```ts
 import {

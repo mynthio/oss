@@ -1,6 +1,7 @@
 import { MynthAPIError, MynthClient } from "./client";
 import type { AvailableModel, ModelCapability } from "./constants";
 import {
+  ALT_IMAGE_PATH,
   API_KEY_ENV_VAR,
   AVAILABLE_MODELS,
   DESTINATION_ENV_VAR,
@@ -8,6 +9,7 @@ import {
   MODELS_PATH,
   RATE_IMAGE_PATH,
 } from "./constants";
+import { ImageAltResult } from "./image-alt-result";
 import { ImageGenerationResult } from "./image-generation-result";
 import { ImageRateResult } from "./image-rate-result";
 import type { TaskAsyncAccess } from "./task-async";
@@ -113,7 +115,7 @@ function getDestinationFromEnv(): string | undefined {
 }
 
 /**
- * Client for interacting with the Mynth image generation and rating APIs.
+ * Client for interacting with the Mynth image generation, rating, and alt text APIs.
  *
  * @example
  * ```typescript
@@ -314,6 +316,65 @@ class MynthImage {
 
     return taskAsync;
   }
+
+  /**
+   * Generate alt text for one or more images.
+   *
+   * Uses AI image analysis to produce short alt text for each image URL.
+   *
+   * @param request - URLs to generate alt text for
+   * @returns An ImageAltResult with per-image alt text
+   *
+   * @example
+   * ```typescript
+   * const result = await image.alt({ urls: ["https://..."] });
+   * console.log(result.getAltTexts()); // [{ status: "success", url: "...", alt: "..." }]
+   * ```
+   */
+  public async alt(request: MynthSDKTypes.ImageAltRequest): Promise<ImageAltResult> {
+    const taskAsync = await this.createAltTask(request);
+
+    return taskAsync.wait();
+  }
+
+  /**
+   * Start image alt text generation without waiting for completion.
+   *
+   * @param request - URLs to generate alt text for
+   * @returns A TaskAsync that can be polled for completion via `.wait()`
+   *
+   * @example
+   * ```typescript
+   * const taskAsync = await image.altAsync({
+   *   urls: ["https://..."],
+   * });
+   *
+   * const result = await taskAsync.wait();
+   * console.log(result.getAltTexts());
+   * ```
+   */
+  public async altAsync(
+    request: MynthSDKTypes.ImageAltRequest,
+  ): Promise<TaskAsync<ImageAltResult>> {
+    return this.createAltTask(request);
+  }
+
+  private async createAltTask(
+    request: MynthSDKTypes.ImageAltRequest,
+  ): Promise<TaskAsync<ImageAltResult>> {
+    const json = await this.client.post<
+      MynthSDKTypes.ApiResponse<MynthSDKTypes.ImageAltPendingResponse>
+    >(ALT_IMAGE_PATH, { ...request, sync: false });
+
+    const data = json.data;
+
+    const taskAsync = new TaskAsync<ImageAltResult>(data.task.id, {
+      client: this.client,
+      resultFactory: (data) => ImageAltResult.fromTaskData(data as MynthSDKTypes.ImageAltTaskData),
+    });
+
+    return taskAsync;
+  }
 }
 
 /**
@@ -388,7 +449,7 @@ class Mynth {
     this.models = new MynthModels({ baseUrl: options.baseUrl });
   }
 
-  /** Image generation and rating client */
+  /** Image generation, rating, and alt text client */
   get image(): MynthImage {
     this.imageClient ??= new MynthImage(this.options);
 
@@ -398,6 +459,7 @@ class Mynth {
 
 export {
   AVAILABLE_MODELS,
+  ImageAltResult,
   ImageGenerationResult,
   ImageRateResult,
   Mynth,

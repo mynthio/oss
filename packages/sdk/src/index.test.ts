@@ -57,6 +57,34 @@ function createRateTaskData(
   } as MynthSDKTypes.ImageRateTaskData;
 }
 
+function createAltTaskData(
+  overrides: Partial<MynthSDKTypes.ImageAltTaskData> = {},
+): MynthSDKTypes.ImageAltTaskData {
+  return {
+    id: "task-alt-123",
+    status: "completed",
+    type: "image.alt",
+    apiKeyId: "api-key-123",
+    userId: "user-123",
+    cost: "0.01",
+    result: {
+      results: [
+        {
+          status: "success",
+          url: "https://cdn.test/image.webp",
+          alt: "A studio product photo of a ceramic mug.",
+        },
+      ],
+    },
+    request: {
+      urls: ["https://cdn.test/image.webp"],
+    },
+    createdAt: "2026-01-29T12:00:00Z",
+    updatedAt: "2026-01-29T12:00:00Z",
+    ...overrides,
+  } as MynthSDKTypes.ImageAltTaskData;
+}
+
 describe("MynthImage", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -199,6 +227,96 @@ describe("MynthImage", () => {
       taskId: "task-rate-123",
       task: { id: "task-rate-123", status: "completed", cost: "0.01" },
       ratings: [{ status: "success", url: "https://cdn.test/image.webp", level: "sfw" }],
+      errors: [],
+    });
+  });
+
+  test("altAsync returns a pollable alt text task without waiting", async () => {
+    // Arrange
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      jsonResponse(
+        {
+          data: {
+            task: { id: "task-alt-123", status: "pending" },
+          },
+        },
+        { status: 202 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const image = new MynthImage({ apiKey: "mak_test", baseUrl: "https://api.test" });
+
+    // Act
+    const task = await image.altAsync({
+      urls: ["https://cdn.test/image.webp"],
+    });
+
+    // Assert
+    expect({
+      isTaskAsync: task instanceof TaskAsync,
+      id: task.id,
+      publicAccessToken: task.access.publicAccessToken,
+      fetchCall: fetchMock.mock.calls[0],
+    }).toEqual({
+      isTaskAsync: true,
+      id: "task-alt-123",
+      publicAccessToken: undefined,
+      fetchCall: [
+        "https://api.test/image/alt",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            urls: ["https://cdn.test/image.webp"],
+            sync: false,
+          }),
+        }),
+      ],
+    });
+  });
+
+  test("alt waits for the completed alt text task result", async () => {
+    // Arrange
+    const taskData = createAltTaskData();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse(
+          {
+            data: {
+              task: { id: "task-alt-123", status: "pending" },
+            },
+          },
+          { status: 202 },
+        ),
+      )
+      .mockResolvedValueOnce(jsonResponse({ data: { status: "completed" } }))
+      .mockResolvedValueOnce(jsonResponse({ data: taskData }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const image = new MynthImage({ apiKey: "mak_test", baseUrl: "https://api.test" });
+
+    // Act
+    const result = await image.alt({
+      urls: ["https://cdn.test/image.webp"],
+    });
+
+    // Assert
+    expect({
+      taskId: result.taskId,
+      task: result.task,
+      altTexts: result.getAltTexts(),
+      errors: result.getErrors(),
+    }).toEqual({
+      taskId: "task-alt-123",
+      task: { id: "task-alt-123", status: "completed", cost: "0.01" },
+      altTexts: [
+        {
+          status: "success",
+          url: "https://cdn.test/image.webp",
+          alt: "A studio product photo of a ceramic mug.",
+        },
+      ],
       errors: [],
     });
   });

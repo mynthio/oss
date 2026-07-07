@@ -9,7 +9,7 @@ export namespace MynthSDKTypes {
 
   export type TaskStatus = "pending" | "completed" | "failed";
 
-  export type TaskType = "image.generate" | "image.rate";
+  export type TaskType = "image.generate" | "image.rate" | "image.alt";
 
   export type TaskBase = {
     id: string;
@@ -36,10 +36,16 @@ export namespace MynthSDKTypes {
         type: "image.rate";
         request: ImageRateRequest;
         result: ImageRateTaskResult | null;
+      })
+    | (TaskBase & {
+        type: "image.alt";
+        request: ImageAltRequest;
+        result: ImageAltTaskResult | null;
       });
 
   export type ImageGenerationTaskData = Extract<TaskData, { type: "image.generate" }>;
   export type ImageRateTaskData = Extract<TaskData, { type: "image.rate" }>;
+  export type ImageAltTaskData = Extract<TaskData, { type: "image.alt" }>;
 
   // ============================================================
   // Models
@@ -404,6 +410,56 @@ export namespace MynthSDKTypes {
   };
 
   // ============================================================
+  // Image Alt
+  // ============================================================
+
+  /** Request body for the image alt endpoint */
+  export type ImageAltRequest = {
+    /** Image URLs to generate alt text for (1-10) */
+    urls: string[];
+  };
+
+  /** A successfully generated image alt text item */
+  export type ImageAltResponseItemSuccess = {
+    status: "success";
+    url: string;
+    alt: string;
+  };
+
+  export type ImageAltResponseItemError = {
+    status: "failed";
+    url: string;
+    error: {
+      code: string;
+    };
+  };
+
+  /** Individual alt text result item */
+  export type ImageAltResponseItem = ImageAltResponseItemSuccess | ImageAltResponseItemError;
+
+  /** API response from the image alt endpoint */
+  export type ImageAltResponse = {
+    task: {
+      id: string;
+      status: "completed";
+      cost: string;
+    };
+    results: ImageAltResponseItem[];
+  };
+
+  /** Pending response from the image alt endpoint when async mode is used */
+  export type ImageAltPendingResponse = {
+    task: {
+      id: string;
+      status: "pending";
+    };
+  };
+
+  export type ImageAltTaskResult = {
+    results: ImageAltResponseItem[];
+  };
+
+  // ============================================================
   // Webhooks
   // ============================================================
 
@@ -446,11 +502,32 @@ export namespace MynthSDKTypes {
   };
 
   /**
+   * Webhook payload for image alt text task completion.
+   */
+  export type WebhookTaskImageAltCompletedPayload = {
+    task: { id: string };
+    event: "task.image.alt.completed";
+    result: ImageAltTaskResult;
+    request: ImageAltRequest;
+  };
+
+  /**
+   * Webhook payload for image alt text task failure.
+   */
+  export type WebhookTaskImageAltFailedPayload = {
+    task: { id: string };
+    event: "task.image.alt.failed";
+    request: ImageAltRequest;
+  };
+
+  /**
    * Webhook payload union.
    */
   export type WebhookPayload =
     | WebhookTaskImageCompletedPayload
     | WebhookTaskImageFailedPayload
     | WebhookTaskImageRateCompletedPayload
-    | WebhookTaskImageRateFailedPayload;
+    | WebhookTaskImageRateFailedPayload
+    | WebhookTaskImageAltCompletedPayload
+    | WebhookTaskImageAltFailedPayload;
 }

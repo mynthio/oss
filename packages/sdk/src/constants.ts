@@ -9,6 +9,7 @@ export const DESTINATION_ENV_VAR = "MYNTH_DESTINATION";
 
 export const GENERATE_IMAGE_PATH = "/image/generate";
 export const RATE_IMAGE_PATH = "/image/rate";
+export const ALT_IMAGE_PATH = "/image/alt";
 export const MODELS_PATH = "/models";
 export const TASK_PATH = "/tasks";
 export const TASK_DETAILS_PATH = (id: string) => `${TASK_PATH}/${id}`;

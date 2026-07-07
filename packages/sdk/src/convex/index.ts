@@ -32,6 +32,16 @@ export type EventHandlers<T extends GenericActionCtx<any> = GenericActionCtx<any
     payload: MynthSDKTypes.WebhookTaskImageRateFailedPayload,
     context: { context: T; request: Request },
   ) => Promise<void>;
+  /** Called when an image alt text task completes successfully */
+  imageAltTaskCompleted?: (
+    payload: MynthSDKTypes.WebhookTaskImageAltCompletedPayload,
+    context: { context: T; request: Request },
+  ) => Promise<void>;
+  /** Called when an image alt text task fails */
+  imageAltTaskFailed?: (
+    payload: MynthSDKTypes.WebhookTaskImageAltFailedPayload,
+    context: { context: T; request: Request },
+  ) => Promise<void>;
 };
 
 /**
@@ -66,6 +76,12 @@ export type MynthWebhookActionOptions = {
  *   },
  *   imageRateTaskCompleted: async (payload, { context }) => {
  *     await context.runMutation(internal.images.saveRatings, {
+ *       taskId: payload.task.id,
+ *       results: payload.result.results,
+ *     });
+ *   },
+ *   imageAltTaskCompleted: async (payload, { context }) => {
+ *     await context.runMutation(internal.images.saveAltTexts, {
  *       taskId: payload.task.id,
  *       results: payload.result.results,
  *     });
@@ -133,6 +149,18 @@ export const mynthWebhookAction = (
         break;
       case "task.image.rate.failed":
         await eventHandlers.imageRateTaskFailed?.(payload, {
+          context: ctx,
+          request,
+        });
+        break;
+      case "task.image.alt.completed":
+        await eventHandlers.imageAltTaskCompleted?.(payload, {
+          context: ctx,
+          request,
+        });
+        break;
+      case "task.image.alt.failed":
+        await eventHandlers.imageAltTaskFailed?.(payload, {
           context: ctx,
           request,
         });

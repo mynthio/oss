@@ -97,4 +97,63 @@ describe("mynthWebhookAction", () => {
       calls: [[payload, { context: {}, request: expect.any(Request) }]],
     });
   });
+
+  test("dispatches image alt text completion events", async () => {
+    // Arrange
+    const imageAltTaskCompleted = vi.fn();
+    const payload: MynthSDKTypes.WebhookTaskImageAltCompletedPayload = {
+      event: "task.image.alt.completed",
+      task: { id: "tsk_alt" },
+      request: {
+        urls: ["https://cdn.example.com/image.webp"],
+      },
+      result: {
+        results: [
+          {
+            status: "success",
+            url: "https://cdn.example.com/image.webp",
+            alt: "A studio product photo of a ceramic mug.",
+          },
+        ],
+      },
+    };
+    const action = mynthWebhookAction({ imageAltTaskCompleted }, { webhookSecret: SECRET });
+
+    // Act
+    const response = await action({} as never, await createWebhookRequest(payload));
+
+    // Assert
+    expect({
+      status: response.status,
+      calls: imageAltTaskCompleted.mock.calls,
+    }).toEqual({
+      status: 200,
+      calls: [[payload, { context: {}, request: expect.any(Request) }]],
+    });
+  });
+
+  test("dispatches image alt text failure events", async () => {
+    // Arrange
+    const imageAltTaskFailed = vi.fn();
+    const payload: MynthSDKTypes.WebhookTaskImageAltFailedPayload = {
+      event: "task.image.alt.failed",
+      task: { id: "tsk_alt" },
+      request: {
+        urls: ["https://cdn.example.com/image.webp"],
+      },
+    };
+    const action = mynthWebhookAction({ imageAltTaskFailed }, { webhookSecret: SECRET });
+
+    // Act
+    const response = await action({} as never, await createWebhookRequest(payload));
+
+    // Assert
+    expect({
+      status: response.status,
+      calls: imageAltTaskFailed.mock.calls,
+    }).toEqual({
+      status: 200,
+      calls: [[payload, { context: {}, request: expect.any(Request) }]],
+    });
+  });
 });

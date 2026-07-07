@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.28](https://github.com/mynthio/oss/compare/sdk-v0.0.27...sdk-v0.0.28) (2026-07-07)
+
+
+### Features
+
+* **sdk:** add image alt text API and Convex alt webhook handlers ([e88a2ed](https://github.com/mynthio/oss/commit/e88a2eda18b2fe268345bf367e7d2f692dafb856))
+
 ## [0.0.27](https://github.com/mynthio/oss/compare/sdk-v0.0.26...sdk-v0.0.27) (2026-07-05)
 
 

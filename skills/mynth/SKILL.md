@@ -3,10 +3,11 @@ name: mynth
 description: >
   Use when adding or migrating AI image generation with Mynth, the unified image
   generation API and SDK. Covers @mynthio/sdk, the REST API, Public Access
-  Tokens for browser polling, webhooks, image content rating, Destinations
+  Tokens for browser polling, webhooks, image content rating, image alt text, Destinations
   (deliver to S3/R2/Bunny), Convex, and the @mynthio/tanstack-ai-adapter.
   Trigger for Mynth-specific setup, provider replacement, multi-model image
-  generation, image task polling, content moderation of images, or webhook sync.
+  generation, image task polling, content moderation of images, image alt text,
+  or webhook sync.
 ---
 
 # Mynth Image Generation
@@ -46,6 +47,7 @@ Pass `{ apiKey, baseUrl }` only when the project already centralizes secrets or 
 | Client-side polling with PATs      | [public-access-tokens.md](references/public-access-tokens.md) |
 | Set up webhooks                    | [webhooks.md](references/webhooks.md)                         |
 | Rate/moderate image content        | [image-rating.md](references/image-rating.md)                 |
+| Generate image alt text            | [image-alt.md](references/image-alt.md)                       |
 | Deliver images to user storage     | [destinations.md](references/destinations.md)                 |
 
 ## Integration Choice

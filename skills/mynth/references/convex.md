@@ -21,6 +21,18 @@ export const mynthWebhook = mynthWebhookAction({
   imageTaskFailed: async (payload) => {
     console.error("Task failed:", payload.task.id);
   },
+  imageRateTaskCompleted: async (payload, { context }) => {
+    await context.runMutation(internal.images.saveRatings, {
+      taskId: payload.task.id,
+      results: payload.result.results,
+    });
+  },
+  imageAltTaskCompleted: async (payload, { context }) => {
+    await context.runMutation(internal.images.saveAltTexts, {
+      taskId: payload.task.id,
+      results: payload.result.results,
+    });
+  },
 });
 ```
 
@@ -41,3 +53,7 @@ The helper verifies `X-Mynth-Signature` and routes:
 
 - `task.image.generate.completed` to `imageTaskCompleted`
 - `task.image.generate.failed` to `imageTaskFailed`
+- `task.image.rate.completed` to `imageRateTaskCompleted`
+- `task.image.rate.failed` to `imageRateTaskFailed`
+- `task.image.alt.completed` to `imageAltTaskCompleted`
+- `task.image.alt.failed` to `imageAltTaskFailed`

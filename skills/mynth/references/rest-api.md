@@ -149,6 +149,10 @@ Response (200):
 
 `POST /image/rate` — rate existing images by URL. Synchronous by default (`"sync": true`); returns 200 with results, or 202 with a pending task when `"sync": false`. Request and response shapes: see [image-rating.md](image-rating.md).
 
+## Alt Text
+
+`POST /image/alt` — generate alt text for existing images by URL. Synchronous by default (`"sync": true`); returns 200 with results, or 202 with a pending task when `"sync": false`. Request and response shapes: see [image-alt.md](image-alt.md).
+
 ## Webhook Management
 
 `POST /webhook`, `PUT /webhook/:id`, `DELETE /webhook/:id` — manage registered (signed) webhooks. See [webhooks.md](webhooks.md).

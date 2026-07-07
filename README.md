@@ -6,7 +6,7 @@ Open-source packages by [Mynth](https://mynth.io).
 
 | Package                                                          | Description                                    | npm                                                                                                                             |
 | ---------------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| [`@mynthio/sdk`](./packages/sdk)                                 | Official SDK for Mynth AI image generation API | [![npm](https://img.shields.io/npm/v/@mynthio/sdk)](https://www.npmjs.com/package/@mynthio/sdk)                                 |
+| [`@mynthio/sdk`](./packages/sdk)                                 | Official SDK for Mynth image generation, rating, and alt text | [![npm](https://img.shields.io/npm/v/@mynthio/sdk)](https://www.npmjs.com/package/@mynthio/sdk)                                 |
 | [`@mynthio/tanstack-ai-adapter`](./packages/tanstack-ai-adapter) | Mynth image generation adapter for TanStack AI | [![npm](https://img.shields.io/npm/v/@mynthio/tanstack-ai-adapter)](https://www.npmjs.com/package/@mynthio/tanstack-ai-adapter) |
 
 ## Contributing

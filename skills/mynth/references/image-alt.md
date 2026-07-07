@@ -41,7 +41,9 @@ Response (200, completed):
 {
   "data": {
     "task": { "id": "tsk_...", "status": "completed", "cost": "0.01" },
-    "results": [{ "status": "success", "url": "https://...", "alt": "A concise image description." }]
+    "results": [
+      { "status": "success", "url": "https://...", "alt": "A concise image description." }
+    ]
   }
 }
 ```

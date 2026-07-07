@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.21](https://github.com/mynthio/oss/compare/tan-ai-v0.0.20...tan-ai-v0.0.21) (2026-07-07)
+
+
+### Bug Fixes
+
+* **tan-ai:** bump @mynthio/sdk dependency to 0.0.28 ([b36668d](https://github.com/mynthio/oss/commit/b36668d6f1a916f679ac0107a2189cfd141eb615))
+
 ## [0.0.20](https://github.com/mynthio/oss/compare/tan-ai-v0.0.19...tan-ai-v0.0.20) (2026-07-01)
 
 

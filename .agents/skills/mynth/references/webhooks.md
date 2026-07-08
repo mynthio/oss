@@ -38,6 +38,8 @@ await fetch("https://api.mynth.io/webhook", {
 - `task.image.generate.failed` — generation failed
 - `task.image.rate.completed` — rating task succeeded
 - `task.image.rate.failed` — rating task failed
+- `task.image.alt.completed` — alt text task succeeded
+- `task.image.alt.failed` — alt text task failed
 - `task.completed` — any task completed
 - `task.failed` — any task failed
 - `all` — all events
@@ -67,6 +69,18 @@ On failure:
   "request": { "prompt": "A sunset" }
 }
 ```
+
+## CLI
+
+Webhook commands require OAuth login (`mynth auth login`); API keys are rejected by these routes.
+
+```bash
+mynth webhook create --url <url> --event <name...> [--disabled] [--json]
+mynth webhook update <id> --url <url> --event <name...> [--enabled|--disabled] [--json]
+mynth webhook delete <id> --yes [--json]
+```
+
+`--event` is repeatable (`--event task.completed --event task.failed`) or `--event all` for every event. The signing `secret` is shown only once, in the `create` output — save it then; there is no list/get command and `update` cannot rotate it. `update` is a full replace (all fields required).
 
 ## Signature Verification (Registered Webhooks)
 

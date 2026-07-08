@@ -48,9 +48,24 @@ Provider shapes:
 
 `config.path_template` controls the object path; `config.url_template` (optional) builds the public `url` and must contain `{path}`. Without `url_template`, delivered images report `url: null` — read `mynth_url` instead.
 
-Other endpoints (API key auth):
+Other endpoints (OAuth auth):
 
 - `GET /destinations`, `GET /destinations/:id`
 - `PUT /destinations/:id` — update `provider`, `config`, and optionally `secret` (slug cannot change)
 - `DELETE /destinations/:id`
 - `POST /destinations/:id/test` with `{ "path": "test/upload.txt" }` — verifies credentials by uploading a test file
+
+## CLI
+
+Destination commands require OAuth login (`mynth auth login`); API keys are rejected by these routes. Commands address destinations by `id` (see `list`), not the `name` slug.
+
+```bash
+mynth destination list [--json]
+mynth destination get <id> [--json]
+mynth destination create --file <path|-> [--json]   # JSON: { name, provider, config, secret }
+mynth destination update <id> --file <path|-> [--json]  # JSON: { provider, config, secret? } (no name)
+mynth destination test <id> [--path <path>] [--json]    # exit 0 = credentials valid
+mynth destination delete <id> --yes [--json]
+```
+
+`create` validates the `name` slug client-side. `--file -` reads JSON from stdin. `delete` requires `--yes` (no prompt).

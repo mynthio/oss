@@ -70,6 +70,18 @@ On failure:
 }
 ```
 
+## CLI
+
+Webhook commands require OAuth login (`mynth auth login`); API keys are rejected by these routes.
+
+```bash
+mynth webhook create --url <url> --event <name...> [--disabled] [--json]
+mynth webhook update <id> --url <url> --event <name...> [--enabled|--disabled] [--json]
+mynth webhook delete <id> --yes [--json]
+```
+
+`--event` is repeatable (`--event task.completed --event task.failed`) or `--event all` for every event. The signing `secret` is shown only once, in the `create` output — save it then; there is no list/get command and `update` cannot rotate it. `update` is a full replace (all fields required).
+
 ## Signature Verification (Registered Webhooks)
 
 Headers: `X-Mynth-Event` and `X-Mynth-Signature: t=<timestamp>,v1=<hex>`

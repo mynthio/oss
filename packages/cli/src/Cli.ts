@@ -4,10 +4,12 @@ import {
   createAuthCommand,
   createBalanceCommand,
   createConfigCommand,
+  createDestinationCommand,
   createDocsCommand,
   createImageCommand,
   createModelsCommand,
   createTaskCommand,
+  createWebhookCommand,
   createWhoamiCommand,
 } from "./commands/index.ts";
 
@@ -48,10 +50,12 @@ Exit codes:
   program.addCommand(createAuthCommand(ctx));
   program.addCommand(createBalanceCommand(ctx));
   program.addCommand(createConfigCommand(ctx));
+  program.addCommand(createDestinationCommand(ctx));
   program.addCommand(createDocsCommand(ctx));
   program.addCommand(createImageCommand(ctx));
   program.addCommand(createModelsCommand(ctx));
   program.addCommand(createTaskCommand(ctx));
+  program.addCommand(createWebhookCommand(ctx));
   program.addCommand(createWhoamiCommand(ctx));
 
   applyHelp(program);

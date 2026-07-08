@@ -206,3 +206,44 @@ export type Model = z.infer<typeof ModelSchema>;
 export const ModelsListResponseSchema = z.object({
   data: z.array(ModelSchema),
 });
+
+// Destinations. `secret` is write-only and never present in a response.
+export const DestinationPublicSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  provider: JsonValueSchema,
+  config: JsonValueSchema,
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type DestinationPublic = z.infer<typeof DestinationPublicSchema>;
+
+export const DestinationResponseSchema = z.object({ data: DestinationPublicSchema });
+export const DestinationListResponseSchema = z.object({ data: z.array(DestinationPublicSchema) });
+
+const WebhookEventsSchema = z.union([z.literal("all"), z.array(z.string())]);
+
+// The HMAC signing secret is only ever returned in the create response.
+export const WebhookCreateResponseSchema = z.object({
+  data: z.object({
+    id: z.string(),
+    userId: z.string().optional(),
+    enabled: z.boolean(),
+    url: z.string(),
+    secret: z.string(),
+    events: WebhookEventsSchema,
+    createdAt: z.string().optional(),
+    updatedAt: z.string().optional(),
+  }),
+});
+export type WebhookCreated = z.infer<typeof WebhookCreateResponseSchema>["data"];
+
+export const WebhookUpdateResponseSchema = z.object({
+  data: z.object({
+    id: z.string(),
+    enabled: z.boolean().optional(),
+    url: z.string(),
+    events: WebhookEventsSchema,
+  }),
+});
+export type WebhookUpdated = z.infer<typeof WebhookUpdateResponseSchema>["data"];

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.18](https://github.com/mynthio/oss/compare/cli-v0.0.17...cli-v0.0.18) (2026-07-08)
+
+
+### Features
+
+* **cli:** add destination and webhook management commands ([3787e71](https://github.com/mynthio/oss/commit/3787e712eccfbf281adab3b93a72a2499338fb58))
+
 ## [0.0.17](https://github.com/mynthio/oss/compare/cli-v0.0.16...cli-v0.0.17) (2026-07-05)
 
 

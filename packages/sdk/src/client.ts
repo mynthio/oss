@@ -69,13 +69,14 @@ class MynthClient {
   }
 
   public async post<DataType>(path: string, data: unknown): Promise<DataType> {
+    const isFormData = typeof FormData !== "undefined" && data instanceof FormData;
     const response = await fetch(this.getUrl(path), {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        ...(isFormData ? {} : { "Content-Type": "application/json" }),
         ...this.getAuthHeaders(),
       },
-      body: JSON.stringify(data),
+      body: isFormData ? data : JSON.stringify(data),
     });
 
     const json = await response.json();

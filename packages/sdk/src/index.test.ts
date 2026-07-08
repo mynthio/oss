@@ -144,6 +144,45 @@ describe("MynthImage", () => {
     );
   });
 
+  test("upload sends images as multipart form data", async () => {
+    // Arrange
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      jsonResponse({
+        data: {
+          urls: ["https://cdn.test/uploaded.webp"],
+        },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const image = new MynthImage({ apiKey: "mak_test", baseUrl: "https://api.test" });
+    const file = new File(["image-bytes"], "input.webp", { type: "image/webp" });
+    const blob = new Blob(["more-image-bytes"], { type: "image/png" });
+
+    // Act
+    const result = await image.upload([file, blob]);
+
+    // Assert
+    const request = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    const formFiles = (request.body as FormData).getAll("images") as File[];
+    expect({
+      result,
+      url: fetchMock.mock.calls[0]?.[0],
+      method: request.method,
+      headers: request.headers,
+      files: formFiles.map(({ name, type }) => ({ name, type })),
+    }).toEqual({
+      result: { urls: ["https://cdn.test/uploaded.webp"] },
+      url: "https://api.test/image/upload",
+      method: "POST",
+      headers: { Authorization: "Bearer mak_test" },
+      files: [
+        { name: "input.webp", type: "image/webp" },
+        { name: "image", type: "image/png" },
+      ],
+    });
+  });
+
   test("rateAsync returns a pollable rate task without waiting", async () => {
     // Arrange
     const fetchMock = vi.fn().mockResolvedValueOnce(

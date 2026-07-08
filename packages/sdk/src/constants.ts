@@ -8,6 +8,7 @@ export const API_KEY_ENV_VAR = "MYNTH_API_KEY";
 export const DESTINATION_ENV_VAR = "MYNTH_DESTINATION";
 
 export const GENERATE_IMAGE_PATH = "/image/generate";
+export const UPLOAD_IMAGE_PATH = "/image/upload";
 export const RATE_IMAGE_PATH = "/image/rate";
 export const ALT_IMAGE_PATH = "/image/alt";
 export const MODELS_PATH = "/models";

@@ -2,7 +2,7 @@
 
 Official SDK for the [Mynth](https://mynth.io) image API.
 
-The SDK gives you a typed `Mynth` client, sync and async generation, rating, and alt text flows, model metadata, and a Convex webhook helper.
+The SDK gives you a typed `Mynth` client, temporary image uploads, sync and async generation, rating, and alt text flows, model metadata, and a Convex webhook helper.
 
 ## Installation
 
@@ -199,6 +199,28 @@ const task = await mynth.image.generate({
 `access.pat.enabled` controls whether the create-task response includes a short-lived Public Access Token for browser-side polling. It defaults to `true`.
 
 `output` is optional. When you provide it, include both `format` and `quality`; when omitted, Mynth defaults to WebP at quality 80.
+
+## Upload Images
+
+Use `upload()` to store local or downloaded images temporarily, then pass the returned URLs to `inputs`:
+
+```ts
+const { urls } = await mynth.image.upload(file);
+
+await mynth.image.generate({
+  prompt: "Turn this product photo into a studio campaign image",
+  inputs: urls,
+});
+```
+
+`upload()` accepts one `File`/`Blob` or an array of `File`/`Blob` inputs.
+
+```ts
+await mynth.image.upload(file);
+await mynth.image.upload(await response.blob());
+```
+
+The API accepts JPEG, PNG, and WebP images.
 
 ## Prompt Options
 
@@ -510,7 +532,7 @@ Set `MYNTH_WEBHOOK_SECRET` in your environment, or pass `webhookSecret` explicit
 
 ## Error Handling
 
-`generate()`, `generateAsync()`, `rate()`, `rateAsync()`, `alt()`, `altAsync()`, and `models.list()` may throw `MynthAPIError` if the request fails. Polling can also throw task-specific errors:
+`upload()`, `generate()`, `generateAsync()`, `rate()`, `rateAsync()`, `alt()`, `altAsync()`, and `models.list()` may throw `MynthAPIError` if the request fails. Polling can also throw task-specific errors:
 
 ```ts
 import {

@@ -268,6 +268,16 @@ export namespace MynthSDKTypes {
     destination?: string;
   };
 
+  // ============================================================
+  // Image Upload
+  // ============================================================
+
+  export type ImageUploadInput = Blob | File;
+
+  export type ImageUploadResponse = {
+    urls: string[];
+  };
+
   export type ImageResultRatingDefaultLevel = "sfw" | "nsfw";
 
   export type ImageResultRatingFailure = {

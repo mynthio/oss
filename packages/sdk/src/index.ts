@@ -8,6 +8,7 @@ import {
   GENERATE_IMAGE_PATH,
   MODELS_PATH,
   RATE_IMAGE_PATH,
+  UPLOAD_IMAGE_PATH,
 } from "./constants";
 import { ImageAltResult } from "./image-alt-result";
 import { ImageGenerationResult } from "./image-generation-result";
@@ -45,6 +46,9 @@ type MynthOptions = {
 
 type MynthModel = MynthSDKTypes.Model;
 type MynthModelPricing = MynthSDKTypes.ModelPricing;
+
+const UPLOAD_FIELD_NAME = "images";
+const UPLOAD_FILENAME = "image";
 
 // Extract metadata type from ImageGenerationRequest
 type ExtractMetadata<T extends MynthSDKTypes.ImageGenerationRequest> = T["metadata"];
@@ -185,6 +189,41 @@ class MynthImage {
     const taskAsync = await this.createGenerationTask(request);
 
     return taskAsync.wait();
+  }
+
+  /**
+   * Upload one or more images to Mynth temporary input storage.
+   *
+   * Accepts File/Blob or an array of File/Blob inputs.
+   *
+   * @param input - Image input or inputs to upload
+   * @returns Uploaded image URLs that can be passed to generation `inputs`
+   *
+   * @example
+   * ```typescript
+   * const { urls } = await image.upload(file);
+   * await image.generate({ prompt: "Use this reference", inputs: urls });
+   * ```
+   */
+  public async upload(
+    input: MynthSDKTypes.ImageUploadInput | readonly MynthSDKTypes.ImageUploadInput[],
+  ): Promise<MynthSDKTypes.ImageUploadResponse> {
+    const form = new FormData();
+    const inputs = Array.isArray(input) ? input : [input];
+
+    for (const upload of inputs) {
+      form.append(
+        UPLOAD_FIELD_NAME,
+        upload,
+        typeof File !== "undefined" && upload instanceof File ? upload.name : UPLOAD_FILENAME,
+      );
+    }
+
+    const json = await this.client.post<
+      MynthSDKTypes.ApiResponse<MynthSDKTypes.ImageUploadResponse>
+    >(UPLOAD_IMAGE_PATH, form);
+
+    return json.data;
   }
 
   /**

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.29](https://github.com/mynthio/oss/compare/sdk-v0.0.28...sdk-v0.0.29) (2026-07-08)
+
+
+### Features
+
+* **sdk:** add temporary image uploads ([e718660](https://github.com/mynthio/oss/commit/e7186606088445ee3e139eb9ba4c48caf8a7d099))
+
 ## [0.0.28](https://github.com/mynthio/oss/compare/sdk-v0.0.27...sdk-v0.0.28) (2026-07-07)
 
 

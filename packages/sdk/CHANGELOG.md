@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.31](https://github.com/mynthio/oss/compare/sdk-v0.0.30...sdk-v0.0.31) (2026-07-09)
+
+
+### Features
+
+* **sdk:** upload local files in generate, rate, and alt ([6219732](https://github.com/mynthio/oss/commit/6219732086a071763c2dd597ac8e1aba731ba414))
+
 ## [0.0.30](https://github.com/mynthio/oss/compare/sdk-v0.0.29...sdk-v0.0.30) (2026-07-09)
 
 

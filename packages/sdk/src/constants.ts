@@ -64,6 +64,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["inputs"],
   },
   {
+    id: "bytedance/seedream-pro",
+    label: "Seedream Pro",
+    capabilities: ["inputs"],
+  },
+  {
     id: "black-forest-labs/flux.1-dev",
     label: "FLUX.1 Dev",
     capabilities: [],

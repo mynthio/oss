@@ -449,6 +449,7 @@ Current model IDs include:
 - `alibaba/qwen-image-2.0`
 - `alibaba/qwen-image-2.0-pro`
 - `bytedance/seedream-5.0-lite`
+- `bytedance/seedream-pro`
 - `black-forest-labs/flux.1-dev`
 - `black-forest-labs/flux-1-schnell`
 - `black-forest-labs/flux.2-dev`

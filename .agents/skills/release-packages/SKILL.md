@@ -33,6 +33,10 @@ For all packages that depends on SDK release process is same, but first you need
 
 Then run required checks and release the package. The package might be not compatible with new SDK, in such case, TS/Tests errors skip this package and report it to user at the end.
 
+# Tanstack Adapter
+
+Before release Tanstack Adapter package check if it doesn't need a sync with Mynth SDK. If nothing has changed that affects Tanstack Adapter, skip the release process for this package, or ask user on how to proceed.
+
 # Rest of the changes
 
 Skills, or README changes does not need a release process. For this changes, just pushing to main is sufficient. Only remember to keep them in separate and relevant commits.

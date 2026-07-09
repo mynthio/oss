@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.30](https://github.com/mynthio/oss/compare/sdk-v0.0.29...sdk-v0.0.30) (2026-07-09)
+
+
+### Features
+
+* **sdk:** add Seedream Pro model ([ba67173](https://github.com/mynthio/oss/commit/ba67173d3072ccd7410c6429d68b236ab70f8c5e))
+
 ## [0.0.29](https://github.com/mynthio/oss/compare/sdk-v0.0.28...sdk-v0.0.29) (2026-07-08)
 
 

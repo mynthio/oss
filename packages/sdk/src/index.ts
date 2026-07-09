@@ -50,26 +50,26 @@ type MynthModelPricing = MynthSDKTypes.ModelPricing;
 const UPLOAD_FIELD_NAME = "images";
 const UPLOAD_FILENAME = "image";
 
-// Extract metadata type from ImageGenerationRequest
-type ExtractMetadata<T extends MynthSDKTypes.ImageGenerationRequest> = T["metadata"];
+// Extract metadata type from ImageGenerationClientRequest
+type ExtractMetadata<T extends MynthSDKTypes.ImageGenerationClientRequest> = T["metadata"];
 
-type ExtractRatingConfig<T extends MynthSDKTypes.ImageGenerationRequest> = T["rating"];
+type ExtractRatingConfig<T extends MynthSDKTypes.ImageGenerationClientRequest> = T["rating"];
 
-type ExtractRatingLevels<T extends MynthSDKTypes.ImageGenerationRequest> =
+type ExtractRatingLevels<T extends MynthSDKTypes.ImageGenerationClientRequest> =
   ExtractRatingConfig<T> extends { levels: readonly (infer L)[] }
     ? L
     : ExtractRatingConfig<T> extends { levels: (infer L)[] }
       ? L
       : never;
 
-type ExtractRatingLevelValues<T extends MynthSDKTypes.ImageGenerationRequest> =
+type ExtractRatingLevelValues<T extends MynthSDKTypes.ImageGenerationClientRequest> =
   ExtractRatingLevels<T> extends { value: infer V } ? (V extends string ? V : never) : never;
 
-type IsRatingCustom<T extends MynthSDKTypes.ImageGenerationRequest> =
+type IsRatingCustom<T extends MynthSDKTypes.ImageGenerationClientRequest> =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Required for type inference
   ExtractRatingConfig<T> extends { mode: "custom"; levels: readonly any[] | any[] } ? true : false;
 
-type ExtractRatingResponse<T extends MynthSDKTypes.ImageGenerationRequest> =
+type ExtractRatingResponse<T extends MynthSDKTypes.ImageGenerationClientRequest> =
   IsRatingCustom<T> extends true
     ?
         | {
@@ -87,7 +87,7 @@ type ExtractRatingResponse<T extends MynthSDKTypes.ImageGenerationRequest> =
       : MynthSDKTypes.ImageResultRating | undefined;
 
 // Extract rate level values from the levels array
-type ExtractRateLevelValues<T extends MynthSDKTypes.ImageRateRequest> = T extends {
+type ExtractRateLevelValues<T extends MynthSDKTypes.ImageRateClientRequest> = T extends {
   mode: "custom";
   levels: readonly { value: infer V }[];
 }
@@ -95,6 +95,10 @@ type ExtractRateLevelValues<T extends MynthSDKTypes.ImageRateRequest> = T extend
     ? V
     : string
   : MynthSDKTypes.ImageResultRatingDefaultLevel;
+
+function isUploadInput(value: unknown): value is MynthSDKTypes.ImageUploadInput {
+  return typeof Blob !== "undefined" && value instanceof Blob;
+}
 
 /**
  * Attempts to read the API key from environment variables.
@@ -183,7 +187,7 @@ class MynthImage {
    * console.log(result.urls);
    * ```
    */
-  public async generate<const T extends MynthSDKTypes.ImageGenerationRequest>(
+  public async generate<const T extends MynthSDKTypes.ImageGenerationClientRequest>(
     request: T,
   ): Promise<ImageGenerationResult<ExtractMetadata<T>, ExtractRatingResponse<T>>> {
     const taskAsync = await this.createGenerationTask(request);
@@ -241,15 +245,46 @@ class MynthImage {
    * return { id: taskAsync.id, access: taskAsync.access };
    * ```
    */
-  public async generateAsync<const T extends MynthSDKTypes.ImageGenerationRequest>(
+  public async generateAsync<const T extends MynthSDKTypes.ImageGenerationClientRequest>(
     request: T,
   ): Promise<TaskAsync<ImageGenerationResult<ExtractMetadata<T>, ExtractRatingResponse<T>>>> {
     return this.createGenerationTask(request);
   }
 
-  private async createGenerationTask<const T extends MynthSDKTypes.ImageGenerationRequest>(
+  private async resolveGenerationInputs(
+    inputs: MynthSDKTypes.ImageGenerationClientRequest["inputs"],
+  ): Promise<MynthSDKTypes.ImageGenerationRequest["inputs"]> {
+    if (!inputs?.length) {
+      return undefined;
+    }
+
+    const files = inputs.flatMap((input) => {
+      if (isUploadInput(input)) return [input];
+      if (typeof input !== "string" && input.source.type === "file") return [input.source.file];
+      return [];
+    });
+    const urls = files.length ? (await this.upload(files)).urls : [];
+    let i = 0;
+
+    return inputs.map((input) => {
+      if (typeof input === "string") return input;
+      if (isUploadInput(input)) return urls[i++]!;
+      if (input.source.type === "file") {
+        return {
+          type: "image" as const,
+          as: input.as,
+          source: { type: "url" as const, url: urls[i++]! },
+        };
+      }
+      return { type: "image" as const, as: input.as, source: input.source };
+    });
+  }
+
+  private async createGenerationTask<const T extends MynthSDKTypes.ImageGenerationClientRequest>(
     request: T,
   ): Promise<TaskAsync<ImageGenerationResult<ExtractMetadata<T>, ExtractRatingResponse<T>>>> {
+    const inputs = await this.resolveGenerationInputs(request.inputs);
+
     const json = await this.client.post<
       MynthSDKTypes.ApiResponse<{
         taskId: string;
@@ -259,6 +294,7 @@ class MynthImage {
       }>
     >(GENERATE_IMAGE_PATH, {
       ...request,
+      inputs,
       destination: request.destination ?? this.defaultDestination,
     });
 
@@ -304,7 +340,7 @@ class MynthImage {
    * result.getRatings(); // [{ status: "success", url: "...", level: "safe" | "mature" | "explicit" }]
    * ```
    */
-  public async rate<const T extends MynthSDKTypes.ImageRateRequest>(
+  public async rate<const T extends MynthSDKTypes.ImageRateClientRequest>(
     request: T,
   ): Promise<ImageRateResult<ExtractRateLevelValues<T>>> {
     const taskAsync = await this.createRateTask(request);
@@ -315,7 +351,7 @@ class MynthImage {
   /**
    * Start image content rating without waiting for completion.
    *
-   * @param request - URLs to rate and optional custom levels
+   * @param request - URLs or files to rate and optional custom levels
    * @returns A TaskAsync that can be polled for completion via `.wait()`
    *
    * @example
@@ -329,20 +365,34 @@ class MynthImage {
    * console.log(result.getRatings());
    * ```
    */
-  public async rateAsync<const T extends MynthSDKTypes.ImageRateRequest>(
+  public async rateAsync<const T extends MynthSDKTypes.ImageRateClientRequest>(
     request: T,
   ): Promise<TaskAsync<ImageRateResult<ExtractRateLevelValues<T>>>> {
     return this.createRateTask(request);
   }
 
-  private async createRateTask<const T extends MynthSDKTypes.ImageRateRequest>(
+  private async resolveUrlsOrFiles(
+    request: MynthSDKTypes.ImageClientUrlsOrFiles,
+  ): Promise<string[]> {
+    if (request.files !== undefined) {
+      const { urls } = await this.upload(request.files);
+      return urls;
+    }
+
+    return request.urls;
+  }
+
+  private async createRateTask<const T extends MynthSDKTypes.ImageRateClientRequest>(
     request: T,
   ): Promise<TaskAsync<ImageRateResult<ExtractRateLevelValues<T>>>> {
     type LevelT = ExtractRateLevelValues<T>;
 
+    const urls = await this.resolveUrlsOrFiles(request);
+    const { files: _, urls: __, ...rest } = request;
+
     const json = await this.client.post<
       MynthSDKTypes.ApiResponse<MynthSDKTypes.ImageRatePendingResponse>
-    >(RATE_IMAGE_PATH, { ...request, sync: false });
+    >(RATE_IMAGE_PATH, { ...rest, urls, sync: false });
 
     const data = json.data;
     type Result = ImageRateResult<LevelT>;
@@ -370,7 +420,7 @@ class MynthImage {
    * console.log(result.getAltTexts()); // [{ status: "success", url: "...", alt: "..." }]
    * ```
    */
-  public async alt(request: MynthSDKTypes.ImageAltRequest): Promise<ImageAltResult> {
+  public async alt(request: MynthSDKTypes.ImageAltClientRequest): Promise<ImageAltResult> {
     const taskAsync = await this.createAltTask(request);
 
     return taskAsync.wait();
@@ -379,7 +429,7 @@ class MynthImage {
   /**
    * Start image alt text generation without waiting for completion.
    *
-   * @param request - URLs to generate alt text for
+   * @param request - URLs or files to generate alt text for
    * @returns A TaskAsync that can be polled for completion via `.wait()`
    *
    * @example
@@ -393,17 +443,19 @@ class MynthImage {
    * ```
    */
   public async altAsync(
-    request: MynthSDKTypes.ImageAltRequest,
+    request: MynthSDKTypes.ImageAltClientRequest,
   ): Promise<TaskAsync<ImageAltResult>> {
     return this.createAltTask(request);
   }
 
   private async createAltTask(
-    request: MynthSDKTypes.ImageAltRequest,
+    request: MynthSDKTypes.ImageAltClientRequest,
   ): Promise<TaskAsync<ImageAltResult>> {
+    const urls = await this.resolveUrlsOrFiles(request);
+
     const json = await this.client.post<
       MynthSDKTypes.ApiResponse<MynthSDKTypes.ImageAltPendingResponse>
-    >(ALT_IMAGE_PATH, { ...request, sync: false });
+    >(ALT_IMAGE_PATH, { urls, sync: false });
 
     const data = json.data;
 

@@ -183,6 +183,123 @@ describe("MynthImage", () => {
     });
   });
 
+  test("generateAsync uploads local files in inputs before generate", async () => {
+    // Arrange
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse({
+          data: {
+            urls: ["https://cdn.test/uploaded-1.webp", "https://cdn.test/uploaded-2.webp"],
+          },
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          data: {
+            taskId: "task-123",
+          },
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const image = new MynthImage({ apiKey: "mak_test", baseUrl: "https://api.test" });
+    const file = new File(["image-bytes"], "input.webp", { type: "image/webp" });
+    const blob = new Blob(["more-image-bytes"], { type: "image/png" });
+
+    // Act
+    await image.generateAsync({
+      prompt: "use these",
+      inputs: [
+        "https://cdn.test/existing.webp",
+        file,
+        {
+          type: "image",
+          as: "reference",
+          source: { type: "file", file: blob },
+        },
+      ],
+    });
+
+    // Assert
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("https://api.test/image/upload");
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "https://api.test/image/generate",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          prompt: "use these",
+          inputs: [
+            "https://cdn.test/existing.webp",
+            "https://cdn.test/uploaded-1.webp",
+            {
+              type: "image",
+              as: "reference",
+              source: { type: "url", url: "https://cdn.test/uploaded-2.webp" },
+            },
+          ],
+        }),
+      }),
+    );
+  });
+
+  test.each([
+    {
+      name: "rateAsync",
+      path: "https://api.test/image/rate",
+      taskId: "task-rate-123",
+      call: (image: MynthImage, file: File) => image.rateAsync({ files: file, mode: "nsfw_sfw" }),
+      body: {
+        mode: "nsfw_sfw",
+        urls: ["https://cdn.test/uploaded.webp"],
+        sync: false,
+      },
+    },
+    {
+      name: "altAsync",
+      path: "https://api.test/image/alt",
+      taskId: "task-alt-123",
+      call: (image: MynthImage, file: File) => image.altAsync({ files: [file] }),
+      body: {
+        urls: ["https://cdn.test/uploaded.webp"],
+        sync: false,
+      },
+    },
+  ])("$name uploads files before POST", async ({ path, taskId, call, body }) => {
+    // Arrange
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ data: { urls: ["https://cdn.test/uploaded.webp"] } }))
+      .mockResolvedValueOnce(
+        jsonResponse({ data: { task: { id: taskId, status: "pending" } } }, { status: 202 }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+    const image = new MynthImage({ apiKey: "mak_test", baseUrl: "https://api.test" });
+    const file = new File(["image-bytes"], "input.webp", { type: "image/webp" });
+
+    // Act
+    const task = await call(image, file);
+
+    // Assert
+    expect({
+      id: task.id,
+      uploadUrl: fetchMock.mock.calls[0]?.[0],
+      postCall: fetchMock.mock.calls[1],
+    }).toEqual({
+      id: taskId,
+      uploadUrl: "https://api.test/image/upload",
+      postCall: [
+        path,
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify(body),
+        }),
+      ],
+    });
+  });
+
   test("rateAsync returns a pollable rate task without waiting", async () => {
     // Arrange
     const fetchMock = vi.fn().mockResolvedValueOnce(
@@ -220,8 +337,8 @@ describe("MynthImage", () => {
         expect.objectContaining({
           method: "POST",
           body: JSON.stringify({
-            urls: ["https://cdn.test/image.webp"],
             mode: "nsfw_sfw",
+            urls: ["https://cdn.test/image.webp"],
             sync: false,
           }),
         }),

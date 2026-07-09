@@ -219,7 +219,17 @@ export namespace MynthSDKTypes {
     type: "auto";
   };
 
-  /** Image input source */
+  // ============================================================
+  // Image Upload
+  // ============================================================
+
+  export type ImageUploadInput = Blob | File;
+
+  export type ImageUploadResponse = {
+    urls: string[];
+  };
+
+  /** Image input source (API wire format) */
   export type ImageGenerationRequestInputSource = {
     type: "url";
     url: string;
@@ -233,11 +243,16 @@ export namespace MynthSDKTypes {
     | "source"
     | "reference";
 
-  /** Structured image input */
+  /** Structured image input (API wire format) */
   export type ImageGenerationRequestInput = {
     type: "image";
     as?: ImageGenerationRequestInputAs;
     source: ImageGenerationRequestInputSource;
+  };
+
+  /** Structured image input for the SDK client (may include local files) */
+  export type ImageGenerationClientInput = Omit<ImageGenerationRequestInput, "source"> & {
+    source: ImageGenerationRequestInputSource | { type: "file"; file: ImageUploadInput };
   };
 
   /**
@@ -251,7 +266,7 @@ export namespace MynthSDKTypes {
     | "auto";
 
   /**
-   * Image generation request parameters.
+   * Image generation request parameters (API wire format).
    */
   export type ImageGenerationRequest = {
     prompt: ImageGenerationRequestPrompt;
@@ -269,14 +284,12 @@ export namespace MynthSDKTypes {
     destination?: string;
   };
 
-  // ============================================================
-  // Image Upload
-  // ============================================================
-
-  export type ImageUploadInput = Blob | File;
-
-  export type ImageUploadResponse = {
-    urls: string[];
+  /**
+   * Image generation request parameters for the SDK client.
+   * Accepts local files in `inputs`; they are uploaded before the API call.
+   */
+  export type ImageGenerationClientRequest = Omit<ImageGenerationRequest, "inputs"> & {
+    inputs?: (string | ImageUploadInput | ImageGenerationClientInput)[];
   };
 
   export type ImageResultRatingDefaultLevel = "sfw" | "nsfw";
@@ -358,7 +371,7 @@ export namespace MynthSDKTypes {
     description: string;
   };
 
-  /** Request body for the image rate endpoint */
+  /** Request body for the image rate endpoint (API wire format) */
   export type ImageRateRequestBase = {
     /** Image URLs to rate (1–10) */
     urls: string[];
@@ -376,6 +389,18 @@ export namespace MynthSDKTypes {
   };
 
   export type ImageRateRequest = ImageRateRequestBase &
+    (ImageRateRequestRatingDefault | ImageRateRequestRatingCustom);
+
+  /** Image sources for rate/alt SDK methods: remote URLs or local files */
+  export type ImageClientUrlsOrFiles =
+    | { urls: string[]; files?: never }
+    | { files: ImageUploadInput | readonly ImageUploadInput[]; urls?: never };
+
+  /**
+   * Image rate request for the SDK client.
+   * Pass either `urls` or `files` (files are uploaded before the API call).
+   */
+  export type ImageRateClientRequest = ImageClientUrlsOrFiles &
     (ImageRateRequestRatingDefault | ImageRateRequestRatingCustom);
 
   /** A successfully rated image */
@@ -424,11 +449,17 @@ export namespace MynthSDKTypes {
   // Image Alt
   // ============================================================
 
-  /** Request body for the image alt endpoint */
+  /** Request body for the image alt endpoint (API wire format) */
   export type ImageAltRequest = {
     /** Image URLs to generate alt text for (1-10) */
     urls: string[];
   };
+
+  /**
+   * Image alt request for the SDK client.
+   * Pass either `urls` or `files` (files are uploaded before the API call).
+   */
+  export type ImageAltClientRequest = ImageClientUrlsOrFiles;
 
   /** A successfully generated image alt text item */
   export type ImageAltResponseItemSuccess = {

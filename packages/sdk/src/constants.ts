@@ -179,6 +179,16 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: [],
   },
   {
+    id: "reve/reve",
+    label: "Reve",
+    capabilities: ["inputs"],
+  },
+  {
+    id: "reve/reve-remix",
+    label: "Reve Remix",
+    capabilities: ["inputs"],
+  },
+  {
     id: "sourceful/riverflow-2.0-pro",
     label: "Riverflow 2.0 Pro",
     capabilities: ["inputs", "4k", "native_enhance_prompt"],

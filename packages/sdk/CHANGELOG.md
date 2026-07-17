@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.32](https://github.com/mynthio/oss/compare/sdk-v0.0.31...sdk-v0.0.32) (2026-07-17)
+
+
+### Features
+
+* **sdk:** add Reve and Reve Remix models ([ec77ac8](https://github.com/mynthio/oss/commit/ec77ac8b6ae51575df89af9b3f3e19632fdcae44))
+
 ## [0.0.31](https://github.com/mynthio/oss/compare/sdk-v0.0.30...sdk-v0.0.31) (2026-07-09)
 
 

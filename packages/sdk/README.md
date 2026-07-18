@@ -465,6 +465,7 @@ Current model IDs include:
 - `imagineart/imagineart-1.5-pro`
 - `imagineart/imagineart-2.0`
 - `john6666/bismuth-illustrious-mix`
+- `maxfeifei8/one-obsession`
 - `krea/krea-2-turbo`
 - `krea/krea-2-medium`
 - `krea/krea-2-large`

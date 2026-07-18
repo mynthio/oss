@@ -129,6 +129,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["negative_prompt"],
   },
   {
+    id: "maxfeifei8/one-obsession",
+    label: "One obsession",
+    capabilities: ["negative_prompt"],
+  },
+  {
     id: "klingai/kling-image-3.0",
     label: "Kling IMAGE 3.0",
     capabilities: ["inputs"],

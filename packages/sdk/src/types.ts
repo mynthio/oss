@@ -98,6 +98,7 @@ export namespace MynthSDKTypes {
     | "tongyi-mai/z-image"
     | "tongyi-mai/z-image-turbo"
     | "john6666/bismuth-illustrious-mix"
+    | "maxfeifei8/one-obsession"
     | "purplesmartai/pony-diffusion-v6-xl"
     | "recraft/recraft-v4"
     | "recraft/recraft-v4-pro"

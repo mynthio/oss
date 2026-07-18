@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.33](https://github.com/mynthio/oss/compare/sdk-v0.0.32...sdk-v0.0.33) (2026-07-18)
+
+
+### Features
+
+* **sdk:** add One Obsession model ([a40f3a2](https://github.com/mynthio/oss/commit/a40f3a287a65fca1b44ef7fb9d3652e790b1712b))
+
 ## [0.0.32](https://github.com/mynthio/oss/compare/sdk-v0.0.31...sdk-v0.0.32) (2026-07-17)
 
 

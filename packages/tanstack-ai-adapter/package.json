@@ -37,7 +37,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@mynthio/sdk": "0.0.30"
+    "@mynthio/sdk": "0.0.32"
   },
   "devDependencies": {
     "@tanstack/ai": "^0.34.1",

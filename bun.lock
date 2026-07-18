@@ -74,7 +74,7 @@
     },
     "packages/sdk": {
       "name": "@mynthio/sdk",
-      "version": "0.0.32",
+      "version": "0.0.33",
       "devDependencies": {
         "@types/node": "^25.5.0",
         "convex": "^1.34.1",
@@ -90,9 +90,9 @@
     },
     "packages/tanstack-ai-adapter": {
       "name": "@mynthio/tanstack-ai-adapter",
-      "version": "0.0.22",
+      "version": "0.0.23",
       "dependencies": {
-        "@mynthio/sdk": "0.0.32",
+        "@mynthio/sdk": "0.0.33",
       },
       "devDependencies": {
         "@tanstack/ai": "^0.34.1",
@@ -1766,7 +1766,7 @@
 
     "@microsoft/tsdoc-config/ajv": ["ajv@8.12.0", "", { "dependencies": { "fast-deep-equal": "^3.1.1", "json-schema-traverse": "^1.0.0", "require-from-string": "^2.0.2", "uri-js": "^4.2.2" } }, "sha512-sRu1kpcO9yLtYxBKvqfTeh9KzZEwO3STyX1HT+4CaDzC6HpTGYhIhPIzj9XuKU7KYDwnaeh5hcOwjy1QuJzBPA=="],
 
-    "@mynthio/tanstack-ai-adapter/@mynthio/sdk": ["@mynthio/sdk@0.0.32", "", { "peerDependencies": { "convex": "^1.27.3" }, "optionalPeers": ["convex"] }, "sha512-9STvEL7v3K9R96hD0Y+kQgBtn5MLF/FTS8gWGfQKxWKRiUZdjQgLJDR8fMx0/x7KL2bGeYmmq+NuH4pQVofWpA=="],
+    "@mynthio/tanstack-ai-adapter/@mynthio/sdk": ["@mynthio/sdk@0.0.33", "", { "peerDependencies": { "convex": "^1.27.3" }, "optionalPeers": ["convex"] }, "sha512-toitaZ0f+QSsTl9gyYUAy9kGZCGjWNklBA7+i00LQWSdah2C5+CvN6H+zp0pHHYRBqmYg/4R/yegTeYivjxwTA=="],
 
     "@rollup/pluginutils/estree-walker": ["estree-walker@2.0.2", "", {}, "sha512-Rfkk/Mp/DL7JVje3u18FxFujQlTNR2q6QfMSMB7AvCBx91NGj/ba3kCfza0f6dVDbw7YlRf/nDrn7pQrCCyQ/w=="],
 

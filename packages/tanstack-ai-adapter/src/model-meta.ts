@@ -24,6 +24,7 @@ export const MYNTH_IMAGE_MODELS = [
   "black-forest-labs/flux-virtual-try-on",
   "ideogram/remove-background",
   "john6666/bismuth-illustrious-mix",
+  "maxfeifei8/one-obsession",
   "klingai/kling-image-3.0",
   "klingai/kling-image-o3",
   "krea/krea-2-turbo",

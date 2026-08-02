@@ -70,24 +70,25 @@ export const UploadResponseSchema = z.object({
   }),
 });
 
-export const RateResultItemSchema = z.union([
-  z.object({ status: z.literal("success"), url: z.string(), level: z.string() }),
-  z.object({
-    status: z.literal("failed"),
-    url: z.string(),
-    error: z.object({ code: z.string() }),
-  }),
-]);
-
-export const RateResponseSchema = z.object({
+export const RateCreateResponseSchema = z.object({
   data: z.object({
-    task: z.object({
-      id: z.string(),
-      status: z.literal("completed"),
-      cost: z.string(),
-    }),
-    results: z.array(RateResultItemSchema),
+    taskId: z.string(),
+    estimatedCost: z.string(),
   }),
+});
+
+// These async-only endpoints share the same 201 task-created envelope.
+export const AltCreateResponseSchema = RateCreateResponseSchema;
+export const ReviewCreateResponseSchema = RateCreateResponseSchema;
+
+export const RateTaskResultSchema = z.object({
+  url: z.string(),
+  level: z.string(),
+});
+
+export const AltTaskResultSchema = z.object({
+  url: z.string(),
+  alt: z.string(),
 });
 
 export const GenerateResponseSchema = z.object({
@@ -154,7 +155,12 @@ export const TaskStatusSchema = z.object({
 
 export const TaskDataSchema = z.object({
   id: z.string(),
-  type: z.union([z.literal("image.generate"), z.literal("image.rate")]),
+  type: z.union([
+    z.literal("image.generate"),
+    z.literal("image.rate"),
+    z.literal("image.alt"),
+    z.literal("image.review"),
+  ]),
   status: z.union([z.literal("pending"), z.literal("completed"), z.literal("failed")]),
   userId: z.string(),
   apiKeyId: z.string().nullable(),

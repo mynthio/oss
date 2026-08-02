@@ -185,17 +185,55 @@ describe("mynth cli", () => {
   });
 
   it("preserves image rate response fields from the API", async () => {
+    const rateRequest: { body?: unknown } = {};
     const server = createServer((request, response) => {
-      expect(request.url).toBe("/image/rate");
       response.setHeader("Content-Type", "application/json");
-      response.end(
-        JSON.stringify({
-          data: {
-            task: { id: "tsk_rate", status: "completed", cost: "0.00020000" },
-            results: [{ status: "success", url: "https://cdn.test/image.webp", level: "sfw" }],
-          },
-        }),
-      );
+
+      if (request.url === "/image/rate") {
+        let body = "";
+        request.setEncoding("utf8");
+        request.on("data", (chunk) => {
+          body += chunk;
+        });
+        request.on("end", () => {
+          rateRequest.body = JSON.parse(body);
+          response.statusCode = 201;
+          response.end(
+            JSON.stringify({
+              data: { taskId: "tsk_rate", estimatedCost: "0.0002" },
+            }),
+          );
+        });
+        return;
+      }
+
+      if (request.url === "/tasks/tsk_rate/status") {
+        response.end(JSON.stringify({ data: { status: "completed" } }));
+        return;
+      }
+
+      if (request.url === "/tasks/tsk_rate") {
+        response.end(
+          JSON.stringify({
+            data: {
+              id: "tsk_rate",
+              type: "image.rate",
+              status: "completed",
+              userId: "user_123",
+              apiKeyId: "key_123",
+              cost: "0.00020000",
+              request: { url: "https://cdn.test/image.webp", mode: "nsfw_sfw" },
+              result: { url: "https://cdn.test/image.webp", level: "sfw" },
+              createdAt: "2026-01-01T00:00:00.000Z",
+              updatedAt: "2026-01-01T00:00:01.000Z",
+            },
+          }),
+        );
+        return;
+      }
+
+      response.statusCode = 404;
+      response.end(JSON.stringify({ error: "not found" }));
     });
 
     await new Promise<void>((resolvePromise) => server.listen(0, "127.0.0.1", resolvePromise));
@@ -208,15 +246,235 @@ describe("mynth cli", () => {
       });
 
       expect(result).toMatchObject({ status: 0, stderr: "" });
+      expect(rateRequest.body).toEqual({ url: "https://cdn.test/image.webp" });
       expect(JSON.parse(result.stdout)).toEqual({
-        task: { id: "tsk_rate", status: "completed", cost: "0.00020000" },
-        results: [{ status: "success", url: "https://cdn.test/image.webp", level: "sfw" }],
+        taskId: "tsk_rate",
+        cost: "0.00020000",
+        url: "https://cdn.test/image.webp",
+        level: "sfw",
       });
     } finally {
       await new Promise<void>((resolvePromise, reject) => {
         server.close((error) => (error ? reject(error) : resolvePromise()));
       });
     }
+  });
+
+  it("generates image alt text through the async single-url endpoint", async () => {
+    const altRequest: { body?: unknown } = {};
+    const server = createServer((request, response) => {
+      response.setHeader("Content-Type", "application/json");
+
+      if (request.url === "/image/alt") {
+        let body = "";
+        request.setEncoding("utf8");
+        request.on("data", (chunk) => {
+          body += chunk;
+        });
+        request.on("end", () => {
+          altRequest.body = JSON.parse(body);
+          response.statusCode = 201;
+          response.end(
+            JSON.stringify({
+              data: { taskId: "tsk_alt", estimatedCost: "0.0004" },
+            }),
+          );
+        });
+        return;
+      }
+
+      if (request.url === "/tasks/tsk_alt/status") {
+        response.end(JSON.stringify({ data: { status: "completed" } }));
+        return;
+      }
+
+      if (request.url === "/tasks/tsk_alt") {
+        response.end(
+          JSON.stringify({
+            data: {
+              id: "tsk_alt",
+              type: "image.alt",
+              status: "completed",
+              userId: "user_123",
+              apiKeyId: "key_123",
+              cost: "0.00040000",
+              request: { url: "https://cdn.test/image.webp" },
+              result: {
+                url: "https://cdn.test/image.webp",
+                alt: "A glass keyboard glowing on a dark desk.",
+              },
+              createdAt: "2026-01-01T00:00:00.000Z",
+              updatedAt: "2026-01-01T00:00:01.000Z",
+            },
+          }),
+        );
+        return;
+      }
+
+      response.statusCode = 404;
+      response.end(JSON.stringify({ error: "not found" }));
+    });
+
+    await new Promise<void>((resolvePromise) => server.listen(0, "127.0.0.1", resolvePromise));
+    const address = server.address() as AddressInfo;
+
+    try {
+      const result = await runCliAsync(["image", "alt", "https://cdn.test/image.webp", "--json"], {
+        MYNTH_API_URL: `http://127.0.0.1:${address.port}`,
+        MYNTH_API_KEY: "mak_test",
+      });
+
+      expect(result).toMatchObject({ status: 0, stderr: "" });
+      expect(altRequest.body).toEqual({ url: "https://cdn.test/image.webp" });
+      expect(JSON.parse(result.stdout)).toEqual({
+        taskId: "tsk_alt",
+        cost: "0.00040000",
+        url: "https://cdn.test/image.webp",
+        alt: "A glass keyboard glowing on a dark desk.",
+      });
+    } finally {
+      await new Promise<void>((resolvePromise, reject) => {
+        server.close((error) => (error ? reject(error) : resolvePromise()));
+      });
+    }
+  });
+
+  it("documents single-image rate and alt commands", () => {
+    const rateHelp = runCli("image", "rate", "--help");
+    const altHelp = runCli("image", "alt", "--help");
+
+    expect(rateHelp.status).toBe(0);
+    expect(rateHelp.stdout).toContain("Usage: mynth image rate [options] <image>");
+    expect(altHelp.status).toBe(0);
+    expect(altHelp.stdout).toContain("Generate alt text for an image");
+    expect(altHelp.stdout).toContain("Usage: mynth image alt [options] <image>");
+  });
+
+  it("preserves image review response fields from the API", async () => {
+    const reviewBody: { body?: unknown } = {};
+    const server = createServer((request, response) => {
+      response.setHeader("Content-Type", "application/json");
+
+      if (request.url === "/image/review") {
+        let body = "";
+        request.setEncoding("utf8");
+        request.on("data", (chunk) => {
+          body += chunk;
+        });
+        request.on("end", () => {
+          reviewBody.body = JSON.parse(body);
+          response.statusCode = 201;
+          response.end(
+            JSON.stringify({
+              data: { taskId: "tsk_review", estimatedCost: "0.02" },
+            }),
+          );
+        });
+        return;
+      }
+
+      if (request.url === "/tasks/tsk_review/status") {
+        response.end(JSON.stringify({ data: { status: "completed" } }));
+        return;
+      }
+
+      if (request.url === "/tasks/tsk_review") {
+        response.end(
+          JSON.stringify({
+            data: {
+              id: "tsk_review",
+              type: "image.review",
+              status: "completed",
+              userId: "user_123",
+              apiKeyId: "key_123",
+              cost: "0.02000000",
+              request: { url: "https://cdn.test/image.webp", effort: "low" },
+              result: {
+                url: "https://cdn.test/image.webp",
+                score: 3,
+                summary: "Solid product shot with one anatomy issue.",
+                findings: [
+                  {
+                    finding: "Extra finger on the left hand",
+                    category: "anatomy",
+                    severity: "major",
+                    where: "lower left, near the cup",
+                    confidence: "high",
+                  },
+                ],
+                strengths: [
+                  {
+                    strength: "Clean lighting and background",
+                    confidence: "high",
+                  },
+                ],
+              },
+              createdAt: "2026-01-01T00:00:00.000Z",
+              updatedAt: "2026-01-01T00:00:02.000Z",
+            },
+          }),
+        );
+        return;
+      }
+
+      response.statusCode = 404;
+      response.end(JSON.stringify({ error: "not found" }));
+    });
+
+    await new Promise<void>((resolvePromise) => server.listen(0, "127.0.0.1", resolvePromise));
+    const address = server.address() as AddressInfo;
+
+    try {
+      const result = await runCliAsync(
+        ["image", "review", "https://cdn.test/image.webp", "--effort", "low", "--json"],
+        {
+          MYNTH_API_URL: `http://127.0.0.1:${address.port}`,
+          MYNTH_API_KEY: "mak_test",
+        },
+      );
+
+      expect(result).toMatchObject({ status: 0, stderr: "" });
+      expect(reviewBody.body).toEqual({
+        url: "https://cdn.test/image.webp",
+        effort: "low",
+      });
+      expect(JSON.parse(result.stdout)).toEqual({
+        taskId: "tsk_review",
+        cost: "0.02000000",
+        url: "https://cdn.test/image.webp",
+        score: 3,
+        summary: "Solid product shot with one anatomy issue.",
+        findings: [
+          {
+            finding: "Extra finger on the left hand",
+            category: "anatomy",
+            severity: "major",
+            where: "lower left, near the cup",
+            confidence: "high",
+          },
+        ],
+        strengths: [
+          {
+            strength: "Clean lighting and background",
+            confidence: "high",
+          },
+        ],
+      });
+    } finally {
+      await new Promise<void>((resolvePromise, reject) => {
+        server.close((error) => (error ? reject(error) : resolvePromise()));
+      });
+    }
+  });
+
+  it("documents the image review command", () => {
+    const help = runCli("image", "review", "--help");
+
+    expect(help.status).toBe(0);
+    expect(help.stdout).toContain("Review image quality");
+    expect(help.stdout).toContain("(--effort level)");
+    expect(help.stdout).toContain("high");
+    expect(help.stdout).toContain("low");
   });
 
   it("preserves task response fields from the API", async () => {

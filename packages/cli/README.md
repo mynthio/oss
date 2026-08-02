@@ -25,6 +25,26 @@ mynth image generate --prompt "A cinematic product photo of a glass keyboard"
 mynth image generate -p "A watercolor city skyline" --size 16:9 --count 2
 ```
 
+### Image analysis
+
+Rate an image or generate accessibility alt text. Both commands accept one URL or local image file,
+create an asynchronous API task, and wait for its result:
+
+```bash
+mynth image rate https://cdn.example.com/product.webp
+mynth image alt ./product.webp --json
+```
+
+### Image review
+
+Quality review with a multi-model panel (score 1–4, findings, and strengths):
+
+```bash
+mynth image review https://cdn.example.com/product.webp
+mynth image review ./shot.png --effort low   # faster, cheaper triage panel
+mynth image review ./shot.png --json
+```
+
 ### Cost and balance
 
 Check spend before a batch run:

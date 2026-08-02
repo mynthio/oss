@@ -3,9 +3,13 @@ import { basename, extname, join, resolve } from "node:path";
 import type { z } from "zod";
 import { MynthApiError, taskFailureCode } from "../domain/Errors.ts";
 import {
+  AltCreateResponseSchema,
+  AltTaskResultSchema,
   EstimateResponseSchema,
   GenerateResponseSchema,
-  RateResponseSchema,
+  RateCreateResponseSchema,
+  RateTaskResultSchema,
+  ReviewCreateResponseSchema,
   TaskResponseSchema,
   TaskStatusSchema,
   UploadResponseSchema,
@@ -15,26 +19,52 @@ import {
 import { MynthApi, readJson, requireSuccess } from "./MynthApi.ts";
 
 export const MAX_UPLOAD_FILES = 10;
-export const MAX_RATE_IMAGES = 10;
 export const MIN_RATE_LEVELS = 2;
 export const MAX_RATE_LEVELS = 7;
+export const REVIEW_EFFORTS = ["low", "high"] as const;
 
 export type RateLevel = {
   readonly value: string;
   readonly description: string;
 };
 
-export type RateResultItem =
-  | { readonly status: "success"; readonly url: string; readonly level: string }
-  | { readonly status: "failed"; readonly url: string; readonly error: { readonly code: string } };
-
 export type RateResponse = {
-  readonly task: {
-    readonly id: string;
-    readonly status: "completed";
-    readonly cost: string;
-  };
-  readonly results: ReadonlyArray<RateResultItem>;
+  readonly taskId: string;
+  readonly cost: string;
+  readonly url: string;
+  readonly level: string;
+};
+
+export type AltResponse = {
+  readonly taskId: string;
+  readonly cost: string;
+  readonly url: string;
+  readonly alt: string;
+};
+
+export type ReviewEffort = (typeof REVIEW_EFFORTS)[number];
+
+export type ReviewFinding = {
+  readonly finding: string;
+  readonly category: string;
+  readonly severity: string;
+  readonly where: string;
+  readonly confidence: string;
+};
+
+export type ReviewStrength = {
+  readonly strength: string;
+  readonly confidence: string;
+};
+
+export type ReviewResponse = {
+  readonly taskId: string;
+  readonly cost: string;
+  readonly url: string;
+  readonly score: number;
+  readonly summary: string;
+  readonly findings: ReadonlyArray<ReviewFinding>;
+  readonly strengths: ReadonlyArray<ReviewStrength>;
 };
 
 export type GenerateResponse = {
@@ -158,18 +188,9 @@ export class ImageService {
   }
 
   async rate(args: {
-    readonly urls: ReadonlyArray<string>;
+    readonly url: string;
     readonly levels?: ReadonlyArray<RateLevel>;
   }): Promise<RateResponse> {
-    if (args.urls.length === 0) {
-      throw new MynthApiError({ message: "no image URLs to rate", status: 0 });
-    }
-    if (args.urls.length > MAX_RATE_IMAGES) {
-      throw new MynthApiError({
-        message: `too many images: ${args.urls.length} (max ${MAX_RATE_IMAGES})`,
-        status: 0,
-      });
-    }
     if (
       args.levels !== undefined &&
       (args.levels.length < MIN_RATE_LEVELS || args.levels.length > MAX_RATE_LEVELS)
@@ -182,8 +203,8 @@ export class ImageService {
 
     const body =
       args.levels !== undefined
-        ? { urls: args.urls, mode: "custom", levels: args.levels }
-        : { urls: args.urls, mode: "nsfw_sfw" };
+        ? { url: args.url, mode: "custom" as const, levels: args.levels }
+        : { url: args.url };
 
     const response = await this.api.execute("/image/rate", {
       method: "POST",
@@ -192,8 +213,142 @@ export class ImageService {
     });
     await requireSuccess(response, "rate");
 
-    const json = await parseResponse(response, RateResponseSchema, "invalid rate response");
-    return json.data;
+    const created = await parseResponse(
+      response,
+      RateCreateResponseSchema,
+      "invalid rate create response",
+    );
+    const task = await this.waitForTask(created.data.taskId);
+
+    if (task.type !== "image.rate" || task.status !== "completed" || task.result === null) {
+      throw new MynthApiError({
+        message: `rate task ${created.data.taskId} did not complete successfully`,
+        status: 0,
+      });
+    }
+
+    if (task.cost === null) {
+      throw new MynthApiError({
+        message: `rate task ${created.data.taskId} is missing cost`,
+        status: 0,
+      });
+    }
+
+    const result = RateTaskResultSchema.safeParse(task.result);
+    if (!result.success) {
+      throw new MynthApiError({
+        message: `rate task ${created.data.taskId} returned an invalid result`,
+        status: 0,
+        cause: result.error,
+      });
+    }
+
+    return {
+      taskId: task.id,
+      cost: task.cost,
+      url: result.data.url,
+      level: result.data.level,
+    };
+  }
+
+  async alt(args: { readonly url: string }): Promise<AltResponse> {
+    const response = await this.api.execute("/image/alt", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: args.url }),
+    });
+    await requireSuccess(response, "alt text");
+
+    const created = await parseResponse(
+      response,
+      AltCreateResponseSchema,
+      "invalid alt text create response",
+    );
+    const task = await this.waitForTask(created.data.taskId);
+
+    if (task.type !== "image.alt" || task.status !== "completed" || task.result === null) {
+      throw new MynthApiError({
+        message: `alt text task ${created.data.taskId} did not complete successfully`,
+        status: 0,
+      });
+    }
+
+    if (task.cost === null) {
+      throw new MynthApiError({
+        message: `alt text task ${created.data.taskId} is missing cost`,
+        status: 0,
+      });
+    }
+
+    const result = AltTaskResultSchema.safeParse(task.result);
+    if (!result.success) {
+      throw new MynthApiError({
+        message: `alt text task ${created.data.taskId} returned an invalid result`,
+        status: 0,
+        cause: result.error,
+      });
+    }
+
+    return {
+      taskId: task.id,
+      cost: task.cost,
+      url: result.data.url,
+      alt: result.data.alt,
+    };
+  }
+
+  async review(args: {
+    readonly url: string;
+    readonly effort?: ReviewEffort;
+  }): Promise<ReviewResponse> {
+    const body =
+      args.effort !== undefined ? { url: args.url, effort: args.effort } : { url: args.url };
+
+    const response = await this.api.execute("/image/review", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    await requireSuccess(response, "review");
+
+    const created = await parseResponse(
+      response,
+      ReviewCreateResponseSchema,
+      "invalid review create response",
+    );
+    const task = await this.waitForTask(created.data.taskId);
+
+    if (task.type !== "image.review" || task.status !== "completed" || task.result === null) {
+      throw new MynthApiError({
+        message: `review task ${created.data.taskId} did not complete successfully`,
+        status: 0,
+      });
+    }
+
+    if (task.cost === null) {
+      throw new MynthApiError({
+        message: `review task ${created.data.taskId} is missing cost`,
+        status: 0,
+      });
+    }
+
+    const result = task.result as unknown as {
+      url: string;
+      score: number;
+      summary: string;
+      findings: ReadonlyArray<ReviewFinding>;
+      strengths: ReadonlyArray<ReviewStrength>;
+    };
+
+    return {
+      taskId: task.id,
+      cost: task.cost,
+      url: result.url,
+      score: result.score,
+      summary: result.summary,
+      findings: result.findings ?? [],
+      strengths: result.strengths ?? [],
+    };
   }
 
   async generate(args: {
@@ -250,7 +405,7 @@ export class ImageService {
         const task = await this.getTaskDetails(taskId).catch(() => undefined);
         const code = task !== undefined ? taskFailureCode(task) : undefined;
         throw new MynthApiError({
-          message: `task ${taskId} failed during generation${code !== undefined ? ` (${code})` : ""}`,
+          message: `task ${taskId} failed${code !== undefined ? ` (${code})` : ""}`,
           status: 0,
           ...(code !== undefined ? { code } : {}),
         });

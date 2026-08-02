@@ -17,6 +17,8 @@ const VALID_EVENTS = [
   "task.image.rate.failed",
   "task.image.alt.completed",
   "task.image.alt.failed",
+  "task.image.review.completed",
+  "task.image.review.failed",
 ] as const;
 
 const collect = (value: string, previous: ReadonlyArray<string> = []) => [...previous, value];

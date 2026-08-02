@@ -7,11 +7,13 @@ import type { CliContext } from "../context.ts";
 import { CliUsageError } from "../domain/Errors.ts";
 import {
   ImageService,
-  MAX_RATE_IMAGES,
   MAX_RATE_LEVELS,
   MAX_UPLOAD_FILES,
   MIN_RATE_LEVELS,
+  REVIEW_EFFORTS,
   type RateLevel,
+  type ReviewEffort,
+  type ReviewResponse,
   type TaskData,
 } from "../services/ImageService.ts";
 import { print } from "../utils/output.ts";
@@ -21,6 +23,14 @@ const MAX_GENERATE_INPUTS = 20;
 const DEFAULT_OUTPUT_FORMAT = "webp";
 const DEFAULT_OUTPUT_QUALITY = 80;
 const INPUT_AS = ["auto", "person", "garment", "pose", "source", "reference"] as const;
+
+/** Labels for the 1–4 review score scale (higher is better). */
+const SCORE_LABELS: Record<number, string> = {
+  4: "Production-ready",
+  3: "Usable, with fixes",
+  2: "Not fit for purpose",
+  1: "Discard",
+};
 
 type InputAs = (typeof INPUT_AS)[number];
 type ParsedInput = {
@@ -37,6 +47,10 @@ type RateOptions = JsonOption & {
   readonly level?: ReadonlyArray<string>;
   readonly levelsFile?: string;
   readonly levelsJson?: string;
+};
+
+type ReviewOptions = JsonOption & {
+  readonly effort?: ReviewEffort;
 };
 
 type GenerateOptions = RateOptions & {
@@ -293,6 +307,37 @@ const formatImageError = (error: unknown): string => {
   return "unknown error";
 };
 
+export const renderReviewHuman = (result: ReviewResponse): void => {
+  const scoreLabel = SCORE_LABELS[result.score] ?? `${result.score}/4`;
+  print(`${ok} Reviewed (task ${result.taskId})`);
+  print(`  Score: ${result.score}/4 — ${scoreLabel}`);
+  print(`  Cost:  ${result.cost}`);
+  print(`  ${result.url}`);
+
+  if (result.summary.length > 0) {
+    print("");
+    print("Summary");
+    print(`  ${result.summary}`);
+  }
+
+  if (result.findings.length > 0) {
+    print("");
+    print(`Findings (${result.findings.length})`);
+    for (const item of result.findings) {
+      print(`  • [${item.severity}] ${item.category} — ${item.finding}`);
+      print(`    where: ${item.where}  (${item.confidence} confidence)`);
+    }
+  }
+
+  if (result.strengths.length > 0) {
+    print("");
+    print(`Strengths (${result.strengths.length})`);
+    for (const item of result.strengths) {
+      print(`  • ${item.strength}  (${item.confidence} confidence)`);
+    }
+  }
+};
+
 export const summarizeTask = (task: {
   readonly id: string;
   readonly status: string;
@@ -378,34 +423,25 @@ export const createImageCommand = (ctx: CliContext): Command => {
 
   const rate = image
     .command("rate")
-    .description("Rate images by URL or local file")
+    .description("Rate an image by URL or local file")
     .argument(
-      "<image...>",
+      "<image>",
       "Image URL (http://, https://) or path to a local image file to upload first",
     )
     .addOption(createJsonOption());
   addLevelOptions(rate);
-  rate.action(async (inputs: ReadonlyArray<string>, options: RateOptions) => {
-    if (inputs.length > MAX_RATE_IMAGES) {
-      throw new CliUsageError(`too many images: ${inputs.length} (max ${MAX_RATE_IMAGES})`);
-    }
-
+  rate.action(async (input: string, options: RateOptions) => {
     const levels = await resolveLevels({
       levelPairs: options.level ?? [],
       levelsFile: options.levelsFile,
       levelsJson: options.levelsJson,
     });
 
-    const urlInputs = inputs.filter(isUrl);
-    const pathInputs = inputs.filter((input) => !isUrl(input));
-    const uploaded = pathInputs.length > 0 ? await ctx.images.upload(pathInputs) : [];
-    const uploadedByPath = new Map(uploaded.map((upload) => [upload.path, upload.url] as const));
-    const urls = inputs.map((input) =>
-      isUrl(input) ? input : (uploadedByPath.get(input) ?? input),
-    );
+    const uploaded = isUrl(input) ? [] : await ctx.images.upload([input]);
+    const url = isUrl(input) ? input : uploaded[0]!.url;
 
     const result = await ctx.images.rate({
-      urls,
+      url,
       ...(levels ? { levels } : {}),
     });
     if (options.json) {
@@ -413,27 +449,75 @@ export const createImageCommand = (ctx: CliContext): Command => {
       return;
     }
 
-    const successes = result.results.filter((item) => item.status === "success");
-    const errors = result.results.filter((item) => item.status === "failed");
-
     if (uploaded.length > 0) {
-      print(`${ok} Uploaded ${uploaded.length} image${uploaded.length === 1 ? "" : "s"}`);
+      print(`${ok} Uploaded 1 image`);
+      print(`  ${uploaded[0]!.path} -> ${uploaded[0]!.url}`);
     }
-    print(`${ok} Rated ${successes.length}/${result.results.length} (task ${result.task.id})`);
-    for (const item of successes) {
-      print(`  ${item.level}  ${item.url}`);
-    }
-    for (const item of errors) {
-      print(`  ERROR  ${item.error.code}  ${item.url}`);
-    }
-    if (urlInputs.length === 0 && uploaded.length > 0) {
-      print("");
-      print("Uploaded source files:");
-      for (const upload of uploaded) {
-        print(`  ${upload.path} -> ${upload.url}`);
-      }
-    }
+    print(`${ok} Rated (task ${result.taskId})`);
+    print(`  ${result.level}  ${result.url}`);
   });
+
+  image
+    .command("alt")
+    .description("Generate alt text for an image by URL or local file")
+    .argument(
+      "<image>",
+      "Image URL (http://, https://) or path to a local image file to upload first",
+    )
+    .addOption(createJsonOption())
+    .action(async (input: string, options: JsonOption) => {
+      const uploaded = isUrl(input) ? [] : await ctx.images.upload([input]);
+      const url = isUrl(input) ? input : uploaded[0]!.url;
+
+      const result = await ctx.images.alt({ url });
+      if (options.json) {
+        print(JSON.stringify(result, null, 2));
+        return;
+      }
+
+      if (uploaded.length > 0) {
+        print(`${ok} Uploaded 1 image`);
+        print(`  ${uploaded[0]!.path} -> ${uploaded[0]!.url}`);
+      }
+      print(`${ok} Generated alt text (task ${result.taskId})`);
+      print(`  ${result.alt}`);
+      print(`  ${result.url}`);
+    });
+
+  image
+    .command("review")
+    .description("Review image quality with a multi-model panel (score, findings, strengths)")
+    .argument(
+      "<image>",
+      "Image URL (http://, https://) or path to a local image file to upload first",
+    )
+    .addOption(
+      new Option(
+        "--effort <level>",
+        'Reviewer panel size: "high" (default, five strong vision models) or "low" (three smaller models, faster/cheaper triage)',
+      ).choices([...REVIEW_EFFORTS]),
+    )
+    .addOption(createJsonOption())
+    .action(async (input: string, options: ReviewOptions) => {
+      const uploaded = isUrl(input) ? [] : await ctx.images.upload([input]);
+      const url = isUrl(input) ? input : uploaded[0]!.url;
+
+      const result = await ctx.images.review({
+        url,
+        ...(options.effort !== undefined ? { effort: options.effort } : {}),
+      });
+
+      if (options.json) {
+        print(JSON.stringify(result, null, 2));
+        return;
+      }
+
+      if (uploaded.length > 0) {
+        print(`${ok} Uploaded 1 image`);
+        print(`  ${uploaded[0]!.path} -> ${uploaded[0]!.url}`);
+      }
+      renderReviewHuman(result);
+    });
 
   const generate = image
     .command("generate")

@@ -147,11 +147,11 @@ Response (200):
 
 ## Rate
 
-`POST /image/rate` — rate existing images by URL. Synchronous by default (`"sync": true`); returns 200 with results, or 202 with a pending task when `"sync": false`. Request and response shapes: see [image-rating.md](image-rating.md).
+`POST /image/rate` — rate a single existing image by URL. Async only; returns `201` with `taskId` and `estimatedCost`. Mode defaults to `nsfw_sfw`. Request and response shapes: see [image-rating.md](image-rating.md).
 
 ## Alt Text
 
-`POST /image/alt` — generate alt text for existing images by URL. Synchronous by default (`"sync": true`); returns 200 with results, or 202 with a pending task when `"sync": false`. Request and response shapes: see [image-alt.md](image-alt.md).
+`POST /image/alt` — generate alt text for a single existing image by URL. Async only; returns `201` with `taskId` and `estimatedCost`. Request and response shapes: see [image-alt.md](image-alt.md).
 
 ## Webhook Management
 

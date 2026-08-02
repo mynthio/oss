@@ -112,26 +112,27 @@ The SDK also exports `AVAILABLE_MODELS` (model IDs with capability flags like `i
 
 ## Alt Text
 
-Use `mynth.image.alt()` to generate short alt text for existing image URLs.
+Use `mynth.image.alt()` to generate short alt text for an existing image URL.
 
 ```ts
 const result = await mynth.image.alt({
-  urls: ["https://example.com/image.webp"], // 1-10 URLs
+  url: "https://example.com/image.webp",
 });
 
-result.getAltTexts(); // successful items: { status, url, alt }
-result.getErrors(); // failed items with error codes
+result.alt;
+result.url;
+result.cost;
 ```
 
 Use `altAsync()` to start the task and wait later:
 
 ```ts
 const taskAsync = await mynth.image.altAsync({
-  urls: ["https://example.com/image.webp"],
+  url: "https://example.com/image.webp",
 });
 
 const result = await taskAsync.wait();
-console.log(result.results);
+console.log(result.alt);
 ```
 
 ## Error Handling

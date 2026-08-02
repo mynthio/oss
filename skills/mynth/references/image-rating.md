@@ -1,12 +1,12 @@
 # Image Content Rating
 
-AI classification of image content. Two entry points: rate images during generation (`rating` field) or rate existing images by URL (`/image/rate`).
+AI classification of image content. Two entry points: rate images during generation (`rating` field) or rate an existing image by URL (`/image/rate`).
 
 Rating labels describe detected content. They do not override the [Mynth Terms of Service](https://mynth.io/legal/terms) or permit otherwise prohibited generation.
 
 ## Rating Modes
 
-- Default: `{ "mode": "nsfw_sfw" }` — outputs `"sfw"` or `"nsfw"`
+- Default: omit `mode`, or `{ "mode": "nsfw_sfw" }` — outputs `"sfw"` or `"nsfw"`
 - Custom: 2-7 levels with descriptions
 
 ```json
@@ -39,35 +39,34 @@ With custom levels and `as const`, the SDK narrows `level` to your level values.
 
 ```ts
 const result = await mynth.image.rate({
-  urls: ["https://..."], // 1-10 URLs
-  mode: "nsfw_sfw",
+  url: "https://...",
+  // mode optional — defaults to nsfw_sfw
 });
 
-result.getRatings(); // [{ status: "success", url: "...", level: "sfw" }]
-result.getErrors(); // failed items with error codes
+result.level; // "sfw" | "nsfw"
+result.url;
+result.cost;
 ```
 
 ## Rate Existing Images (REST)
 
-`POST /image/rate` — synchronous by default.
+`POST /image/rate` — async only. Returns `201` with `taskId` and `estimatedCost`.
 
 ```json
 {
-  "urls": ["https://example.com/image.jpg"],
-  "mode": "nsfw_sfw",
-  "sync": true
+  "url": "https://example.com/image.jpg"
 }
 ```
 
-Response (200, completed):
+Response (201):
 
 ```json
 {
   "data": {
-    "task": { "id": "tsk_...", "status": "completed", "cost": "0.01" },
-    "results": [{ "status": "success", "url": "https://...", "level": "sfw" }]
+    "taskId": "tsk_...",
+    "estimatedCost": "0.0002"
   }
 }
 ```
 
-With `"sync": false` (or if the sync wait times out), responds 202 with `{ "data": { "task": { "id": "tsk_...", "status": "pending" } } }`; poll `/tasks/:id/result` or use the `task.image.rate.completed` webhook.
+Poll `/tasks/:id` for `{ "result": { "url": "...", "level": "sfw" } }` or use the `task.image.rate.completed` webhook. On failure the task is `failed`.

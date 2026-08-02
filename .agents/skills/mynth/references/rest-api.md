@@ -30,6 +30,7 @@ Response (201):
 {
   "data": {
     "taskId": "tsk_...",
+    "estimatedCost": "0.03",
     "access": {
       "publicAccessToken": "pat_..."
     }
@@ -37,11 +38,50 @@ Response (201):
 }
 ```
 
+`estimatedCost` is the USD amount reserved for the task; failed images are refunded, so the final cost may be lower.
+
 PAT generation is enabled by default. Disable it with:
 
 ```json
 { "access": { "pat": { "enabled": false } } }
 ```
+
+## Estimate Cost (Dry Run)
+
+`POST /image/generate/estimate` — same request body as `POST /image/generate`. Validates the request and returns the estimated cost without creating a task or charging anything. Use before batch runs to check spend.
+
+```json
+{
+  "data": { "estimatedCost": "0.03", "currency": "usd", "estimateKind": "exact" }
+}
+```
+
+`estimateKind` is `"exact"` when the model is pinned, or `"upper_bound"` for `model: "auto"` (a flat per-image ceiling is reserved until a concrete model is selected).
+
+## Account
+
+`GET /me` — API key or OAuth. Returns the authenticated identity: `{ "data": { "userId": "...", "auth": { "method": "api-key", "apiKey": { "id": "...", "name": "...", "keyPreview": "mak_..." } } } }`. The `apiKey` block is present only with API key auth.
+
+`GET /balance` — API key or OAuth. Returns spendable credits:
+
+```json
+{
+  "data": {
+    "balance": "12.5",
+    "reserved": "0.2",
+    "available": "12.3",
+    "currency": "usd",
+    "apiKey": {
+      "spendingLimit": "50",
+      "spendingLimitPeriod": "month",
+      "usedInPeriod": "3.2",
+      "remainingInPeriod": "46.8"
+    }
+  }
+}
+```
+
+`reserved` is held by in-flight tasks; `available` = `balance` - `reserved`. The `apiKey` block appears only when the authenticating API key has a spending limit configured.
 
 ## Poll
 
@@ -93,7 +133,7 @@ Lists recent tasks, newest first. With an API key, only tasks created by that ke
 
 ## Upload
 
-`POST /image/upload` — multipart form with `images` file fields, for input/reference images.
+`POST /image/upload` — multipart form with `images` file fields, for input images.
 
 Response (200):
 
@@ -107,7 +147,11 @@ Response (200):
 
 ## Rate
 
-`POST /image/rate` — rate existing images by URL. Synchronous by default (`"sync": true`); returns 200 with results, or 202 with a pending task when `"sync": false`. Request and response shapes: see [image-rating.md](image-rating.md).
+`POST /image/rate` — rate a single existing image by URL. Async only; returns `201` with `taskId` and `estimatedCost`. Mode defaults to `nsfw_sfw`. Request and response shapes: see [image-rating.md](image-rating.md).
+
+## Alt Text
+
+`POST /image/alt` — generate alt text for a single existing image by URL. Async only; returns `201` with `taskId` and `estimatedCost`. Request and response shapes: see [image-alt.md](image-alt.md).
 
 ## Webhook Management
 

@@ -110,6 +110,31 @@ Each image has `url` (may be `null` when delivered only to a user destination) a
 
 The SDK also exports `AVAILABLE_MODELS` (model IDs with capability flags like `inputs`, `negative_prompt`, `4k`, `mynth_magic_prompt`) and `MynthSDKTypes` for typed model selection and request objects.
 
+## Alt Text
+
+Use `mynth.image.alt()` to generate short alt text for an existing image URL.
+
+```ts
+const result = await mynth.image.alt({
+  url: "https://example.com/image.webp",
+});
+
+result.alt;
+result.url;
+result.cost;
+```
+
+Use `altAsync()` to start the task and wait later:
+
+```ts
+const taskAsync = await mynth.image.altAsync({
+  url: "https://example.com/image.webp",
+});
+
+const result = await taskAsync.wait();
+console.log(result.alt);
+```
+
 ## Error Handling
 
 ```ts

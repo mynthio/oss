@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.0.34](https://github.com/mynthio/oss/compare/sdk-v0.0.33...sdk-v0.0.34) (2026-08-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* **sdk:** simplify rate and alt to single-image API
+
+### Features
+
+* **sdk:** simplify rate and alt to single-image API ([a67399a](https://github.com/mynthio/oss/commit/a67399a3bdc65c54a12b6926632c76f447a939d5))
+
 ## [0.0.33](https://github.com/mynthio/oss/compare/sdk-v0.0.32...sdk-v0.0.33) (2026-07-18)
 
 

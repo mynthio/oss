@@ -337,58 +337,54 @@ const task = await mynth.image.generate({
 console.log(task.getImages()[0]?.rating?.level); // "general" | "teen" | "adult"
 ```
 
-You can also rate existing image URLs:
+You can also rate an existing image URL (mode defaults to `nsfw_sfw`):
 
 ```ts
 const result = await mynth.image.rate({
-  mode: "nsfw_sfw",
-  urls: ["https://example.com/image.webp"],
+  url: "https://example.com/image.webp",
 });
 
-console.log(result.task.id);
-console.log(result.getRatings());
+console.log(result.taskId);
+console.log(result.level); // "sfw" | "nsfw"
 ```
 
 Use `rateAsync()` when you want to create the rating task now and wait later:
 
 ```ts
 const taskAsync = await mynth.image.rateAsync({
-  mode: "nsfw_sfw",
-  urls: ["https://example.com/image.webp"],
+  url: "https://example.com/image.webp",
 });
 
 console.log(taskAsync.id);
 
 const result = await taskAsync.wait();
-console.log(result.getRatings());
+console.log(result.level);
 ```
 
 ## Alt Text
 
-Generate short alt text for existing image URLs:
+Generate short alt text for an existing image URL:
 
 ```ts
 const result = await mynth.image.alt({
-  urls: ["https://example.com/image.webp"], // 1-10 URLs
+  url: "https://example.com/image.webp",
 });
 
-console.log(result.task.id);
-console.log(result.getAltTexts());
-// [{ status: "success", url: "https://example.com/image.webp", alt: "..." }]
+console.log(result.taskId);
+console.log(result.alt);
 ```
 
 Use `altAsync()` when you want to create the alt text task now and wait later:
 
 ```ts
 const taskAsync = await mynth.image.altAsync({
-  urls: ["https://example.com/image.webp"],
+  url: "https://example.com/image.webp",
 });
 
 console.log(taskAsync.id);
 
 const result = await taskAsync.wait();
-console.log(result.getAltTexts());
-console.log(result.getErrors());
+console.log(result.alt);
 ```
 
 ## Working With Results

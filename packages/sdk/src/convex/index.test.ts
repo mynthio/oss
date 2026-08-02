@@ -45,16 +45,11 @@ describe("mynthWebhookAction", () => {
       task: { id: "tsk_rate" },
       request: {
         mode: "nsfw_sfw",
-        urls: ["https://cdn.example.com/image.webp"],
+        url: "https://cdn.example.com/image.webp",
       },
       result: {
-        results: [
-          {
-            status: "success",
-            url: "https://cdn.example.com/image.webp",
-            level: "sfw",
-          },
-        ],
+        url: "https://cdn.example.com/image.webp",
+        level: "sfw",
       },
     };
     const action = mynthWebhookAction({ imageRateTaskCompleted }, { webhookSecret: SECRET });
@@ -80,7 +75,7 @@ describe("mynthWebhookAction", () => {
       task: { id: "tsk_rate" },
       request: {
         mode: "nsfw_sfw",
-        urls: ["https://cdn.example.com/image.webp"],
+        url: "https://cdn.example.com/image.webp",
       },
     };
     const action = mynthWebhookAction({ imageRateTaskFailed }, { webhookSecret: SECRET });
@@ -105,16 +100,11 @@ describe("mynthWebhookAction", () => {
       event: "task.image.alt.completed",
       task: { id: "tsk_alt" },
       request: {
-        urls: ["https://cdn.example.com/image.webp"],
+        url: "https://cdn.example.com/image.webp",
       },
       result: {
-        results: [
-          {
-            status: "success",
-            url: "https://cdn.example.com/image.webp",
-            alt: "A studio product photo of a ceramic mug.",
-          },
-        ],
+        url: "https://cdn.example.com/image.webp",
+        alt: "A studio product photo of a ceramic mug.",
       },
     };
     const action = mynthWebhookAction({ imageAltTaskCompleted }, { webhookSecret: SECRET });
@@ -139,7 +129,7 @@ describe("mynthWebhookAction", () => {
       event: "task.image.alt.failed",
       task: { id: "tsk_alt" },
       request: {
-        urls: ["https://cdn.example.com/image.webp"],
+        url: "https://cdn.example.com/image.webp",
       },
     };
     const action = mynthWebhookAction({ imageAltTaskFailed }, { webhookSecret: SECRET });

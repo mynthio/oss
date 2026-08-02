@@ -75,15 +75,17 @@ export type MynthWebhookActionOptions = {
  *     console.error("Task failed:", payload.task.id);
  *   },
  *   imageRateTaskCompleted: async (payload, { context }) => {
- *     await context.runMutation(internal.images.saveRatings, {
+ *     await context.runMutation(internal.images.saveRating, {
  *       taskId: payload.task.id,
- *       results: payload.result.results,
+ *       url: payload.result.url,
+ *       level: payload.result.level,
  *     });
  *   },
  *   imageAltTaskCompleted: async (payload, { context }) => {
- *     await context.runMutation(internal.images.saveAltTexts, {
+ *     await context.runMutation(internal.images.saveAltText, {
  *       taskId: payload.task.id,
- *       results: payload.result.results,
+ *       url: payload.result.url,
+ *       alt: payload.result.alt,
  *     });
  *   },
  * });

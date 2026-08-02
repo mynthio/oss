@@ -1,23 +1,5 @@
 import type { MynthSDKTypes } from "./types";
 
-/** A successfully generated image alt text item */
-type ImageAltResultItemSuccess = {
-  status: "success";
-  url: string;
-  alt: string;
-};
-
-type ImageAltResultItemError = {
-  status: "failed";
-  url: string;
-  error: {
-    code: string;
-  };
-};
-
-/** Individual alt text result - success or error */
-export type ImageAltResultItem = ImageAltResultItemSuccess | ImageAltResultItemError;
-
 /**
  * Represents the result of a completed image alt text task.
  */
@@ -25,16 +7,20 @@ export class ImageAltResult {
   /** The task ID created for this alt text request */
   public readonly taskId: string;
 
-  /** Task metadata returned by the API */
-  public readonly task: MynthSDKTypes.ImageAltResponse["task"];
+  /** Cost charged for the completed task */
+  public readonly cost: string;
 
-  /** Raw results array from the API */
-  public readonly results: ImageAltResultItem[];
+  /** The submitted image URL */
+  public readonly url: string;
 
-  constructor(data: MynthSDKTypes.ImageAltResponse) {
-    this.task = data.task;
-    this.taskId = data.task.id;
-    this.results = data.results;
+  /** Generated alt text */
+  public readonly alt: string;
+
+  constructor(data: { taskId: string; cost: string; url: string; alt: string }) {
+    this.taskId = data.taskId;
+    this.cost = data.cost;
+    this.url = data.url;
+    this.alt = data.alt;
   }
 
   static fromTaskData(data: MynthSDKTypes.ImageAltTaskData): ImageAltResult {
@@ -47,26 +33,10 @@ export class ImageAltResult {
     }
 
     return new ImageAltResult({
-      task: {
-        id: data.id,
-        status: "completed",
-        cost: data.cost,
-      },
-      results: data.result.results,
+      taskId: data.id,
+      cost: data.cost,
+      url: data.result.url,
+      alt: data.result.alt,
     });
-  }
-
-  /**
-   * Get only the successfully generated alt text items.
-   */
-  getAltTexts(): ImageAltResultItemSuccess[] {
-    return this.results.filter((r): r is ImageAltResultItemSuccess => r.status === "success");
-  }
-
-  /**
-   * Get only the images that failed to get alt text.
-   */
-  getErrors(): ImageAltResultItemError[] {
-    return this.results.filter((r): r is ImageAltResultItemError => r.status === "failed");
   }
 }

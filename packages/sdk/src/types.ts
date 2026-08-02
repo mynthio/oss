@@ -368,7 +368,7 @@ export namespace MynthSDKTypes {
 
   /** Custom rating level definition */
   export type ImageRateRequestLevel<T extends string = string> = {
-    /** Level value returned in results */
+    /** Level value returned in the result */
     value: T;
     /** Human-readable description for the rating model */
     description: string;
@@ -376,13 +376,13 @@ export namespace MynthSDKTypes {
 
   /** Request body for the image rate endpoint (API wire format) */
   export type ImageRateRequestBase = {
-    /** Image URLs to rate (1–10) */
-    urls: string[];
+    /** Image URL to rate */
+    url: string;
   };
 
   export type ImageRateRequestRatingDefault = {
-    /** Default sfw/nsfw classifier */
-    mode: "nsfw_sfw";
+    /** Default sfw/nsfw classifier. When omitted, the API defaults to nsfw_sfw. */
+    mode?: "nsfw_sfw";
   };
 
   export type ImageRateRequestRatingCustom = {
@@ -394,58 +394,28 @@ export namespace MynthSDKTypes {
   export type ImageRateRequest = ImageRateRequestBase &
     (ImageRateRequestRatingDefault | ImageRateRequestRatingCustom);
 
-  /** Image sources for rate/alt SDK methods: remote URLs or local files */
-  export type ImageClientUrlsOrFiles =
-    | { urls: string[]; files?: never }
-    | { files: ImageUploadInput | readonly ImageUploadInput[]; urls?: never };
+  /** Image source for rate/alt SDK methods: a remote URL or a local file */
+  export type ImageClientUrlOrFile =
+    | { url: string; file?: never }
+    | { file: ImageUploadInput; url?: never };
 
   /**
    * Image rate request for the SDK client.
-   * Pass either `urls` or `files` (files are uploaded before the API call).
+   * Pass either `url` or `file` (files are uploaded before the API call).
+   * Mode defaults to `nsfw_sfw` when omitted.
    */
-  export type ImageRateClientRequest = ImageClientUrlsOrFiles &
+  export type ImageRateClientRequest = ImageClientUrlOrFile &
     (ImageRateRequestRatingDefault | ImageRateRequestRatingCustom);
 
-  /** A successfully rated image */
-  export type ImageRateResponseItemSuccess<LevelT extends string = string> = {
-    status: "success";
-    url: string;
-    level: LevelT;
-  };
-
-  export type ImageRateResponseItemError = {
-    status: "failed";
-    url: string;
-    error: {
-      code: string;
-    };
-  };
-
-  /** Individual rating result item */
-  export type ImageRateResponseItem<LevelT extends string = string> =
-    | ImageRateResponseItemSuccess<LevelT>
-    | ImageRateResponseItemError;
-
-  /** API response from the image rate endpoint */
-  export type ImageRateResponse<LevelT extends string = string> = {
-    task: {
-      id: string;
-      status: "completed";
-      cost: string;
-    };
-    results: ImageRateResponseItem<LevelT>[];
-  };
-
-  /** Pending response from the image rate endpoint when async mode is used */
-  export type ImageRatePendingResponse = {
-    task: {
-      id: string;
-      status: "pending";
-    };
+  /** Create-task response from the image rate endpoint */
+  export type ImageRateCreatedResponse = {
+    taskId: string;
+    estimatedCost: string;
   };
 
   export type ImageRateTaskResult<LevelT extends string = string> = {
-    results: ImageRateResponseItem<LevelT>[];
+    url: string;
+    level: LevelT;
   };
 
   // ============================================================
@@ -454,54 +424,25 @@ export namespace MynthSDKTypes {
 
   /** Request body for the image alt endpoint (API wire format) */
   export type ImageAltRequest = {
-    /** Image URLs to generate alt text for (1-10) */
-    urls: string[];
+    /** Image URL to generate alt text for */
+    url: string;
   };
 
   /**
    * Image alt request for the SDK client.
-   * Pass either `urls` or `files` (files are uploaded before the API call).
+   * Pass either `url` or `file` (files are uploaded before the API call).
    */
-  export type ImageAltClientRequest = ImageClientUrlsOrFiles;
+  export type ImageAltClientRequest = ImageClientUrlOrFile;
 
-  /** A successfully generated image alt text item */
-  export type ImageAltResponseItemSuccess = {
-    status: "success";
-    url: string;
-    alt: string;
-  };
-
-  export type ImageAltResponseItemError = {
-    status: "failed";
-    url: string;
-    error: {
-      code: string;
-    };
-  };
-
-  /** Individual alt text result item */
-  export type ImageAltResponseItem = ImageAltResponseItemSuccess | ImageAltResponseItemError;
-
-  /** API response from the image alt endpoint */
-  export type ImageAltResponse = {
-    task: {
-      id: string;
-      status: "completed";
-      cost: string;
-    };
-    results: ImageAltResponseItem[];
-  };
-
-  /** Pending response from the image alt endpoint when async mode is used */
-  export type ImageAltPendingResponse = {
-    task: {
-      id: string;
-      status: "pending";
-    };
+  /** Create-task response from the image alt endpoint */
+  export type ImageAltCreatedResponse = {
+    taskId: string;
+    estimatedCost: string;
   };
 
   export type ImageAltTaskResult = {
-    results: ImageAltResponseItem[];
+    url: string;
+    alt: string;
   };
 
   // ============================================================

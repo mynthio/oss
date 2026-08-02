@@ -86,7 +86,7 @@ type ExtractRatingResponse<T extends MynthSDKTypes.ImageGenerationClientRequest>
           | MynthSDKTypes.ImageResultRatingFailure
       : MynthSDKTypes.ImageResultRating | undefined;
 
-// Extract rate level values from the levels array
+// Extract rate level values from the levels array (default mode when omitted)
 type ExtractRateLevelValues<T extends MynthSDKTypes.ImageRateClientRequest> = T extends {
   mode: "custom";
   levels: readonly { value: infer V }[];
@@ -312,24 +312,23 @@ class MynthImage {
   }
 
   /**
-   * Rate the content of one or more images.
+   * Rate the content of a single image.
    *
-   * Uses AI classification to assign a rating level to each image.
-   * By default uses `"sfw"` / `"nsfw"` levels; pass custom `levels` to define
-   * your own scale.
+   * Uses AI classification to assign a rating level. Mode defaults to
+   * `"nsfw_sfw"` (`"sfw"` / `"nsfw"`); pass custom `levels` to define your own scale.
    *
-   * @param request - URLs to rate and optional custom levels
-   * @returns An ImageRateResult with per-image ratings
+   * @param request - Image URL or local file, and optional rating mode
+   * @returns An ImageRateResult with the assigned level
    *
    * @example
    * ```typescript
-   * // Default sfw/nsfw
-   * const result = await image.rate({ urls: ["https://..."], mode: "nsfw_sfw" });
-   * console.log(result.getRatings()); // [{ status: "success", url: "...", level: "sfw" }]
+   * // Default sfw/nsfw (mode optional)
+   * const result = await image.rate({ url: "https://..." });
+   * console.log(result.level); // "sfw" | "nsfw"
    *
    * // Custom levels
    * const result = await image.rate({
-   *   urls: ["https://..."],
+   *   url: "https://...",
    *   mode: "custom",
    *   levels: [
    *     { value: "safe", description: "No explicit content" },
@@ -337,7 +336,7 @@ class MynthImage {
    *     { value: "explicit", description: "Contains nudity or graphic content" },
    *   ] as const,
    * });
-   * result.getRatings(); // [{ status: "success", url: "...", level: "safe" | "mature" | "explicit" }]
+   * console.log(result.level); // "safe" | "mature" | "explicit"
    * ```
    */
   public async rate<const T extends MynthSDKTypes.ImageRateClientRequest>(
@@ -351,18 +350,15 @@ class MynthImage {
   /**
    * Start image content rating without waiting for completion.
    *
-   * @param request - URLs or files to rate and optional custom levels
+   * @param request - Image URL or local file, and optional rating mode
    * @returns A TaskAsync that can be polled for completion via `.wait()`
    *
    * @example
    * ```typescript
-   * const taskAsync = await image.rateAsync({
-   *   urls: ["https://..."],
-   *   mode: "nsfw_sfw",
-   * });
+   * const taskAsync = await image.rateAsync({ url: "https://..." });
    *
    * const result = await taskAsync.wait();
-   * console.log(result.getRatings());
+   * console.log(result.level);
    * ```
    */
   public async rateAsync<const T extends MynthSDKTypes.ImageRateClientRequest>(
@@ -371,15 +367,17 @@ class MynthImage {
     return this.createRateTask(request);
   }
 
-  private async resolveUrlsOrFiles(
-    request: MynthSDKTypes.ImageClientUrlsOrFiles,
-  ): Promise<string[]> {
-    if (request.files !== undefined) {
-      const { urls } = await this.upload(request.files);
-      return urls;
+  private async resolveUrlOrFile(request: MynthSDKTypes.ImageClientUrlOrFile): Promise<string> {
+    if (request.file !== undefined) {
+      const { urls } = await this.upload(request.file);
+      const url = urls[0];
+      if (!url) {
+        throw new Error("Image upload returned no URL");
+      }
+      return url;
     }
 
-    return request.urls;
+    return request.url;
   }
 
   private async createRateTask<const T extends MynthSDKTypes.ImageRateClientRequest>(
@@ -387,37 +385,37 @@ class MynthImage {
   ): Promise<TaskAsync<ImageRateResult<ExtractRateLevelValues<T>>>> {
     type LevelT = ExtractRateLevelValues<T>;
 
-    const urls = await this.resolveUrlsOrFiles(request);
-    const { files: _, urls: __, ...rest } = request;
+    const url = await this.resolveUrlOrFile(request);
+    const { file: _, url: __, ...rest } = request;
 
     const json = await this.client.post<
-      MynthSDKTypes.ApiResponse<MynthSDKTypes.ImageRatePendingResponse>
-    >(RATE_IMAGE_PATH, { ...rest, urls, sync: false });
+      MynthSDKTypes.ApiResponse<MynthSDKTypes.ImageRateCreatedResponse>
+    >(RATE_IMAGE_PATH, { ...rest, url });
 
     const data = json.data;
     type Result = ImageRateResult<LevelT>;
 
-    const taskAsync = new TaskAsync<Result>(data.task.id, {
+    const taskAsync = new TaskAsync<Result>(data.taskId, {
       client: this.client,
-      resultFactory: (data) =>
-        ImageRateResult.fromTaskData<LevelT>(data as MynthSDKTypes.ImageRateTaskData) as Result,
+      resultFactory: (taskData) =>
+        ImageRateResult.fromTaskData<LevelT>(taskData as MynthSDKTypes.ImageRateTaskData) as Result,
     });
 
     return taskAsync;
   }
 
   /**
-   * Generate alt text for one or more images.
+   * Generate alt text for a single image.
    *
-   * Uses AI image analysis to produce short alt text for each image URL.
+   * Uses AI image analysis to produce short alt text for the image.
    *
-   * @param request - URLs to generate alt text for
-   * @returns An ImageAltResult with per-image alt text
+   * @param request - Image URL or local file
+   * @returns An ImageAltResult with the generated alt text
    *
    * @example
    * ```typescript
-   * const result = await image.alt({ urls: ["https://..."] });
-   * console.log(result.getAltTexts()); // [{ status: "success", url: "...", alt: "..." }]
+   * const result = await image.alt({ url: "https://..." });
+   * console.log(result.alt);
    * ```
    */
   public async alt(request: MynthSDKTypes.ImageAltClientRequest): Promise<ImageAltResult> {
@@ -429,17 +427,15 @@ class MynthImage {
   /**
    * Start image alt text generation without waiting for completion.
    *
-   * @param request - URLs or files to generate alt text for
+   * @param request - Image URL or local file
    * @returns A TaskAsync that can be polled for completion via `.wait()`
    *
    * @example
    * ```typescript
-   * const taskAsync = await image.altAsync({
-   *   urls: ["https://..."],
-   * });
+   * const taskAsync = await image.altAsync({ url: "https://..." });
    *
    * const result = await taskAsync.wait();
-   * console.log(result.getAltTexts());
+   * console.log(result.alt);
    * ```
    */
   public async altAsync(
@@ -451,17 +447,18 @@ class MynthImage {
   private async createAltTask(
     request: MynthSDKTypes.ImageAltClientRequest,
   ): Promise<TaskAsync<ImageAltResult>> {
-    const urls = await this.resolveUrlsOrFiles(request);
+    const url = await this.resolveUrlOrFile(request);
 
     const json = await this.client.post<
-      MynthSDKTypes.ApiResponse<MynthSDKTypes.ImageAltPendingResponse>
-    >(ALT_IMAGE_PATH, { urls, sync: false });
+      MynthSDKTypes.ApiResponse<MynthSDKTypes.ImageAltCreatedResponse>
+    >(ALT_IMAGE_PATH, { url });
 
     const data = json.data;
 
-    const taskAsync = new TaskAsync<ImageAltResult>(data.task.id, {
+    const taskAsync = new TaskAsync<ImageAltResult>(data.taskId, {
       client: this.client,
-      resultFactory: (data) => ImageAltResult.fromTaskData(data as MynthSDKTypes.ImageAltTaskData),
+      resultFactory: (taskData) =>
+        ImageAltResult.fromTaskData(taskData as MynthSDKTypes.ImageAltTaskData),
     });
 
     return taskAsync;

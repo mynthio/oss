@@ -45,10 +45,11 @@ function createRateTaskData(
     userId: "user-123",
     cost: "0.01",
     result: {
-      results: [{ status: "success", url: "https://cdn.test/image.webp", level: "sfw" }],
+      url: "https://cdn.test/image.webp",
+      level: "sfw",
     },
     request: {
-      urls: ["https://cdn.test/image.webp"],
+      url: "https://cdn.test/image.webp",
       mode: "nsfw_sfw",
     },
     createdAt: "2026-01-29T12:00:00Z",
@@ -68,16 +69,11 @@ function createAltTaskData(
     userId: "user-123",
     cost: "0.01",
     result: {
-      results: [
-        {
-          status: "success",
-          url: "https://cdn.test/image.webp",
-          alt: "A studio product photo of a ceramic mug.",
-        },
-      ],
+      url: "https://cdn.test/image.webp",
+      alt: "A studio product photo of a ceramic mug.",
     },
     request: {
-      urls: ["https://cdn.test/image.webp"],
+      url: "https://cdn.test/image.webp",
     },
     createdAt: "2026-01-29T12:00:00Z",
     updatedAt: "2026-01-29T12:00:00Z",
@@ -250,21 +246,19 @@ describe("MynthImage", () => {
       name: "rateAsync",
       path: "https://api.test/image/rate",
       taskId: "task-rate-123",
-      call: (image: MynthImage, file: File) => image.rateAsync({ files: file, mode: "nsfw_sfw" }),
+      call: (image: MynthImage, file: File) => image.rateAsync({ file, mode: "nsfw_sfw" }),
       body: {
         mode: "nsfw_sfw",
-        urls: ["https://cdn.test/uploaded.webp"],
-        sync: false,
+        url: "https://cdn.test/uploaded.webp",
       },
     },
     {
       name: "altAsync",
       path: "https://api.test/image/alt",
       taskId: "task-alt-123",
-      call: (image: MynthImage, file: File) => image.altAsync({ files: [file] }),
+      call: (image: MynthImage, file: File) => image.altAsync({ file }),
       body: {
-        urls: ["https://cdn.test/uploaded.webp"],
-        sync: false,
+        url: "https://cdn.test/uploaded.webp",
       },
     },
   ])("$name uploads files before POST", async ({ path, taskId, call, body }) => {
@@ -273,7 +267,7 @@ describe("MynthImage", () => {
       .fn()
       .mockResolvedValueOnce(jsonResponse({ data: { urls: ["https://cdn.test/uploaded.webp"] } }))
       .mockResolvedValueOnce(
-        jsonResponse({ data: { task: { id: taskId, status: "pending" } } }, { status: 202 }),
+        jsonResponse({ data: { taskId, estimatedCost: "0.0002" } }, { status: 201 }),
       );
     vi.stubGlobal("fetch", fetchMock);
     const image = new MynthImage({ apiKey: "mak_test", baseUrl: "https://api.test" });
@@ -306,10 +300,11 @@ describe("MynthImage", () => {
       jsonResponse(
         {
           data: {
-            task: { id: "task-rate-123", status: "pending" },
+            taskId: "task-rate-123",
+            estimatedCost: "0.0002",
           },
         },
-        { status: 202 },
+        { status: 201 },
       ),
     );
     vi.stubGlobal("fetch", fetchMock);
@@ -318,8 +313,7 @@ describe("MynthImage", () => {
 
     // Act
     const task = await image.rateAsync({
-      urls: ["https://cdn.test/image.webp"],
-      mode: "nsfw_sfw",
+      url: "https://cdn.test/image.webp",
     });
 
     // Assert
@@ -337,9 +331,7 @@ describe("MynthImage", () => {
         expect.objectContaining({
           method: "POST",
           body: JSON.stringify({
-            mode: "nsfw_sfw",
-            urls: ["https://cdn.test/image.webp"],
-            sync: false,
+            url: "https://cdn.test/image.webp",
           }),
         }),
       ],
@@ -355,10 +347,11 @@ describe("MynthImage", () => {
         jsonResponse(
           {
             data: {
-              task: { id: "task-rate-123", status: "pending" },
+              taskId: "task-rate-123",
+              estimatedCost: "0.0002",
             },
           },
-          { status: 202 },
+          { status: 201 },
         ),
       )
       .mockResolvedValueOnce(jsonResponse({ data: { status: "completed" } }))
@@ -369,21 +362,20 @@ describe("MynthImage", () => {
 
     // Act
     const result = await image.rate({
-      urls: ["https://cdn.test/image.webp"],
-      mode: "nsfw_sfw",
+      url: "https://cdn.test/image.webp",
     });
 
     // Assert
     expect({
       taskId: result.taskId,
-      task: result.task,
-      ratings: result.getRatings(),
-      errors: result.getErrors(),
+      cost: result.cost,
+      url: result.url,
+      level: result.level,
     }).toEqual({
       taskId: "task-rate-123",
-      task: { id: "task-rate-123", status: "completed", cost: "0.01" },
-      ratings: [{ status: "success", url: "https://cdn.test/image.webp", level: "sfw" }],
-      errors: [],
+      cost: "0.01",
+      url: "https://cdn.test/image.webp",
+      level: "sfw",
     });
   });
 
@@ -393,10 +385,11 @@ describe("MynthImage", () => {
       jsonResponse(
         {
           data: {
-            task: { id: "task-alt-123", status: "pending" },
+            taskId: "task-alt-123",
+            estimatedCost: "0.0004",
           },
         },
-        { status: 202 },
+        { status: 201 },
       ),
     );
     vi.stubGlobal("fetch", fetchMock);
@@ -405,7 +398,7 @@ describe("MynthImage", () => {
 
     // Act
     const task = await image.altAsync({
-      urls: ["https://cdn.test/image.webp"],
+      url: "https://cdn.test/image.webp",
     });
 
     // Assert
@@ -423,8 +416,7 @@ describe("MynthImage", () => {
         expect.objectContaining({
           method: "POST",
           body: JSON.stringify({
-            urls: ["https://cdn.test/image.webp"],
-            sync: false,
+            url: "https://cdn.test/image.webp",
           }),
         }),
       ],
@@ -440,10 +432,11 @@ describe("MynthImage", () => {
         jsonResponse(
           {
             data: {
-              task: { id: "task-alt-123", status: "pending" },
+              taskId: "task-alt-123",
+              estimatedCost: "0.0004",
             },
           },
-          { status: 202 },
+          { status: 201 },
         ),
       )
       .mockResolvedValueOnce(jsonResponse({ data: { status: "completed" } }))
@@ -454,26 +447,20 @@ describe("MynthImage", () => {
 
     // Act
     const result = await image.alt({
-      urls: ["https://cdn.test/image.webp"],
+      url: "https://cdn.test/image.webp",
     });
 
     // Assert
     expect({
       taskId: result.taskId,
-      task: result.task,
-      altTexts: result.getAltTexts(),
-      errors: result.getErrors(),
+      cost: result.cost,
+      url: result.url,
+      alt: result.alt,
     }).toEqual({
       taskId: "task-alt-123",
-      task: { id: "task-alt-123", status: "completed", cost: "0.01" },
-      altTexts: [
-        {
-          status: "success",
-          url: "https://cdn.test/image.webp",
-          alt: "A studio product photo of a ceramic mug.",
-        },
-      ],
-      errors: [],
+      cost: "0.01",
+      url: "https://cdn.test/image.webp",
+      alt: "A studio product photo of a ceramic mug.",
     });
   });
 });

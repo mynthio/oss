@@ -1,25 +1,5 @@
 import type { MynthSDKTypes } from "./types";
 
-/** A successfully rated image */
-type ImageRateResultItemSuccess<LevelT extends string> = {
-  status: "success";
-  url: string;
-  level: LevelT;
-};
-
-type ImageRateResultItemError = {
-  status: "failed";
-  url: string;
-  error: {
-    code: string;
-  };
-};
-
-/** Individual rating result — success or error */
-export type ImageRateResultItem<LevelT extends string = string> =
-  | ImageRateResultItemSuccess<LevelT>
-  | ImageRateResultItemError;
-
 /**
  * Represents the result of a completed image content rating task.
  *
@@ -29,16 +9,20 @@ export class ImageRateResult<LevelT extends string = "sfw" | "nsfw"> {
   /** The task ID created for this rating request */
   public readonly taskId: string;
 
-  /** Task metadata returned by the API */
-  public readonly task: MynthSDKTypes.ImageRateResponse<LevelT>["task"];
+  /** Cost charged for the completed task */
+  public readonly cost: string;
 
-  /** Raw results array from the API */
-  public readonly results: ImageRateResultItem<LevelT>[];
+  /** The submitted image URL */
+  public readonly url: string;
 
-  constructor(data: MynthSDKTypes.ImageRateResponse<LevelT>) {
-    this.task = data.task;
-    this.taskId = data.task.id;
-    this.results = data.results;
+  /** Assigned rating level */
+  public readonly level: LevelT;
+
+  constructor(data: { taskId: string; cost: string; url: string; level: LevelT }) {
+    this.taskId = data.taskId;
+    this.cost = data.cost;
+    this.url = data.url;
+    this.level = data.level;
   }
 
   static fromTaskData<LevelT extends string = "sfw" | "nsfw">(
@@ -53,28 +37,10 @@ export class ImageRateResult<LevelT extends string = "sfw" | "nsfw"> {
     }
 
     return new ImageRateResult<LevelT>({
-      task: {
-        id: data.id,
-        status: "completed",
-        cost: data.cost,
-      },
-      results: data.result.results as MynthSDKTypes.ImageRateResponseItem<LevelT>[],
+      taskId: data.id,
+      cost: data.cost,
+      url: data.result.url,
+      level: data.result.level as LevelT,
     });
-  }
-
-  /**
-   * Get only the successfully rated images.
-   */
-  getRatings(): ImageRateResultItemSuccess<LevelT>[] {
-    return this.results.filter(
-      (r): r is ImageRateResultItemSuccess<LevelT> => r.status === "success",
-    );
-  }
-
-  /**
-   * Get only the images that failed to be rated.
-   */
-  getErrors(): ImageRateResultItemError[] {
-    return this.results.filter((r): r is ImageRateResultItemError => r.status === "failed");
   }
 }

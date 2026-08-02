@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.19](https://github.com/mynthio/oss/compare/cli-v0.0.18...cli-v0.0.19) (2026-08-02)
+
+
+### Features
+
+* **cli:** add image alt/review and single-image rate ([78e1ce4](https://github.com/mynthio/oss/commit/78e1ce44d2c599c8dab4b75e9df698c597af6394))
+
 ## [0.0.18](https://github.com/mynthio/oss/compare/cli-v0.0.17...cli-v0.0.18) (2026-07-08)
 
 

@@ -10,6 +10,8 @@ export const MYNTH_IMAGE_MODELS = [
   "auto",
   "alibaba/qwen-image-2.0",
   "alibaba/qwen-image-2.0-pro",
+  "alibaba/qwen-image-3.0",
+  "alibaba/qwen-image-3.0-pro",
   "bytedance/seedream-5.0-lite",
   "bytedance/seedream-pro",
   "black-forest-labs/flux.1-dev",
@@ -67,6 +69,8 @@ export type MynthImageModel = (typeof MYNTH_IMAGE_MODELS)[number];
 export const MYNTH_IMAGE_INPUT_MODELS = [
   "alibaba/qwen-image-2.0",
   "alibaba/qwen-image-2.0-pro",
+  "alibaba/qwen-image-3.0",
+  "alibaba/qwen-image-3.0-pro",
   "bytedance/seedream-5.0-lite",
   "bytedance/seedream-pro",
   "tongyi-mai/z-image",

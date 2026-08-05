@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.35](https://github.com/mynthio/oss/compare/sdk-v0.0.34...sdk-v0.0.35) (2026-08-05)
+
+
+### Features
+
+* **sdk:** add Qwen Image 3.0 models ([59c30e2](https://github.com/mynthio/oss/commit/59c30e230899068b3f0c0a4c5efaeb9822bee713))
+
 ## [0.0.34](https://github.com/mynthio/oss/compare/sdk-v0.0.33...sdk-v0.0.34) (2026-08-02)
 
 

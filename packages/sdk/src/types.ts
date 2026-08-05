@@ -70,6 +70,8 @@ export namespace MynthSDKTypes {
   export type ImageGenerationModelId =
     | "alibaba/qwen-image-2.0"
     | "alibaba/qwen-image-2.0-pro"
+    | "alibaba/qwen-image-3.0"
+    | "alibaba/qwen-image-3.0-pro"
     | "bytedance/seedream-5.0-lite"
     | "bytedance/seedream-pro"
     | "black-forest-labs/flux.1-dev"

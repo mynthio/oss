@@ -59,6 +59,16 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["inputs", "native_enhance_prompt"],
   },
   {
+    id: "alibaba/qwen-image-3.0",
+    label: "Qwen Image 3.0",
+    capabilities: ["inputs", "native_enhance_prompt"],
+  },
+  {
+    id: "alibaba/qwen-image-3.0-pro",
+    label: "Qwen Image 3.0 Pro",
+    capabilities: ["inputs", "native_enhance_prompt"],
+  },
+  {
     id: "bytedance/seedream-5.0-lite",
     label: "Seedream 5.0 Lite",
     capabilities: ["inputs"],

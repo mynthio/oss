@@ -81,6 +81,41 @@ function createAltTaskData(
   } as MynthSDKTypes.ImageAltTaskData;
 }
 
+function createReviewTaskData(
+  overrides: Partial<MynthSDKTypes.ImageReviewTaskData> = {},
+): MynthSDKTypes.ImageReviewTaskData {
+  return {
+    id: "task-review-123",
+    status: "completed",
+    type: "image.review",
+    apiKeyId: "api-key-123",
+    userId: "user-123",
+    cost: "0.02",
+    result: {
+      url: "https://cdn.test/image.webp",
+      score: 3,
+      summary: "Strong composition with one visible artifact.",
+      findings: [
+        {
+          finding: "The left hand has an extra finger.",
+          category: "anatomy",
+          severity: "major",
+          where: "Left side of the image",
+          confidence: "high",
+        },
+      ],
+      strengths: [{ strength: "Balanced composition", confidence: "high" }],
+    },
+    request: {
+      url: "https://cdn.test/image.webp",
+      effort: "high",
+    },
+    createdAt: "2026-01-29T12:00:00Z",
+    updatedAt: "2026-01-29T12:00:00Z",
+    ...overrides,
+  } as MynthSDKTypes.ImageReviewTaskData;
+}
+
 describe("MynthImage", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -258,6 +293,16 @@ describe("MynthImage", () => {
       taskId: "task-alt-123",
       call: (image: MynthImage, file: File) => image.altAsync({ file }),
       body: {
+        url: "https://cdn.test/uploaded.webp",
+      },
+    },
+    {
+      name: "reviewAsync",
+      path: "https://api.test/image/review",
+      taskId: "task-review-123",
+      call: (image: MynthImage, file: File) => image.reviewAsync({ file, effort: "low" }),
+      body: {
+        effort: "low",
         url: "https://cdn.test/uploaded.webp",
       },
     },
@@ -461,6 +506,61 @@ describe("MynthImage", () => {
       cost: "0.01",
       url: "https://cdn.test/image.webp",
       alt: "A studio product photo of a ceramic mug.",
+    });
+  });
+
+  test("review waits for the completed quality review result", async () => {
+    // Arrange
+    const taskData = createReviewTaskData();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse(
+          {
+            data: {
+              taskId: "task-review-123",
+              estimatedCost: "0.02",
+            },
+          },
+          { status: 201 },
+        ),
+      )
+      .mockResolvedValueOnce(jsonResponse({ data: { status: "completed" } }))
+      .mockResolvedValueOnce(jsonResponse({ data: taskData }));
+    vi.stubGlobal("fetch", fetchMock);
+    const image = new MynthImage({ apiKey: "mak_test", baseUrl: "https://api.test" });
+
+    // Act
+    const result = await image.review({
+      url: "https://cdn.test/image.webp",
+      effort: "high",
+    });
+
+    // Assert
+    expect({
+      taskId: result.taskId,
+      cost: result.cost,
+      url: result.url,
+      score: result.score,
+      summary: result.summary,
+      findings: result.findings,
+      strengths: result.strengths,
+    }).toEqual({
+      taskId: "task-review-123",
+      cost: "0.02",
+      url: "https://cdn.test/image.webp",
+      score: 3,
+      summary: "Strong composition with one visible artifact.",
+      findings: [
+        {
+          finding: "The left hand has an extra finger.",
+          category: "anatomy",
+          severity: "major",
+          where: "Left side of the image",
+          confidence: "high",
+        },
+      ],
+      strengths: [{ strength: "Balanced composition", confidence: "high" }],
     });
   });
 });

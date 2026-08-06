@@ -9,7 +9,7 @@ export namespace MynthSDKTypes {
 
   export type TaskStatus = "pending" | "completed" | "failed";
 
-  export type TaskType = "image.generate" | "image.rate" | "image.alt";
+  export type TaskType = "image.generate" | "image.rate" | "image.alt" | "image.review";
 
   export type TaskBase = {
     id: string;
@@ -22,8 +22,14 @@ export namespace MynthSDKTypes {
     errors?: TaskError[];
   };
 
+  /**
+   * Task-level error entry.
+   * `code` is a stable SCREAMING_SNAKE_CASE identifier; `message` is optional
+   * human-readable prose and must not be parsed.
+   */
   export type TaskError = {
     code: string;
+    message?: string;
   };
 
   export type TaskData =
@@ -41,11 +47,17 @@ export namespace MynthSDKTypes {
         type: "image.alt";
         request: ImageAltRequest;
         result: ImageAltTaskResult | null;
+      })
+    | (TaskBase & {
+        type: "image.review";
+        request: ImageReviewRequest;
+        result: ImageReviewTaskResult | null;
       });
 
   export type ImageGenerationTaskData = Extract<TaskData, { type: "image.generate" }>;
   export type ImageRateTaskData = Extract<TaskData, { type: "image.rate" }>;
   export type ImageAltTaskData = Extract<TaskData, { type: "image.alt" }>;
+  export type ImageReviewTaskData = Extract<TaskData, { type: "image.review" }>;
 
   // ============================================================
   // Models
@@ -448,6 +460,65 @@ export namespace MynthSDKTypes {
   };
 
   // ============================================================
+  // Image Review
+  // ============================================================
+
+  /** Reviewer panel used for image quality analysis. */
+  export type ImageReviewEffort = "low" | "high";
+
+  export type ImageReviewSeverity = "critical" | "major" | "minor";
+
+  export type ImageReviewConfidence = "low" | "medium" | "high";
+
+  /** Request body for the image review endpoint (API wire format). */
+  export type ImageReviewRequest = {
+    /** Image URL to review. */
+    url: string;
+    /** Reviewer panel to run. Defaults to `high`. */
+    effort?: ImageReviewEffort;
+  };
+
+  /**
+   * Image review request for the SDK client.
+   * Pass either `url` or `file` (files are uploaded before the API call).
+   */
+  export type ImageReviewClientRequest = ImageClientUrlOrFile & {
+    /** Reviewer panel to run. Defaults to `high`. */
+    effort?: ImageReviewEffort;
+  };
+
+  /** Create-task response from the image review endpoint. */
+  export type ImageReviewCreatedResponse = {
+    taskId: string;
+    estimatedCost: string;
+  };
+
+  export type ImageReviewFinding = {
+    /** What is wrong, in plain language. */
+    finding: string;
+    /** Defect category. */
+    category: string;
+    severity: ImageReviewSeverity;
+    /** Where the defect appears in the image, in plain language. */
+    where: string;
+    confidence: ImageReviewConfidence;
+  };
+
+  export type ImageReviewStrength = {
+    strength: string;
+    confidence: ImageReviewConfidence;
+  };
+
+  export type ImageReviewTaskResult = {
+    url: string;
+    /** Median reviewer score from 1 to 4. Higher is better. */
+    score: number;
+    summary: string;
+    findings: ImageReviewFinding[];
+    strengths: ImageReviewStrength[];
+  };
+
+  // ============================================================
   // Webhooks
   // ============================================================
 
@@ -468,6 +539,7 @@ export namespace MynthSDKTypes {
     task: { id: string };
     event: "task.image.generate.failed";
     request: ImageGenerationRequest;
+    errors: TaskError[];
   };
 
   /**
@@ -487,6 +559,7 @@ export namespace MynthSDKTypes {
     task: { id: string };
     event: "task.image.rate.failed";
     request: ImageRateRequest;
+    errors: TaskError[];
   };
 
   /**
@@ -506,6 +579,27 @@ export namespace MynthSDKTypes {
     task: { id: string };
     event: "task.image.alt.failed";
     request: ImageAltRequest;
+    errors: TaskError[];
+  };
+
+  /**
+   * Webhook payload for image review task completion.
+   */
+  export type WebhookTaskImageReviewCompletedPayload = {
+    task: { id: string };
+    event: "task.image.review.completed";
+    result: ImageReviewTaskResult;
+    request: ImageReviewRequest;
+  };
+
+  /**
+   * Webhook payload for image review task failure.
+   */
+  export type WebhookTaskImageReviewFailedPayload = {
+    task: { id: string };
+    event: "task.image.review.failed";
+    request: ImageReviewRequest;
+    errors: TaskError[];
   };
 
   /**
@@ -517,5 +611,7 @@ export namespace MynthSDKTypes {
     | WebhookTaskImageRateCompletedPayload
     | WebhookTaskImageRateFailedPayload
     | WebhookTaskImageAltCompletedPayload
-    | WebhookTaskImageAltFailedPayload;
+    | WebhookTaskImageAltFailedPayload
+    | WebhookTaskImageReviewCompletedPayload
+    | WebhookTaskImageReviewFailedPayload;
 }

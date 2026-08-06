@@ -1,7 +1,7 @@
 {
   "name": "@mynthio/sdk",
   "version": "0.0.35",
-  "description": "Official Mynth SDK for image generation, rating, and alt text",
+  "description": "Official Mynth SDK for image generation and analysis",
   "keywords": [
     "ai",
     "image-generation",
@@ -35,12 +35,22 @@
       "types": "./dist/convex/index.d.ts",
       "import": "./dist/convex/index.js",
       "default": "./dist/convex/index.js"
+    },
+    "./next": {
+      "types": "./dist/next/index.d.ts",
+      "import": "./dist/next/index.js",
+      "default": "./dist/next/index.js"
+    },
+    "./tanstack-start": {
+      "types": "./dist/tanstack-start/index.d.ts",
+      "import": "./dist/tanstack-start/index.js",
+      "default": "./dist/tanstack-start/index.js"
     }
   },
   "scripts": {
     "build": "bun run build:clean && bun run build:js && bun run build:types",
     "build:clean": "rm -rf dist",
-    "build:js": "bun build ./src/index.ts ./src/convex/index.ts --outdir ./dist --format esm --splitting --target bun --minify --packages external",
+    "build:js": "bun build ./src/index.ts ./src/convex/index.ts ./src/next/index.ts ./src/tanstack-start/index.ts --outdir ./dist --format esm --splitting --target bun --minify --packages external",
     "build:types": "tsc -p tsconfig.build.json --emitDeclarationOnly",
     "test": "vitest run",
     "test:watch": "vitest",

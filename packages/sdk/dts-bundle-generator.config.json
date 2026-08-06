@@ -12,6 +12,16 @@
       "filePath": "./src/convex/index.ts",
       "outFile": "./dist/convex/index.d.ts",
       "noCheck": true
+    },
+    {
+      "filePath": "./src/next/index.ts",
+      "outFile": "./dist/next/index.d.ts",
+      "noCheck": true
+    },
+    {
+      "filePath": "./src/tanstack-start/index.ts",
+      "outFile": "./dist/tanstack-start/index.d.ts",
+      "noCheck": true
     }
   ]
 }

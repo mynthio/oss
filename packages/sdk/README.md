@@ -2,7 +2,7 @@
 
 Official SDK for the [Mynth](https://mynth.io) image API.
 
-The SDK gives you a typed `Mynth` client, temporary image uploads, sync and async generation, rating, and alt text flows, model metadata, and a Convex webhook helper.
+The SDK gives you a typed `Mynth` client, temporary image uploads, sync and async image generation and analysis flows, model metadata, and webhook helpers for Next.js, TanStack Start, and Convex.
 
 ## Installation
 
@@ -61,7 +61,7 @@ const mynth = new Mynth({
 });
 ```
 
-- `apiKey`: required for image generation, rating, and alt text unless `MYNTH_API_KEY` is set; not required for the public model catalog
+- `apiKey`: required for image generation and analysis unless `MYNTH_API_KEY` is set; not required for the public model catalog
 - `baseUrl`: optional override for proxies or tests
 
 ## Generate vs Generate Async
@@ -387,9 +387,44 @@ const result = await taskAsync.wait();
 console.log(result.alt);
 ```
 
+## Image Review
+
+Review an existing image with a multi-model quality panel:
+
+```ts
+const result = await mynth.image.review({
+  url: "https://example.com/image.webp",
+});
+
+console.log(result.score); // 1–4, higher is better
+console.log(result.summary);
+console.log(result.findings);
+console.log(result.strengths);
+```
+
+Review effort defaults to `high`. Use `low` for a faster, cheaper triage panel:
+
+```ts
+const result = await mynth.image.review({
+  file,
+  effort: "low",
+});
+```
+
+Use `reviewAsync()` to create the task without waiting for completion:
+
+```ts
+const taskAsync = await mynth.image.reviewAsync({
+  url: "https://example.com/image.webp",
+});
+
+const result = await taskAsync.wait();
+console.log(result.summary);
+```
+
 ## Working With Results
 
-Completed tasks expose a few helpful accessors:
+Completed generation tasks expose a few helpful accessors:
 
 ```ts
 const task = await mynth.image.generate({
@@ -496,6 +531,68 @@ const request: MynthSDKTypes.ImageGenerationRequest = {
 };
 ```
 
+## Next.js Integration
+
+Use the App Router helper to verify and route registered Mynth webhooks. Add the signing secret shown when you create the webhook:
+
+```env
+MYNTH_WEBHOOK_SECRET=wbs_...
+```
+
+Create a Route Handler:
+
+```ts
+// app/api/mynth-webhook/route.ts
+import { mynthWebhookHandler } from "@mynthio/sdk/next";
+
+export const POST = mynthWebhookHandler({
+  imageTaskCompleted: async (payload, { request }) => {
+    console.log("Completed task:", payload.task.id);
+    console.log("Received at:", request.url);
+
+    await saveImages(payload.task.id, payload.result.images);
+  },
+  imageTaskFailed: async (payload) => {
+    await markTaskFailed(payload.task.id, payload.errors);
+  },
+});
+```
+
+The helper reads the raw body, verifies `X-Mynth-Signature`, rejects signatures older than five minutes, and checks `X-Mynth-Event` before calling a typed handler. The last handler argument contains the original `request`.
+
+The route must be publicly reachable, so exclude it from authentication middleware. Make callback side effects idempotent using the event name and task ID, and enqueue slow work before returning. Callback errors are propagated so Mynth can retry the delivery.
+
+Pass `{ webhookSecret: "wbs_..." }` as the second argument only when the application does not use `MYNTH_WEBHOOK_SECRET`. This helper accepts signed, registered webhooks; per-request custom webhooks are not signed.
+
+## TanStack Start Integration
+
+Mount the webhook helper directly on a TanStack Start server route:
+
+```ts
+// src/routes/api/webhooks/mynth.ts
+import { mynthWebhookHandler } from "@mynthio/sdk/tanstack-start";
+import { createFileRoute } from "@tanstack/react-router";
+
+export const Route = createFileRoute("/api/webhooks/mynth")({
+  server: {
+    handlers: {
+      POST: mynthWebhookHandler({
+        imageTaskCompleted: async (payload, { request, params, context }) => {
+          console.log("Completed task:", payload.task.id);
+          console.log("Received at:", request.url);
+          await saveImages(payload.task.id, payload.result.images);
+        },
+        imageTaskFailed: async (payload) => {
+          await markTaskFailed(payload.task.id, payload.errors);
+        },
+      }),
+    },
+  },
+});
+```
+
+Set `MYNTH_WEBHOOK_SECRET` in the server environment, or pass `webhookSecret` as the second argument. Event callbacks receive the original request, route params, and TanStack Start middleware context.
+
 ## Convex Integration
 
 The package includes a Convex HTTP action helper for webhook verification and event routing.
@@ -513,17 +610,24 @@ export const mynthWebhook = mynthWebhookAction({
   },
   imageRateTaskCompleted: async (payload) => {
     console.log("Completed rating task:", payload.task.id);
-    console.log(payload.result.results);
+    console.log(payload.result.level);
   },
   imageRateTaskFailed: async (payload) => {
     console.error("Mynth rating task failed:", payload.task.id);
   },
   imageAltTaskCompleted: async (payload) => {
     console.log("Completed alt text task:", payload.task.id);
-    console.log(payload.result.results);
+    console.log(payload.result.alt);
   },
   imageAltTaskFailed: async (payload) => {
     console.error("Mynth alt text task failed:", payload.task.id);
+  },
+  imageReviewTaskCompleted: async (payload) => {
+    console.log("Completed review task:", payload.task.id);
+    console.log(payload.result.summary);
+  },
+  imageReviewTaskFailed: async (payload) => {
+    console.error("Mynth review task failed:", payload.task.id);
   },
 });
 ```
@@ -532,7 +636,7 @@ Set `MYNTH_WEBHOOK_SECRET` in your environment, or pass `webhookSecret` explicit
 
 ## Error Handling
 
-`upload()`, `generate()`, `generateAsync()`, `rate()`, `rateAsync()`, `alt()`, `altAsync()`, and `models.list()` may throw `MynthAPIError` if the request fails. Polling can also throw task-specific errors:
+`upload()`, `generate()`, `generateAsync()`, `rate()`, `rateAsync()`, `alt()`, `altAsync()`, `review()`, `reviewAsync()`, and `models.list()` may throw `MynthAPIError` if the request fails. Polling can also throw task-specific errors:
 
 ```ts
 import {

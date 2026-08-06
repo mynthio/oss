@@ -8,11 +8,13 @@ import {
   GENERATE_IMAGE_PATH,
   MODELS_PATH,
   RATE_IMAGE_PATH,
+  REVIEW_IMAGE_PATH,
   UPLOAD_IMAGE_PATH,
 } from "./constants";
 import { ImageAltResult } from "./image-alt-result";
 import { ImageGenerationResult } from "./image-generation-result";
 import { ImageRateResult } from "./image-rate-result";
+import { ImageReviewResult } from "./image-review-result";
 import type { TaskAsyncAccess } from "./task-async";
 import {
   TaskAsync,
@@ -123,7 +125,7 @@ function getDestinationFromEnv(): string | undefined {
 }
 
 /**
- * Client for interacting with the Mynth image generation, rating, and alt text APIs.
+ * Client for interacting with the Mynth image generation and analysis APIs.
  *
  * @example
  * ```typescript
@@ -463,6 +465,56 @@ class MynthImage {
 
     return taskAsync;
   }
+
+  /**
+   * Review a single image with a multi-model quality panel.
+   *
+   * @param request - Image URL or local file, and optional review effort
+   * @returns An ImageReviewResult with the score, summary, findings, and strengths
+   *
+   * @example
+   * ```typescript
+   * const result = await image.review({ url: "https://..." });
+   * console.log(result.score); // 1–4, higher is better
+   * console.log(result.findings);
+   * ```
+   */
+  public async review(request: MynthSDKTypes.ImageReviewClientRequest): Promise<ImageReviewResult> {
+    const taskAsync = await this.createReviewTask(request);
+
+    return taskAsync.wait();
+  }
+
+  /**
+   * Start an image quality review without waiting for completion.
+   *
+   * @param request - Image URL or local file, and optional review effort
+   * @returns A TaskAsync that can be polled for completion via `.wait()`
+   */
+  public async reviewAsync(
+    request: MynthSDKTypes.ImageReviewClientRequest,
+  ): Promise<TaskAsync<ImageReviewResult>> {
+    return this.createReviewTask(request);
+  }
+
+  private async createReviewTask(
+    request: MynthSDKTypes.ImageReviewClientRequest,
+  ): Promise<TaskAsync<ImageReviewResult>> {
+    const url = await this.resolveUrlOrFile(request);
+    const { file: _, url: __, ...rest } = request;
+
+    const json = await this.client.post<
+      MynthSDKTypes.ApiResponse<MynthSDKTypes.ImageReviewCreatedResponse>
+    >(REVIEW_IMAGE_PATH, { ...rest, url });
+
+    const data = json.data;
+
+    return new TaskAsync<ImageReviewResult>(data.taskId, {
+      client: this.client,
+      resultFactory: (taskData) =>
+        ImageReviewResult.fromTaskData(taskData as MynthSDKTypes.ImageReviewTaskData),
+    });
+  }
 }
 
 /**
@@ -537,7 +589,7 @@ class Mynth {
     this.models = new MynthModels({ baseUrl: options.baseUrl });
   }
 
-  /** Image generation, rating, and alt text client */
+  /** Image generation and analysis client */
   get image(): MynthImage {
     this.imageClient ??= new MynthImage(this.options);
 
@@ -550,6 +602,7 @@ export {
   ImageAltResult,
   ImageGenerationResult,
   ImageRateResult,
+  ImageReviewResult,
   Mynth,
   MynthImage,
   MynthModels,

@@ -77,6 +77,9 @@ describe("mynthWebhookAction", () => {
         mode: "nsfw_sfw",
         url: "https://cdn.example.com/image.webp",
       },
+      errors: [
+        { code: "RESTRICTED_CONTENT", message: "The request was blocked by content moderation." },
+      ],
     };
     const action = mynthWebhookAction({ imageRateTaskFailed }, { webhookSecret: SECRET });
 
@@ -131,6 +134,9 @@ describe("mynthWebhookAction", () => {
       request: {
         url: "https://cdn.example.com/image.webp",
       },
+      errors: [
+        { code: "RESTRICTED_CONTENT", message: "The request was blocked by content moderation." },
+      ],
     };
     const action = mynthWebhookAction({ imageAltTaskFailed }, { webhookSecret: SECRET });
 
@@ -141,6 +147,74 @@ describe("mynthWebhookAction", () => {
     expect({
       status: response.status,
       calls: imageAltTaskFailed.mock.calls,
+    }).toEqual({
+      status: 200,
+      calls: [[payload, { context: {}, request: expect.any(Request) }]],
+    });
+  });
+
+  test("dispatches image review completion events", async () => {
+    // Arrange
+    const imageReviewTaskCompleted = vi.fn();
+    const payload: MynthSDKTypes.WebhookTaskImageReviewCompletedPayload = {
+      event: "task.image.review.completed",
+      task: { id: "tsk_review" },
+      request: {
+        url: "https://cdn.example.com/image.webp",
+        effort: "high",
+      },
+      result: {
+        url: "https://cdn.example.com/image.webp",
+        score: 3,
+        summary: "Strong composition with one visible artifact.",
+        findings: [
+          {
+            finding: "The left hand has an extra finger.",
+            category: "anatomy",
+            severity: "major",
+            where: "Left side of the image",
+            confidence: "high",
+          },
+        ],
+        strengths: [{ strength: "Balanced composition", confidence: "high" }],
+      },
+    };
+    const action = mynthWebhookAction({ imageReviewTaskCompleted }, { webhookSecret: SECRET });
+
+    // Act
+    const response = await action({} as never, await createWebhookRequest(payload));
+
+    // Assert
+    expect({
+      status: response.status,
+      calls: imageReviewTaskCompleted.mock.calls,
+    }).toEqual({
+      status: 200,
+      calls: [[payload, { context: {}, request: expect.any(Request) }]],
+    });
+  });
+
+  test("dispatches image review failure events", async () => {
+    // Arrange
+    const imageReviewTaskFailed = vi.fn();
+    const payload: MynthSDKTypes.WebhookTaskImageReviewFailedPayload = {
+      event: "task.image.review.failed",
+      task: { id: "tsk_review" },
+      request: {
+        url: "https://cdn.example.com/image.webp",
+        effort: "low",
+      },
+      errors: [{ code: "REVIEW_FAILED", message: "Image review failed." }],
+    };
+    const action = mynthWebhookAction({ imageReviewTaskFailed }, { webhookSecret: SECRET });
+
+    // Act
+    const response = await action({} as never, await createWebhookRequest(payload));
+
+    // Assert
+    expect({
+      status: response.status,
+      calls: imageReviewTaskFailed.mock.calls,
     }).toEqual({
       status: 200,
       calls: [[payload, { context: {}, request: expect.any(Request) }]],

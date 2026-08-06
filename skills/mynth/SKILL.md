@@ -4,7 +4,7 @@ description: >
   Use when adding or migrating AI image generation with Mynth, the unified image
   generation API and SDK. Covers @mynthio/sdk, the REST API, Public Access
   Tokens for browser polling, webhooks, image content rating, image alt text, Destinations
-  (deliver to S3/R2/Bunny), Convex, and the @mynthio/tanstack-ai-adapter.
+  (deliver to S3/R2/Bunny), Next.js, Convex, and the @mynthio/tanstack-ai-adapter.
   Trigger for Mynth-specific setup, provider replacement, multi-model image
   generation, image task polling, content moderation of images, image alt text,
   or webhook sync.
@@ -43,6 +43,7 @@ Pass `{ apiKey, baseUrl }` only when the project already centralizes secrets or 
 | Use the SDK (JS/TS with server)    | [sdk-usage.md](references/sdk-usage.md)                       |
 | Use the REST API (non-JS, mobile)  | [rest-api.md](references/rest-api.md)                         |
 | Use with TanStack AI               | [tanstack-ai.md](references/tanstack-ai.md)                   |
+| Use with Next.js webhooks          | [webhooks.md](references/webhooks.md)                         |
 | Use with Convex                    | [convex.md](references/convex.md)                             |
 | Client-side polling with PATs      | [public-access-tokens.md](references/public-access-tokens.md) |
 | Set up webhooks                    | [webhooks.md](references/webhooks.md)                         |
@@ -55,6 +56,7 @@ Pass `{ apiKey, baseUrl }` only when the project already centralizes secrets or 
 - JS/TS server code: `@mynthio/sdk`
 - Non-JS, mobile, or edge code without the SDK: REST API
 - TanStack AI `generateImage()`: `@mynthio/tanstack-ai-adapter`
+- Next.js webhook handling: `@mynthio/sdk/next`
 - Convex webhook handling: `@mynthio/sdk/convex`
 
 ## Core Flow

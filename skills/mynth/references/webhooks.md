@@ -66,7 +66,10 @@ On failure:
 {
   "event": "task.image.generate.failed",
   "task": { "id": "tsk_..." },
-  "request": { "prompt": "A sunset" }
+  "request": { "prompt": "A sunset" },
+  "errors": [
+    { "code": "RESTRICTED_CONTENT", "message": "The request was blocked by content moderation." }
+  ]
 }
 ```
 
@@ -87,6 +90,22 @@ mynth webhook delete <id> --yes [--json]
 Headers: `X-Mynth-Event` and `X-Mynth-Signature: t=<timestamp>,v1=<hex>`
 
 Verify: `HMAC-SHA256("{timestamp}.{rawBody}", webhookSecret)`
+
+For Next.js App Router, use the SDK helper:
+
+```ts
+// app/api/mynth-webhook/route.ts
+import { mynthWebhookHandler } from "@mynthio/sdk/next";
+
+export const POST = mynthWebhookHandler({
+  imageTaskCompleted: async (payload, { request }) => {
+    await saveImages(payload.task.id, payload.result.images);
+    console.log(request.url);
+  },
+});
+```
+
+Set `MYNTH_WEBHOOK_SECRET`. Keep the route public, make side effects idempotent, and enqueue slow work. The helper only accepts signed, registered webhooks.
 
 For Convex, use `@mynthio/sdk/convex`; see [convex.md](convex.md).
 

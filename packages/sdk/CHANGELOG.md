@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.36](https://github.com/mynthio/oss/compare/sdk-v0.0.35...sdk-v0.0.36) (2026-08-06)
+
+
+### Features
+
+* **sdk:** add image review and framework webhook helpers ([22b301a](https://github.com/mynthio/oss/commit/22b301a12d5ac25f7b2e1644e68c26418a01a1bc))
+
 ## [0.0.35](https://github.com/mynthio/oss/compare/sdk-v0.0.34...sdk-v0.0.35) (2026-08-05)
 
 

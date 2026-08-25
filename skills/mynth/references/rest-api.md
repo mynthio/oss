@@ -22,7 +22,7 @@ Use REST for non-JS apps, mobile backends, or runtimes where the SDK is not appr
 }
 ```
 
-Optional fields: `negative_prompt`, `magic_prompt`, `inputs`, `rating` (see [image-rating.md](image-rating.md)), `destination` (see [destinations.md](destinations.md)), `metadata`.
+Optional fields: `negative_prompt`, `magic_prompt`, `inputs`, `output` (`format`: `png` | `jpg` | `webp`; omitted means the model native format), `rating` (see [image-rating.md](image-rating.md)), `destination` (see [destinations.md](destinations.md)), `metadata`.
 
 Response (201):
 

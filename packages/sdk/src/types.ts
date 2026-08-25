@@ -140,7 +140,7 @@ export namespace MynthSDKTypes {
   export type ImageGenerationRequestOutputFormat = "png" | "jpg" | "webp";
 
   export type ImageGenerationRequestOutput = {
-    format: ImageGenerationRequestOutputFormat;
+    format?: ImageGenerationRequestOutputFormat;
   };
 
   export type ImageGenerationRequestCustomWebhook = {

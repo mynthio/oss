@@ -528,7 +528,7 @@ export const createImageCommand = (ctx: CliContext): Command => {
     )
     .option("-c, --count <number>", "Number of images to generate (default: 1)", parseInteger)
     .addOption(
-      new Option("-f, --format <format>", "Output image format (default: webp)").choices([
+      new Option("-f, --format <format>", "Output image format (default: model native)").choices([
         "png",
         "jpg",
         "webp",

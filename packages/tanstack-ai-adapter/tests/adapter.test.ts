@@ -234,7 +234,7 @@ describe("MynthImageAdapter", () => {
         createOptions({
           modelOptions: {
             access: { pat: { enabled: false } },
-            output: { format: "png", quality: 90 },
+            output: { format: "png" },
             inputs: ["https://example.com/ref.jpg"],
             webhook: { dashboard: false },
             rating: true,
@@ -247,7 +247,7 @@ describe("MynthImageAdapter", () => {
       expect(generateMock).toHaveBeenCalledWith(
         expect.objectContaining({
           access: { pat: { enabled: false } },
-          output: { format: "png", quality: 90 },
+          output: { format: "png" },
           inputs: ["https://example.com/ref.jpg"],
           webhook: { dashboard: false },
           rating: true,

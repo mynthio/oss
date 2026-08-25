@@ -45,7 +45,7 @@ await mynth.image.generate({
   model: "black-forest-labs/flux.2-dev", // default "auto" (picked from prompt)
   size: { type: "aspect_ratio", aspectRatio: "16:9" },
   count: 2, // 1-20, default 1
-  output: { format: "webp", quality: 80 }, // png | jpg | webp; default webp/80
+  output: { format: "webp" }, // png | jpg | webp; default webp
   negative_prompt: "text, watermark",
   magic_prompt: true, // Mynth-side prompt enhancement
   inputs: ["https://example.com/reference.jpg"], // source/reference images, max 20

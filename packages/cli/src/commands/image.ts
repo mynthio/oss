@@ -20,8 +20,6 @@ import { print } from "../utils/output.ts";
 import { withSpinner } from "../utils/spinner.ts";
 
 const MAX_GENERATE_INPUTS = 20;
-const DEFAULT_OUTPUT_FORMAT = "webp";
-const DEFAULT_OUTPUT_QUALITY = 80;
 const INPUT_AS = ["auto", "person", "garment", "pose", "source", "reference"] as const;
 
 /** Labels for the 1–4 review score scale (higher is better). */
@@ -61,7 +59,6 @@ type GenerateOptions = RateOptions & {
   readonly size?: string;
   readonly count?: number;
   readonly format?: "png" | "jpg" | "webp";
-  readonly quality?: number;
   readonly input?: ReadonlyArray<string>;
   readonly outputDir?: string;
   readonly destination?: string;
@@ -91,14 +88,6 @@ const parseInteger = (value: string): number => {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isInteger(parsed) || String(parsed) !== value) {
     throw new CliUsageError(`invalid integer: "${value}"`);
-  }
-  return parsed;
-};
-
-const parseQuality = (value: string): number => {
-  const parsed = parseInteger(value);
-  if (parsed < 1 || parsed > 100) {
-    throw new CliUsageError(`invalid quality: "${value}" (expected 1-100)`);
   }
   return parsed;
 };
@@ -545,7 +534,6 @@ export const createImageCommand = (ctx: CliContext): Command => {
         "webp",
       ]),
     )
-    .option("-q, --quality <number>", "Output quality 1-100 (default: 80)", parseQuality)
     .option(
       "-i, --input <value>",
       `Input image as "[as:]path-or-url" (repeatable, up to ${MAX_GENERATE_INPUTS}). as is optional and must be one of: ${INPUT_AS.join(", ")}. Examples: -i ./img.jpg, -i source:https://example.com/a.png, -i reference:./style.png`,
@@ -618,13 +606,7 @@ export const createImageCommand = (ctx: CliContext): Command => {
       },
     }));
 
-    const output =
-      options.format !== undefined || options.quality !== undefined
-        ? {
-            format: options.format ?? DEFAULT_OUTPUT_FORMAT,
-            quality: options.quality ?? DEFAULT_OUTPUT_QUALITY,
-          }
-        : undefined;
+    const output = options.format !== undefined ? { format: options.format } : undefined;
 
     const contentRatingCfg =
       customLevels !== undefined

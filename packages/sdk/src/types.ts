@@ -141,8 +141,6 @@ export namespace MynthSDKTypes {
 
   export type ImageGenerationRequestOutput = {
     format: ImageGenerationRequestOutputFormat;
-    /** Output quality 1-100. Defaults to 80 when output is omitted. */
-    quality: number;
   };
 
   export type ImageGenerationRequestCustomWebhook = {

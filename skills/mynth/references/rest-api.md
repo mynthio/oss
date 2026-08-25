@@ -17,7 +17,7 @@ Use REST for non-JS apps, mobile backends, or runtimes where the SDK is not appr
   "model": "auto",
   "size": { "type": "aspect_ratio", "aspectRatio": "16:9" },
   "count": 1,
-  "output": { "format": "webp", "quality": 80 },
+  "output": { "format": "webp" },
   "webhook": { "custom": [{ "url": "https://your-app.com/webhook" }] }
 }
 ```

@@ -51,11 +51,10 @@ describe("mynth cli", () => {
     expect(help.status).toBe(0);
     expect(help.stdout).toContain("(-p, --prompt text)");
     expect(help.stdout).toContain("Models: mynth models list");
-    expect(help.stdout).toContain("Output quality 1-100");
     expect(help.stdout).not.toContain("<prompt>");
   });
 
-  it("sends optional image output settings as a complete output object", async () => {
+  it("sends the output object only when --format is given", async () => {
     const requests: Array<{ readonly body: unknown }> = [];
     const server = createServer((request, response) => {
       let body = "";
@@ -84,12 +83,7 @@ describe("mynth cli", () => {
         ["image", "generate", "-p", "test", "--async", "--format", "png"],
         env,
       );
-      const qualityOnly = await runCliAsync(
-        ["image", "generate", "-p", "test", "--async", "--quality", "90"],
-        env,
-      );
-
-      expect([noOutput.status, formatOnly.status, qualityOnly.status]).toEqual([0, 0, 0]);
+      expect([noOutput.status, formatOnly.status]).toEqual([0, 0]);
       expect(requests.map((request) => request.body)).toEqual([
         {
           prompt: "test",
@@ -97,12 +91,7 @@ describe("mynth cli", () => {
         },
         {
           prompt: "test",
-          output: { format: "png", quality: 80 },
-          access: { pat: { enabled: true } },
-        },
-        {
-          prompt: "test",
-          output: { format: "webp", quality: 90 },
+          output: { format: "png" },
           access: { pat: { enabled: true } },
         },
       ]);
@@ -175,13 +164,6 @@ describe("mynth cli", () => {
         server.close((error) => (error ? reject(error) : resolvePromise()));
       });
     }
-  });
-
-  it("rejects image output quality outside the API range", () => {
-    const result = runCli("image", "generate", "-p", "test", "--quality", "0");
-
-    expect(result.status).toBe(2);
-    expect(`${result.stdout}${result.stderr}`).toContain('invalid quality: "0" (expected 1-100)');
   });
 
   it("preserves image rate response fields from the API", async () => {
@@ -485,7 +467,7 @@ describe("mynth cli", () => {
       userId: "user_123",
       apiKeyId: "key_123",
       cost: null,
-      request: { prompt: "test", count: 1, output: { format: "webp", quality: 80 } },
+      request: { prompt: "test", count: 1, output: { format: "webp" } },
       result: null,
       errors: null,
       createdAt: "2026-01-29T12:00:00.000Z",

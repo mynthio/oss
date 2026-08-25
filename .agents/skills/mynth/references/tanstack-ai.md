@@ -54,7 +54,7 @@ const result = await generateImage({
   prompt: "A sunset",
   numberOfImages: 2,
   modelOptions: {
-    output: { format: "png", quality: 100 },
+    output: { format: "png" },
     size: { type: "aspect_ratio", aspectRatio: "16:9" }, // overrides top-level size
     inputs: ["https://example.com/ref.jpg"],
     negativePrompt: "text, watermark", // maps to negative_prompt

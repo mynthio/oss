@@ -20,7 +20,7 @@ const parseErrorBody = (body: string): string => {
   return body.length > 500 ? `${body.slice(0, 500)}…` : body;
 };
 
-const assertSuccess = async (response: Response, operation: string): Promise<void> => {
+export const assertSuccess = async (response: Response, operation: string): Promise<void> => {
   if (response.ok) return;
   const detail = parseErrorBody(await readText(response));
   throw new MynthApiError({
@@ -29,7 +29,11 @@ const assertSuccess = async (response: Response, operation: string): Promise<voi
   });
 };
 
-const request = async (url: string, operation: string, init?: RequestInit): Promise<Response> => {
+export const request = async (
+  url: string,
+  operation: string,
+  init?: RequestInit,
+): Promise<Response> => {
   try {
     return await fetch(url, init);
   } catch (cause) {
@@ -41,7 +45,7 @@ const request = async (url: string, operation: string, init?: RequestInit): Prom
   }
 };
 
-const readDocumentText = async (response: Response, operation: string): Promise<string> => {
+export const readDocumentText = async (response: Response, operation: string): Promise<string> => {
   try {
     return await response.text();
   } catch (cause) {

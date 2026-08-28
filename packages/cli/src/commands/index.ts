@@ -1,5 +1,6 @@
 export { createAuthCommand, createWhoamiCommand } from "./auth.ts";
 export { createBalanceCommand } from "./balance.ts";
+export { createChangelogCommand } from "./changelog.ts";
 export { createConfigCommand } from "./config.ts";
 export { createDestinationCommand } from "./destination.ts";
 export { createDocsCommand } from "./docs.ts";

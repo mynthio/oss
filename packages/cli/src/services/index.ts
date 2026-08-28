@@ -1,5 +1,6 @@
 export { Auth } from "./Auth.ts";
 export { getAppConfig } from "./AppConfig.ts";
+export { ChangelogService } from "./ChangelogService.ts";
 export { CredentialsStore } from "./CredentialsStore.ts";
 export { DestinationService } from "./DestinationService.ts";
 export { DocsService } from "./DocsService.ts";

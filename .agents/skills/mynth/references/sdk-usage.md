@@ -100,7 +100,7 @@ task.status; // "pending" | "completed" | "failed"
 task.isCompleted;
 task.isFailed;
 task.urls; // string[] — successful image URLs only
-task.getImages(); // successful images: { url, mynth_url, cost, size, rating?, destination? }
+task.getImages(); // successful images: { url, mynth_url, size, rating?, destination? }
 task.getImages({ includeFailed: true }); // include failed images with error codes
 task.result?.model; // resolved model ID
 task.getMetadata(); // your metadata object

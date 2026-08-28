@@ -348,7 +348,6 @@ export namespace MynthSDKTypes {
     url: string | null;
     mynth_url: string;
     size: string;
-    cost: string;
     destination?: ImageResultDestination;
     rating?: ImageResultRating;
   };

@@ -110,7 +110,6 @@ PAT generation is enabled by default. Disable it with:
           "status": "success",
           "url": "https://cdn.mynth.io/...",
           "mynth_url": "https://cdn.mynth.io/...",
-          "cost": "0.01",
           "size": "1920x1080"
         }
       ]

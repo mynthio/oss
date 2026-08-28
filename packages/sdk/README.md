@@ -504,6 +504,7 @@ Current model IDs include:
 - `krea/krea-2-large`
 - `luma/uni-1`
 - `luma/uni-1-max`
+- `meta/muse-image`
 - `openai/gpt-image-2`
 - `prunaai/p-image-try-on`
 - `purplesmartai/pony-diffusion-v6-xl`

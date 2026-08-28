@@ -180,6 +180,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["inputs"],
   },
   {
+    id: "meta/muse-image",
+    label: "Muse Image",
+    capabilities: ["inputs"],
+  },
+  {
     id: "purplesmartai/pony-diffusion-v6-xl",
     label: "Pony Diffusion V6 XL",
     capabilities: ["negative_prompt"],

@@ -7,6 +7,7 @@ import { DocsService } from "../src/services/DocsService.ts";
 const appConfig = {
   mynthApiUrl: "https://api.mynth.test",
   mynthDocsUrl: "https://docs.mynth.test",
+  mynthChangelogUrl: "https://mynth.test/changelog",
 };
 
 const createContext = (docs: Partial<CliContext["docs"]>): CliContext =>

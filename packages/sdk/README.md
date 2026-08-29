@@ -161,7 +161,6 @@ const task = await mynth.image.generate({
   count: 2,
   output: {
     format: "webp",
-    quality: 80,
   },
   webhook: {
     dashboard: false,
@@ -198,7 +197,7 @@ const task = await mynth.image.generate({
 
 `access.pat.enabled` controls whether the create-task response includes a short-lived Public Access Token for browser-side polling. It defaults to `true`.
 
-`output` is optional. When you provide it, include both `format` and `quality`; when omitted, Mynth defaults to WebP at quality 80.
+`output` and its `format` are optional. When no format is given, each image is delivered in the model's native format. `format` is best effort — a model that cannot deliver the requested format delivers its own instead.
 
 ## Upload Images
 

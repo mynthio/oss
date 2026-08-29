@@ -141,9 +141,7 @@ export namespace MynthSDKTypes {
   export type ImageGenerationRequestOutputFormat = "png" | "jpg" | "webp";
 
   export type ImageGenerationRequestOutput = {
-    format: ImageGenerationRequestOutputFormat;
-    /** Output quality 1-100. Defaults to 80 when output is omitted. */
-    quality: number;
+    format?: ImageGenerationRequestOutputFormat;
   };
 
   export type ImageGenerationRequestCustomWebhook = {
@@ -351,7 +349,6 @@ export namespace MynthSDKTypes {
     url: string | null;
     mynth_url: string;
     size: string;
-    cost: string;
     destination?: ImageResultDestination;
     rating?: ImageResultRating;
   };

@@ -36,7 +36,7 @@ export interface MynthImagePromptStructured {
  * and shorthand size stay at the top level.
  */
 export interface MynthImageProviderOptions {
-  /** Output format and quality */
+  /** Output format */
   output?: MynthSDKTypes.ImageGenerationRequestOutput;
   /** Structured prompt with negative/enhance. Prefer `negativePrompt` and `magicPrompt` for new code. */
   promptStructured?: MynthImagePromptStructured;

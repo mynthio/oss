@@ -8,7 +8,7 @@ Use this when asked whether Mynth can replace existing image-generation code.
 - Queue workers or status proxy endpoints -> Mynth tasks plus PAT browser polling.
 - Webhook sync code without provider value -> Mynth webhooks.
 - Prompt-to-size heuristics -> `size: "auto"` or explicit aspect-ratio presets.
-- Post-processing for output format/quality -> `output`.
+- Post-processing for output format -> `output`.
 - Content rating calls -> `rating`.
 - Provider-specific reference/init image plumbing -> `inputs`.
 - Download-then-upload-to-own-storage pipelines -> `destination` (S3/R2/Bunny delivery).

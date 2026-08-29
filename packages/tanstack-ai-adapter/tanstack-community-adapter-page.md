@@ -126,7 +126,6 @@ const result = await generateImage({
     },
     output: {
       format: "png",
-      quality: 90,
     },
     rating: true,
     metadata: {

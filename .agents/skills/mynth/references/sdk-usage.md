@@ -45,7 +45,7 @@ await mynth.image.generate({
   model: "black-forest-labs/flux.2-dev", // default "auto" (picked from prompt)
   size: { type: "aspect_ratio", aspectRatio: "16:9" },
   count: 2, // 1-20, default 1
-  output: { format: "webp", quality: 80 }, // png | jpg | webp; default webp/80
+  output: { format: "webp" }, // png | jpg | webp; defaults to the model native format
   negative_prompt: "text, watermark",
   magic_prompt: true, // Mynth-side prompt enhancement
   inputs: ["https://example.com/reference.jpg"], // source/reference images, max 20
@@ -100,7 +100,7 @@ task.status; // "pending" | "completed" | "failed"
 task.isCompleted;
 task.isFailed;
 task.urls; // string[] — successful image URLs only
-task.getImages(); // successful images: { url, mynth_url, cost, size, rating?, destination? }
+task.getImages(); // successful images: { url, mynth_url, size, rating?, destination? }
 task.getImages({ includeFailed: true }); // include failed images with error codes
 task.result?.model; // resolved model ID
 task.getMetadata(); // your metadata object

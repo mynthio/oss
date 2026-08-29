@@ -17,12 +17,12 @@ Use REST for non-JS apps, mobile backends, or runtimes where the SDK is not appr
   "model": "auto",
   "size": { "type": "aspect_ratio", "aspectRatio": "16:9" },
   "count": 1,
-  "output": { "format": "webp", "quality": 80 },
+  "output": { "format": "webp" },
   "webhook": { "custom": [{ "url": "https://your-app.com/webhook" }] }
 }
 ```
 
-Optional fields: `negative_prompt`, `magic_prompt`, `inputs`, `rating` (see [image-rating.md](image-rating.md)), `destination` (see [destinations.md](destinations.md)), `metadata`.
+Optional fields: `negative_prompt`, `magic_prompt`, `inputs`, `output` (`format`: `png` | `jpg` | `webp`; omitted means the model native format), `rating` (see [image-rating.md](image-rating.md)), `destination` (see [destinations.md](destinations.md)), `metadata`.
 
 Response (201):
 
@@ -110,7 +110,6 @@ PAT generation is enabled by default. Disable it with:
           "status": "success",
           "url": "https://cdn.mynth.io/...",
           "mynth_url": "https://cdn.mynth.io/...",
-          "cost": "0.01",
           "size": "1920x1080"
         }
       ]

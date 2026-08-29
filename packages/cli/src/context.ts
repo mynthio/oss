@@ -1,6 +1,7 @@
 import { AccountService } from "./services/AccountService.ts";
 import { Auth } from "./services/Auth.ts";
 import { getAppConfig } from "./services/AppConfig.ts";
+import { ChangelogService } from "./services/ChangelogService.ts";
 import { CredentialsStore } from "./services/CredentialsStore.ts";
 import { DestinationService } from "./services/DestinationService.ts";
 import { DocsService } from "./services/DocsService.ts";
@@ -14,6 +15,7 @@ import { WorkOS } from "./services/WorkOS.ts";
 export type CliContext = {
   readonly account: AccountService;
   readonly auth: Auth;
+  readonly changelog: ChangelogService;
   readonly credentialsStore: CredentialsStore;
   readonly destinations: DestinationService;
   readonly docs: DocsService;
@@ -33,6 +35,7 @@ export const createCliContext = (): CliContext => {
   return {
     account: new AccountService(api),
     auth,
+    changelog: new ChangelogService(config),
     credentialsStore,
     destinations: new DestinationService(api),
     docs: new DocsService(config),

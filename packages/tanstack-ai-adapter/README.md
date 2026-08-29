@@ -113,7 +113,6 @@ const result = await generateImage({
     },
     output: {
       format: "png",
-      quality: 90,
     },
     inputs: ["https://example.com/reference-image.jpg"],
     webhook: {

@@ -510,6 +510,8 @@ Current model IDs include:
 - `purplesmartai/pony-diffusion-v6-xl`
 - `recraft/recraft-v4`
 - `recraft/recraft-v4-pro`
+- `recraft/recraft-v4-style`
+- `recraft/recraft-v4-style-pro`
 - `sourceful/riverflow-2.0-pro`
 - `tongyi-mai/z-image`
 - `tongyi-mai/z-image-turbo`

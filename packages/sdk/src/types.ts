@@ -117,6 +117,8 @@ export namespace MynthSDKTypes {
     | "purplesmartai/pony-diffusion-v6-xl"
     | "recraft/recraft-v4"
     | "recraft/recraft-v4-pro"
+    | "recraft/recraft-v4-style"
+    | "recraft/recraft-v4-style-pro"
     | "reve/reve"
     | "reve/reve-remix"
     | "sourceful/riverflow-2.0-pro"

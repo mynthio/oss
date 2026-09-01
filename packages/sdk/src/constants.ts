@@ -130,6 +130,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["inputs"],
   },
   {
+    id: "bria/fibo-generate-1.5",
+    label: "FIBO Generate 1.5",
+    capabilities: [],
+  },
+  {
     id: "ideogram/remove-background",
     label: "Ideogram Remove Background",
     capabilities: ["inputs"],

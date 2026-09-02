@@ -94,6 +94,8 @@ export namespace MynthSDKTypes {
     | "black-forest-labs/flux.2-max"
     | "black-forest-labs/flux.2-klein-4b"
     | "black-forest-labs/flux-virtual-try-on"
+    | "bria/fibo-edit-1.5"
+    | "bria/fibo-generate-1.5"
     | "google/gemini-3.1-flash-lite-image"
     | "google/gemini-3.1-flash-image"
     | "google/gemini-3-pro-image-preview"

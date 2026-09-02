@@ -159,7 +159,7 @@ export namespace MynthSDKTypes {
   };
 
   export type ImageGenerationRequestWebhook = {
-    dashboard?: false;
+    dashboard?: boolean;
     custom?: ImageGenerationRequestCustomWebhook;
   };
 
@@ -289,7 +289,7 @@ export namespace MynthSDKTypes {
   export type ImageGenerationRequest = {
     prompt: ImageGenerationRequestPrompt;
     negative_prompt?: string;
-    magic_prompt?: true;
+    magic_prompt?: boolean;
     model?: ImageGenerationModel;
     size?: ImageGenerationRequestSize;
     count?: number;

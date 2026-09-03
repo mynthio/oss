@@ -1,6 +1,7 @@
 import { Command, Help, Option } from "commander";
 import { createApp } from "./app.ts";
 import { CLI_VERSION } from "./config.ts";
+import { logo } from "./output/logo.ts";
 import { apiKeyCommand } from "./commands/api-key.ts";
 import { authCommand, whoamiCommand } from "./commands/auth.ts";
 import { balanceCommand } from "./commands/balance.ts";
@@ -65,6 +66,10 @@ export const createProgram = (): Command => {
   const program = new Command("mynth")
     .description("Official Mynth CLI")
     .version(CLI_VERSION)
+    // Decoration only: agents pipe this help, so the glyph is for human terminals.
+    .addHelpText("before", ({ error }) =>
+      (error ? process.stderr.isTTY : process.stdout.isTTY) ? `${logo()}\n` : "",
+    )
     .addHelpText("after", EXIT_CODE_HELP);
 
   for (const command of [

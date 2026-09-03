@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { createServer } from "node:http";
+import { stripVTControlCharacters } from "node:util";
 import type { AddressInfo } from "node:net";
 import { json, runCli, withApi } from "./helpers.ts";
+import { logo } from "../src/output/logo.ts";
 
 describe("help", () => {
   it("documents the exit codes and environment variables", async () => {
@@ -17,6 +19,22 @@ describe("help", () => {
     ]) {
       expect(result.stdout).toContain(line);
     }
+  });
+
+  it("keeps the logo out of piped help", async () => {
+    const result = await runCli(["--help"]);
+
+    expect(result.stdout).not.toMatch(/[\u2580-\u2588]/u);
+    expect(result.stdout.startsWith("Usage: mynth")).toBe(true);
+  });
+
+  it("draws the mint glyph with half blocks, 11 cells wide", () => {
+    const lines = logo().split("\n");
+    const width = (line: string) => [...stripVTControlCharacters(line)].length;
+
+    expect(lines).toHaveLength(5);
+    for (const line of lines) expect(width(line)).toBeLessThanOrEqual(11);
+    expect(lines.join("")).toMatch(/[\u2580-\u2588]/u);
   });
 
   it("lists every top-level command", async () => {

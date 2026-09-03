@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.37](https://github.com/mynthio/oss/compare/sdk-v0.0.36...sdk-v0.0.37) (2026-09-03)
+
+
+### Features
+
+* **sdk:** accept boolean magic_prompt and dashboard webhooks ([9710027](https://github.com/mynthio/oss/commit/97100279023fd5036b6a601703cd3bd2bfe59ec0))
+* **sdk:** add bria/fibo-generate-1.5 ([f6838d5](https://github.com/mynthio/oss/commit/f6838d5eede9cada39ea4949ecfd3fd660716f6e))
+* **sdk:** add meta/muse-image ([7026da6](https://github.com/mynthio/oss/commit/7026da63cab0cfdbf95d418c107cabbe1205e196))
+
+
+### Bug Fixes
+
+* **sdk:** wait 30 minutes and retry transient poll failures ([96ea33a](https://github.com/mynthio/oss/commit/96ea33a38f0728501ae086cdab17eefe67c4651c))
+
 ## [0.0.36](https://github.com/mynthio/oss/compare/sdk-v0.0.35...sdk-v0.0.36) (2026-08-06)
 
 

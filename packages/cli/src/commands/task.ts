@@ -1,5 +1,11 @@
 import { Command } from "commander";
-import { getTask, getTaskResult, listTasks, waitForTask } from "../api/tasks.ts";
+import {
+  DEFAULT_WAIT_TIMEOUT_MS,
+  getTask,
+  getTaskResult,
+  listTasks,
+  waitForTask,
+} from "../api/tasks.ts";
 import type { App } from "../app.ts";
 import { exitCodeForFailedTask } from "../errors.ts";
 import { glyphForStatus, printJson } from "../output/print.ts";
@@ -14,7 +20,7 @@ import { printTable } from "../output/table.ts";
 import { parsePositiveInteger } from "../utils/parse.ts";
 import { jsonOption, type JsonFlag } from "./options.ts";
 
-const DEFAULT_WAIT_TIMEOUT_SECONDS = 300;
+const DEFAULT_WAIT_TIMEOUT_SECONDS = DEFAULT_WAIT_TIMEOUT_MS / 1000;
 
 type DetailedFlag = JsonFlag & { readonly detailed?: boolean };
 

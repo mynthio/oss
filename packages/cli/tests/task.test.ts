@@ -132,6 +132,67 @@ describe("task", () => {
     );
   });
 
+  it("rides out transient failures while waiting", async () => {
+    // A 404 on the cached status endpoint and a 5xx on the settled task fetch
+    // are both blips: the task exists, so the wait must survive them.
+    let statusCalls = 0;
+    let taskCalls = 0;
+
+    await withApi(
+      (request, response) => {
+        if (request.url === "/tasks/tsk_flaky/status") {
+          statusCalls++;
+          if (statusCalls === 1) {
+            json(response, 404, { code: "NOT_FOUND", message: "task not found" });
+            return;
+          }
+          json(response, 200, { data: { status: "completed" } });
+          return;
+        }
+
+        taskCalls++;
+        if (taskCalls === 1) {
+          json(response, 503, { code: "UNAVAILABLE" });
+          return;
+        }
+        json(response, 200, {
+          data: {
+            id: "tsk_flaky",
+            type: "image.generate",
+            status: "completed",
+            cost: "0.02",
+            result: { model: "m", images: [{ status: "success", id: "img_1" }] },
+            createdAt: "2026-01-01T00:00:00.000Z",
+            updatedAt: "2026-01-01T00:00:01.000Z",
+          },
+        });
+      },
+      async (env) => {
+        const result = await runCli(["task", "wait", "tsk_flaky", "--json"], env);
+
+        expect(result.status).toBe(0);
+        expect(JSON.parse(result.stdout)).toMatchObject({
+          taskId: "tsk_flaky",
+          status: "completed",
+        });
+        expect(statusCalls).toBeGreaterThan(1);
+        expect(taskCalls).toBeGreaterThan(1);
+      },
+    );
+  }, 30_000);
+
+  it("gives up immediately on a failure that cannot self-heal", async () => {
+    await withApi(
+      (request, response) => json(response, 403, { code: "INSUFFICIENT_SCOPE" }),
+      async (env, requests) => {
+        const result = await runCli(["task", "wait", "tsk_denied"], env);
+
+        expect(result.status).toBe(3);
+        expect(requests).toHaveLength(1);
+      },
+    );
+  });
+
   it("rejects a non-positive wait timeout", async () => {
     const result = await runCli(["task", "wait", "tsk_1", "--timeout", "0"]);
 

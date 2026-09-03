@@ -1,131 +1,84 @@
 import { Command } from "commander";
-import type { CliContext } from "../context.ts";
-import { CliUsageError, exitCodeForFailedTask } from "../domain/Errors.ts";
-import type { TaskData, TaskListItem } from "../services/TaskService.ts";
-import { print } from "../utils/output.ts";
-import { withSpinner } from "../utils/spinner.ts";
-import { renderTaskHuman, summarizeTask } from "./image.ts";
+import { getTask, getTaskResult, listTasks, waitForTask } from "../api/tasks.ts";
+import type { App } from "../app.ts";
+import { exitCodeForFailedTask } from "../errors.ts";
+import { glyphForStatus, printJson } from "../output/print.ts";
+import {
+  renderTask,
+  renderTaskResult,
+  summarizeTask,
+  isImageGenerateTask,
+} from "../output/render.ts";
+import { withSpinner } from "../output/spinner.ts";
+import { printTable } from "../output/table.ts";
+import { parsePositiveInteger } from "../utils/parse.ts";
+import { jsonOption, type JsonFlag } from "./options.ts";
 
 const DEFAULT_WAIT_TIMEOUT_SECONDS = 300;
 
-type JsonOption = {
-  readonly json?: boolean;
-};
+type DetailedFlag = JsonFlag & { readonly detailed?: boolean };
 
-type WaitOptions = JsonOption & {
-  readonly timeout?: number;
-  readonly detailed?: boolean;
-};
+const detailedOption = (command: Command) =>
+  command.option("--detailed", "Include the full task record instead of a compact summary");
 
-type ListOptions = JsonOption & {
-  readonly limit?: number;
-  readonly after?: string;
-};
-
-const parsePositiveInteger = (label: string) => (value: string) => {
-  const parsed = Number.parseInt(value, 10);
-  if (!Number.isInteger(parsed) || String(parsed) !== value || parsed <= 0) {
-    throw new CliUsageError(`invalid ${label}: "${value}" (expected a positive integer)`);
-  }
-  return parsed;
-};
-
-const statusGlyph = (status: string): string => {
-  switch (status) {
-    case "completed":
-      return "✓";
-    case "failed":
-      return "✗";
-    default:
-      return "…";
-  }
-};
-
-const indent = (text: string, spaces: number): string => {
-  const pad = " ".repeat(spaces);
-  return text
-    .split("\n")
-    .map((line) => `${pad}${line}`)
-    .join("\n");
-};
-
-const renderHuman = (task: TaskData): void => {
-  print(`${statusGlyph(task.status)} Task ${task.id}`);
-  print(`  Type:       ${task.type}`);
-  print(`  Status:     ${task.status}`);
-  if (task.cost !== null) print(`  Cost:       ${task.cost}`);
-  print(`  Created:    ${task.createdAt}`);
-  print(`  Updated:    ${task.updatedAt}`);
-
-  if (task.result !== null && task.result !== undefined) {
-    print("");
-    print("Result:");
-    print(indent(JSON.stringify(task.result, null, 2), 2));
-  }
-};
-
-const renderListHuman = (tasks: ReadonlyArray<TaskListItem>): void => {
-  if (tasks.length === 0) {
-    print("No tasks found.");
-    return;
-  }
-  for (const task of tasks) {
-    const cost = task.cost !== null ? `  ${task.cost}` : "";
-    print(
-      `${statusGlyph(task.status)} ${task.id}  ${task.type}  ${task.status}${cost}  ${task.createdAt}`,
-    );
-  }
-};
-
-export const createTaskCommand = (ctx: CliContext): Command => {
-  const task = new Command("task");
+export const taskCommand = (app: App): Command => {
+  const task = new Command("task").description("Inspect and await Mynth tasks");
 
   task
     .command("get")
     .description("Fetch a task by ID")
     .argument("<id>", "Task ID")
-    .option("--json", "Output machine-readable JSON instead of a human-readable summary")
-    .action(async (id: string, options: JsonOption) => {
-      const data = await ctx.tasks.getTask(id);
+    .addOption(jsonOption())
+    .action(async (id: string, options: JsonFlag) => {
+      const data = await getTask(app.api, id);
       if (options.json) {
-        print(JSON.stringify(data, null, 2));
+        printJson(data);
         return;
       }
-      renderHuman(data);
+      renderTask(data);
     });
 
+  // Always JSON: the result payload is the only reason to reach for this over
+  // `task get`, so there is no human-readable variant to switch between.
   task
+    .command("result")
+    .description("Print a task's result payload as JSON")
+    .argument("<id>", "Task ID")
+    .action(async (id: string) => {
+      printJson((await getTaskResult(app.api, id)).result);
+    });
+
+  const wait = task
     .command("wait")
-    .description("Block until a task completes (or fails), then print it")
+    .description("Block until a task completes or fails, then print it")
     .argument("<id>", "Task ID")
     .option(
       "--timeout <seconds>",
       `Max seconds to wait before giving up (default: ${DEFAULT_WAIT_TIMEOUT_SECONDS})`,
       parsePositiveInteger("--timeout"),
     )
-    .option("--detailed", "Include full task data (all fields) in the output")
-    .option("--json", "Output machine-readable JSON instead of a human-readable summary")
-    .action(async (id: string, options: WaitOptions) => {
-      const timeoutMs = (options.timeout ?? DEFAULT_WAIT_TIMEOUT_SECONDS) * 1000;
-      const wait = ctx.tasks.waitForTask(id, timeoutMs);
-      const data = options.json ? await wait : await withSpinner(wait);
+    .addOption(jsonOption());
+  detailedOption(wait).action(
+    async (id: string, options: DetailedFlag & { readonly timeout?: number }) => {
+      const pending = waitForTask(
+        app.api,
+        id,
+        (options.timeout ?? DEFAULT_WAIT_TIMEOUT_SECONDS) * 1000,
+      );
+      const data = options.json ? await pending : await withSpinner(pending);
 
+      // The awaited task's outcome drives the exit code, so scripts can branch
+      // on a moderation block without parsing the output.
       if (data.status === "failed") process.exitCode = exitCodeForFailedTask(data);
 
-      // image.generate output matches sync `image generate`; other task types
-      // fall back to the `task get` rendering.
       if (options.json) {
-        const payload =
-          options.detailed || data.type !== "image.generate" ? data : summarizeTask(data);
-        print(JSON.stringify(payload, null, 2));
+        const compact = !options.detailed && isImageGenerateTask(data);
+        printJson(compact ? summarizeTask(data) : data);
         return;
       }
-      if (data.type === "image.generate" && data.status === "completed") {
-        renderTaskHuman(data, 0);
-        return;
-      }
-      renderHuman(data);
-    });
+      renderTaskResult(data);
+    },
+  );
 
   task
     .command("list")
@@ -136,17 +89,30 @@ export const createTaskCommand = (ctx: CliContext): Command => {
       parsePositiveInteger("--limit"),
     )
     .option("--after <id>", "Cursor: return tasks created before this task ID")
-    .option("--json", "Output machine-readable JSON instead of a human-readable summary")
-    .action(async (options: ListOptions) => {
-      const tasks = await ctx.tasks.listTasks({
+    .addOption(jsonOption())
+    .action(async (options: JsonFlag & { readonly limit?: number; readonly after?: string }) => {
+      const tasks = await listTasks(app.api, {
         ...(options.limit !== undefined ? { limit: options.limit } : {}),
         ...(options.after !== undefined ? { after: options.after } : {}),
       });
+
       if (options.json) {
-        print(JSON.stringify({ tasks }, null, 2));
+        printJson({ tasks });
         return;
       }
-      renderListHuman(tasks);
+
+      printTable(
+        tasks,
+        [
+          { header: "", value: (item) => glyphForStatus(item.status) },
+          { header: "ID", value: (item) => item.id },
+          { header: "Type", value: (item) => item.type },
+          { header: "Status", value: (item) => item.status },
+          { header: "Cost", value: (item) => item.cost ?? "-" },
+          { header: "Created", value: (item) => item.createdAt },
+        ],
+        "No tasks found.",
+      );
     });
 
   return task;

@@ -1,0 +1,6 @@
+{
+  "name": "bunny-prod",
+  "provider": { "id": "bunny", "storage_zone": "my-zone" },
+  "config": { "path_template": "images/{id}" },
+  "secret": { "password": "s3cret" }
+}

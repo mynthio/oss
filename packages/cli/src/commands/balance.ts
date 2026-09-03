@@ -1,29 +1,38 @@
 import { Command } from "commander";
-import type { CliContext } from "../context.ts";
-import { print } from "../utils/output.ts";
+import { getBalance, getMe } from "../api/account.ts";
+import type { App } from "../app.ts";
+import { print, printJson } from "../output/print.ts";
+import { jsonOption, type JsonFlag } from "./options.ts";
 
-type JsonOption = {
-  readonly json?: boolean;
-};
-
-export const createBalanceCommand = (ctx: CliContext): Command =>
+/**
+ * Spending limits live on `/me` (they belong to the API key, not the account),
+ * so an API-key session fetches both and prints them together.
+ */
+export const balanceCommand = (app: App): Command =>
   new Command("balance")
-    .description("Show account balance and API key spending limit usage")
-    .option("--json", "Output machine-readable JSON instead of a human-readable summary")
-    .action(async (options: JsonOption) => {
-      const data = await ctx.account.balance();
+    .description("Show account balance, and the active API key's spending limit")
+    .addOption(jsonOption())
+    .action(async (options: JsonFlag) => {
+      const balance = await getBalance(app.api);
+      const me = await getMe(app.api).catch(() => undefined);
+      const spending = me?.auth.apiKey?.spending;
+
       if (options.json) {
-        print(JSON.stringify(data, null, 2));
+        printJson({ ...balance, ...(spending !== undefined ? { spending } : {}) });
         return;
       }
 
-      print(`Balance:   $${data.balance}`);
-      print(`Reserved:  $${data.reserved}`);
-      print(`Available: $${data.available}`);
-      if (data.apiKey) {
-        print("");
-        print(`API key limit: $${data.apiKey.spendingLimit} / ${data.apiKey.spendingLimitPeriod}`);
-        print(`  used:      $${data.apiKey.usedInPeriod}`);
-        print(`  remaining: $${data.apiKey.remainingInPeriod}`);
+      print(`Balance:   $${balance.balance}`);
+      print(`Reserved:  $${balance.reserved}`);
+      print(`Available: $${balance.available}`);
+
+      if (spending === undefined) return;
+      print("");
+      if (spending.mode === "unlimited") {
+        print("API key spending: unlimited");
+        return;
       }
+      print(`API key limit: $${spending.limit} / ${spending.period}`);
+      print(`  used:      $${spending.used}`);
+      print(`  remaining: $${spending.remaining}`);
     });

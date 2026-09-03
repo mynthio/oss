@@ -1,42 +1,29 @@
-import type { Command } from "commander";
-import { createProgram } from "./Cli.ts";
-import { exitCodeForError } from "./domain/Errors.ts";
-import { printErr } from "./utils/output.ts";
+import { loadConfig } from "./config.ts";
+import { exitCodeForError } from "./errors.ts";
+import { printErr } from "./output/print.ts";
+import { createProgram } from "./program.ts";
 
-const debug = process.env["MYNTH_DEBUG"] === "1" || process.env["MYNTH_DEBUG"] === "true";
-
-const formatError = (error: unknown): string =>
+const message = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
-// `addCommand` does not inherit exitOverride, so apply it to every subcommand
-// or usage errors there bypass the exit-code mapping below.
-const overrideExits = (command: Command): void => {
-  command.exitOverride();
-  for (const child of command.commands) overrideExits(child);
-};
+try {
+  await createProgram().parseAsync(process.argv);
+} catch (error) {
+  const code = (error as { code?: unknown } | null)?.code;
 
-const main = async () => {
-  const program = createProgram();
-  overrideExits(program);
-
-  try {
-    await program.parseAsync(process.argv);
-  } catch (error) {
-    const code = (error as { code?: string }).code;
-    if (code === "commander.helpDisplayed" || code === "commander.version") return;
-
-    // Commander already writes its own errors (and help) to stderr.
+  if (code === "commander.helpDisplayed" || code === "commander.version") {
+    // Commander already wrote the output; exit 0.
+  } else {
+    // Commander writes its own usage errors (and help) to stderr already.
     if (typeof code !== "string" || !code.startsWith("commander.")) {
-      printErr(formatError(error));
+      printErr(message(error));
 
-      if (debug && error instanceof Error) {
-        printErr("=== MYNTH_DEBUG cause ===");
-        printErr(JSON.stringify(error.cause ?? error, null, 2));
+      if (loadConfig().debug && error instanceof Error) {
+        printErr("=== MYNTH_DEBUG ===");
+        printErr(error.stack ?? error.message);
+        if (error.cause !== undefined) printErr(`cause: ${message(error.cause)}`);
       }
     }
-
     process.exitCode = exitCodeForError(error);
   }
-};
-
-await main();
+}

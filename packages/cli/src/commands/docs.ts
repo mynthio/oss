@@ -1,31 +1,39 @@
 import { Command } from "commander";
-import type { CliContext } from "../context.ts";
-import { print } from "../utils/output.ts";
+import type { App } from "../app.ts";
+import { print, printJson } from "../output/print.ts";
+import { jsonOption, type JsonFlag } from "./options.ts";
 
-type JsonOption = {
-  readonly json?: boolean;
-};
-
-export const createDocsCommand = (ctx: CliContext): Command => {
-  const docs = new Command("docs").description("Read Mynth documentation");
+export const docsCommand = (app: App): Command => {
+  const docs = new Command("docs").description("Read Mynth documentation (no authentication)");
 
   docs
     .command("get")
     .description("Fetch a documentation page as Markdown")
-    .argument("<path>", "Documentation path without the .md suffix")
-    .option("--json", "Output machine-readable JSON")
-    .action(async (path: string, options: JsonOption) => {
-      const page = await ctx.docs.get(path);
-      print(options.json ? JSON.stringify(page, null, 2) : page.content);
+    .argument(
+      "<path>",
+      "Documentation path, without the .md suffix (e.g. guides/async-and-polling)",
+    )
+    .addOption(jsonOption())
+    .action(async (path: string, options: JsonFlag) => {
+      const page = await app.docs.get(path);
+      if (options.json) {
+        printJson(page);
+        return;
+      }
+      print(page.content);
     });
 
   docs
     .command("list")
     .description("Fetch the complete documentation index")
-    .option("--json", "Output machine-readable JSON")
-    .action(async (options: JsonOption) => {
-      const content = await ctx.docs.list();
-      print(options.json ? JSON.stringify({ content }, null, 2) : content);
+    .addOption(jsonOption())
+    .action(async (options: JsonFlag) => {
+      const content = await app.docs.list();
+      if (options.json) {
+        printJson({ content });
+        return;
+      }
+      print(content);
     });
 
   return docs;

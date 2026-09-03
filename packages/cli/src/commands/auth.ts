@@ -1,81 +1,54 @@
 import { Command } from "commander";
-import chalk from "chalk";
-import type { CliContext } from "../context.ts";
-import {
-  AuthorizationDeniedError,
-  AuthorizationExpiredError,
-  AuthorizationPendingError,
-  MynthCliError,
-  NotAuthenticatedError,
-  WorkOSError,
-} from "../domain/Errors.ts";
-import { print } from "../utils/output.ts";
+import { getMe } from "../api/account.ts";
+import type { App } from "../app.ts";
+import { exchangeDeviceCode, requestDeviceAuthorization } from "../auth/workos.ts";
+import { AuthError, CliError, DeviceFlowError } from "../errors.ts";
+import { glyph, print, printJson } from "../output/print.ts";
+import { sleep } from "../utils/async.ts";
+import { jsonOption, type JsonFlag } from "./options.ts";
 
-const formatExpiry = (ms: number) => new Date(ms).toISOString();
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-const ok = chalk.green("✓");
+const SLOW_DOWN_STEP_MS = 5_000;
+const DEFAULT_POLL_INTERVAL_SECONDS = 5;
 
-const wrapCli = (message: string, cause: unknown) =>
-  new MynthCliError({
-    message: cause instanceof Error ? `${message}: ${cause.message}` : message,
-    cause,
-  });
+/**
+ * Polls WorkOS until the user approves the device code in their browser.
+ * `authorization_pending` and `slow_down` are the only codes we keep waiting on.
+ */
+const awaitApproval = async (deviceCode: string, intervalMs: number, expiresAtMs: number) => {
+  let interval = intervalMs;
 
-const pollForToken = async (
-  ctx: CliContext,
-  deviceCode: string,
-  initialIntervalMs: number,
-  expiresAtMs: number,
-) => {
-  let intervalMs = initialIntervalMs;
   while (true) {
-    if (Date.now() >= expiresAtMs) {
-      throw new MynthCliError({ message: "device code expired before approval" });
-    }
+    if (Date.now() >= expiresAtMs) throw new CliError("device code expired before approval");
 
     try {
-      return await ctx.workos.exchangeDeviceCode(deviceCode);
+      return await exchangeDeviceCode(deviceCode);
     } catch (error) {
-      if (error instanceof AuthorizationPendingError) {
-        if (error.slowDown) intervalMs += 5000;
-        await sleep(intervalMs);
-        continue;
+      if (!(error instanceof DeviceFlowError)) throw error;
+
+      if (error.code === "access_denied") throw new AuthError("login was denied");
+      if (error.code === "expired_token") {
+        throw new AuthError("device code expired; run `mynth auth login` again");
       }
-      if (error instanceof AuthorizationDeniedError) {
-        throw new MynthCliError({ message: "login denied by user" });
-      }
-      if (error instanceof AuthorizationExpiredError) {
-        throw new MynthCliError({ message: "device code expired" });
-      }
-      if (error instanceof WorkOSError) {
-        throw new MynthCliError({ message: error.message, cause: error });
-      }
-      throw error;
+      if (error.code !== "authorization_pending" && error.code !== "slow_down") throw error;
+
+      // `slow_down` means we are polling too fast; back off permanently.
+      if (error.code === "slow_down") interval += SLOW_DOWN_STEP_MS;
+      await sleep(interval);
     }
   }
 };
 
-export const createAuthCommand = (ctx: CliContext): Command => {
-  const auth = new Command("auth");
-
-  auth
-    .command("login")
+const login = (app: App) =>
+  new Command("login")
     .description("Authenticate with Mynth using OAuth device login")
     .action(async () => {
-      if (ctx.auth.envApiKeySet) {
-        print(
-          "MYNTH_API_KEY is set in your environment; that takes precedence over login.\n" +
-            "Unset it to use OAuth, or just continue using the env API key.",
+      if (app.session.envApiKeySet) {
+        throw new AuthError(
+          "MYNTH_API_KEY is set and takes precedence over login. Unset it to use OAuth, or keep using the env API key.",
         );
-        throw new MynthCliError({ message: "env api key takes precedence" });
       }
 
-      let device: Awaited<ReturnType<CliContext["workos"]["requestDeviceAuthorization"]>>;
-      try {
-        device = await ctx.workos.requestDeviceAuthorization();
-      } catch (cause) {
-        throw wrapCli("device authorize", cause);
-      }
+      const device = await requestDeviceAuthorization();
 
       print("");
       print(`  First copy your one-time code: ${device.user_code}`);
@@ -83,93 +56,105 @@ export const createAuthCommand = (ctx: CliContext): Command => {
       print("");
       print("Waiting for confirmation...");
 
-      const exchanged = await pollForToken(
-        ctx,
+      const issued = await awaitApproval(
         device.device_code,
-        (device.interval ?? 5) * 1000,
+        (device.interval ?? DEFAULT_POLL_INTERVAL_SECONDS) * 1000,
         Date.now() + device.expires_in * 1000,
       );
 
-      try {
-        await ctx.auth.saveOAuth({
-          accessToken: exchanged.token.access_token,
-          refreshToken: exchanged.token.refresh_token,
-          expiresAt: exchanged.expiresAt,
-          ...(exchanged.token.user ? { user: exchanged.token.user } : {}),
-        });
-      } catch (cause) {
-        throw wrapCli("could not save credentials", cause);
-      }
+      await app.session.saveOAuth({
+        access_token: issued.token.access_token,
+        refresh_token: issued.token.refresh_token,
+        expires_at: issued.expiresAt,
+        ...(issued.token.user !== undefined ? { user: issued.token.user } : {}),
+      });
 
-      const who = exchanged.token.user?.email ?? exchanged.token.user?.id ?? "unknown user";
-      print(`${ok} Logged in as ${who}`);
+      const who = issued.token.user?.email ?? issued.token.user?.id ?? "unknown user";
+      print(`${glyph.ok} Logged in as ${who}`);
     });
 
-  auth
-    .command("logout")
-    .description("Clear local Mynth credentials")
-    .action(async () => {
-      await ctx.auth.logout();
-      print(`${ok} Local credentials cleared`);
-      if (ctx.auth.envApiKeySet) {
-        print("Note: MYNTH_API_KEY is still set in your environment and will be used.");
-      }
-    });
+const logout = (app: App) =>
+  new Command("logout").description("Clear locally stored Mynth credentials").action(async () => {
+    await app.session.logout();
+    print(`${glyph.ok} Local credentials cleared`);
+    if (app.session.envApiKeySet) {
+      print("Note: MYNTH_API_KEY is still set in your environment and will still be used.");
+    }
+  });
 
-  auth
-    .command("status")
-    .description("Show current authentication status")
+const status = (app: App) =>
+  new Command("status")
+    .description("Show how this machine is authenticated, without calling the API")
     .action(async () => {
-      const status = await ctx.auth.status();
-      const usingKeychain = await ctx.credentialsStore.usingKeychain();
-      const backend = usingKeychain ? "system keychain" : `file (${ctx.credentialsStore.filePath})`;
+      const current = await app.session.status();
 
-      switch (status.kind) {
+      switch (current.kind) {
         case "env":
           print("Authenticated via env: MYNTH_API_KEY");
           return;
         case "none":
-          print("Not authenticated. Run `mynth auth login` or set an API key.");
+          print("Not authenticated. Run `mynth auth login`, or set an API key.");
           return;
         case "api_key":
-          print(`Authenticated via stored API key (${backend})`);
+          print(`Authenticated via stored API key (${await app.session.store.backend()})`);
           return;
-        case "oauth": {
-          const who = status.user?.email ?? status.user?.id ?? "unknown user";
-          print(`Authenticated via OAuth as ${who} (${backend})`);
-          print(`  access token expires: ${formatExpiry(status.expiresAt)}`);
-        }
+        case "oauth":
+          print(
+            `Authenticated via OAuth as ${current.user?.email ?? current.user?.id ?? "unknown user"} (${await app.session.store.backend()})`,
+          );
+          print(`  access token expires: ${new Date(current.expiresAt).toISOString()}`);
       }
     });
 
-  auth.addCommand(createWhoamiCommand(ctx));
-  return auth;
-};
-
-export const createWhoamiCommand = (ctx: CliContext): Command =>
+/**
+ * Verifies credentials against the API, so a revoked key or expired session
+ * fails here instead of part-way through a real command.
+ */
+export const whoamiCommand = (app: App): Command =>
   new Command("whoami")
     .description("Print the active Mynth identity, verified against the API")
-    .action(async () => {
-      const status = await ctx.auth.status();
-      if (status.kind === "none") {
-        print("not authenticated");
-        throw new NotAuthenticatedError();
+    .addOption(jsonOption())
+    .action(async (options: JsonFlag) => {
+      const current = await app.session.status();
+      if (current.kind === "none") {
+        throw new AuthError("not authenticated: run `mynth auth login` or set MYNTH_API_KEY");
+      }
+
+      const me = await getMe(app.api);
+
+      if (options.json) {
+        printJson({ source: current.kind, ...me });
+        return;
       }
 
       const label =
-        status.kind === "env"
+        current.kind === "env"
           ? "env:MYNTH_API_KEY"
-          : status.kind === "api_key"
+          : current.kind === "api_key"
             ? "api-key"
-            : (status.user?.email ?? status.user?.id ?? "oauth");
-
-      // Server round-trip so revoked credentials fail here instead of on the
-      // first real command.
-      const me = await ctx.account.me();
+            : (current.user?.email ?? current.user?.id ?? "oauth");
 
       print(label);
-      print(`  user: ${me.userId}`);
-      if (me.auth.apiKey) {
-        print(`  key: ${me.auth.apiKey.name ?? "unnamed"} (${me.auth.apiKey.keyPreview})`);
+      print(`  user:   ${me.userId}`);
+      print(`  method: ${me.auth.method}`);
+
+      const key = me.auth.apiKey;
+      if (key === undefined) return;
+      print(`  key:    ${key.name ?? "unnamed"} (${key.keyPreview})`);
+      if (key.scopes !== undefined && key.scopes.length > 0) {
+        print(`  scopes: ${key.scopes.join(", ")}`);
+      }
+      if (key.spending?.mode === "limited") {
+        print(
+          `  spend:  $${key.spending.used} of $${key.spending.limit} per ${key.spending.period} ($${key.spending.remaining} left)`,
+        );
       }
     });
+
+export const authCommand = (app: App): Command =>
+  new Command("auth")
+    .description("Manage Mynth authentication")
+    .addCommand(login(app))
+    .addCommand(logout(app))
+    .addCommand(status(app))
+    .addCommand(whoamiCommand(app));

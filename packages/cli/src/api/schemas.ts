@@ -60,22 +60,38 @@ export const workosErrorResponse = z.object({
 // Stored credentials
 //
 
-export const oauthCredentials = z.object({
-  kind: z.literal("oauth"),
-  access_token: z.string(),
-  refresh_token: z.string(),
-  expires_at: z.number(),
-  user: workosUser.optional(),
-});
-export type OAuthCredentials = z.infer<typeof oauthCredentials>;
-
-export const apiKeyCredentials = z.object({
+/**
+ * The only credential the CLI stores. `auth login` exchanges a short-lived
+ * WorkOS session for a long-lived API key, so no OAuth token ever reaches disk
+ * and there is nothing to refresh.
+ */
+export const credentials = z.object({
   kind: z.literal("api_key"),
   api_key: z.string(),
+  /** Present when the CLI minted the key, so `auth logout` can revoke it. */
+  id: z.string().optional(),
+  name: z.string().optional(),
+  scopes: z.array(z.string()).optional(),
 });
-
-export const credentials = z.union([oauthCredentials, apiKeyCredentials]);
 export type Credentials = z.infer<typeof credentials>;
+
+//
+// API keys
+//
+
+export const API_KEY_SCOPES = ["generate", "manage", "keys"] as const;
+
+/** The raw key is returned exactly once, by the create endpoint. */
+export const createdApiKey = z.object({
+  raw: z.string(),
+  apiKey: z.object({
+    id: z.string(),
+    name: z.string().optional(),
+    keyPreview: z.string(),
+    scopes: z.array(z.string()),
+  }),
+});
+export type CreatedApiKey = z.infer<typeof createdApiKey>;
 
 //
 // Account

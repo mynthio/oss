@@ -72,10 +72,7 @@ describe("whoami", () => {
   });
 
   it("exits 3 with no credentials at all", async () => {
-    const result = await runCli(["whoami"], {
-      MYNTH_NO_KEYCHAIN: "1",
-      XDG_CONFIG_HOME: "/nonexistent-mynth-test",
-    });
+    const result = await runCli(["whoami"], { XDG_CONFIG_HOME: "/nonexistent-mynth-test" });
     expect(result.status).toBe(3);
   });
 });

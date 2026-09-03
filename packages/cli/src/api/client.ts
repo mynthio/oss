@@ -3,9 +3,9 @@ import type { Config } from "../config.ts";
 import { ApiError } from "../errors.ts";
 import { envelope } from "./schemas.ts";
 
-/** Supplies bearer tokens; implemented by `auth/session.ts`. */
+/** Supplies the API key for authenticated calls; implemented by `auth/session.ts`. */
 export type TokenSource = {
-  token(options?: { readonly forceRefresh?: boolean }): Promise<string>;
+  token(): Promise<string>;
 };
 
 export type RequestOptions = {
@@ -80,16 +80,11 @@ export class ApiClient {
 
   /** Performs a request and throws `ApiError` on transport failure or non-2xx. */
   async send(label: string, path: string, options: RequestOptions = {}): Promise<Response> {
-    const response = await this.attempt(path, options, false);
-    // A 401 on a session token usually means it expired mid-flight; refresh once.
-    if (response.status !== 401 || options.auth === false || options.token !== undefined) {
-      if (response.ok) return response;
-      throw await toApiError(response, label);
-    }
-
-    const retried = await this.attempt(path, options, true);
-    if (retried.ok) return retried;
-    throw await toApiError(retried, label);
+    // API keys do not expire, so a 401 means revoked or wrong — never stale.
+    // There is nothing a retry could fix.
+    const response = await this.attempt(path, options);
+    if (response.ok) return response;
+    throw await toApiError(response, label);
   }
 
   /** Performs a request and parses the `{ data }` envelope with `schema`. */
@@ -126,16 +121,10 @@ export class ApiClient {
     await this.send(label, path, options);
   }
 
-  private async attempt(
-    path: string,
-    options: RequestOptions,
-    forceRefresh: boolean,
-  ): Promise<Response> {
+  private async attempt(path: string, options: RequestOptions): Promise<Response> {
     const { body, headers } = buildBody(options.body);
     const auth =
-      options.auth === false
-        ? undefined
-        : (options.token ?? (await this.tokens.token({ forceRefresh })));
+      options.auth === false ? undefined : (options.token ?? (await this.tokens.token()));
 
     try {
       return await fetch(`${this.baseUrl}${path}${buildQuery(options.query)}`, {

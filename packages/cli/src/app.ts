@@ -5,7 +5,7 @@ import { loadConfig, type Config } from "./config.ts";
 
 /**
  * Everything a command needs, built once per process. Construction does no I/O,
- * so `--help` and usage errors never touch the keychain or the network.
+ * so `--help` and usage errors never touch the filesystem or the network.
  */
 export type App = {
   readonly config: Config;

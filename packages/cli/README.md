@@ -18,20 +18,34 @@ npx @mynthio/cli --help
 
 ## Authentication
 
-Three sources, in precedence order:
+The CLI always authenticates with an API key. `auth login` is a convenience that creates one for
+you:
 
 ```bash
-export MYNTH_API_KEY=mak_...   # 1. environment — wins over everything below
-mynth config set api-key -     # 2. stored key (reads stdin), kept in the system keychain
-mynth auth login               # 3. OAuth device login
+mynth auth login                            # browser login, then creates and stores an API key
+mynth auth login --scopes generate,manage   # narrow the created key
+mynth config set api-key -                  # or store a key you already have, from stdin
+export MYNTH_API_KEY=mak_...                # or supply one per-process; wins over a stored key
 ```
 
-`mynth auth status` reports how this machine is authenticated without calling the API.
-`mynth whoami` verifies the credentials against the API and prints the key's scopes and spending
-limit, so a revoked key fails there rather than mid-run.
+`auth login` opens a device login, then exchanges that short-lived session for a long-lived API key
+named `mynth-cli (hostname)`. **Only the API key is stored** — no OAuth tokens ever reach disk.
 
-Credentials go to the system keychain when one is available, and otherwise to a `0600` file under
-`$XDG_CONFIG_HOME/mynth`. Set `MYNTH_NO_KEYCHAIN=1` to force the file (useful in containers).
+This matters for unattended use. A browser session expires (7 days, or 2 days idle) and its refresh
+token rotates on every use, which races when several commands run at once. An API key does neither,
+and it can be inspected, limited, or revoked from the [dashboard](https://mynth.io/dashboard).
+
+Since the key does not expire, set a spending limit on it in the dashboard if it will live on a
+shared or long-lived machine.
+
+```bash
+mynth auth status    # how this machine is authenticated; no API call
+mynth whoami         # verified against the API, so a revoked key fails here not mid-run
+mynth auth logout    # revokes the key it created, then clears the file
+```
+
+Credentials live in `$XDG_CONFIG_HOME/mynth/credentials.json` (default `~/.config`), written `0600`.
+`auth logout` revokes keys the CLI created; a key you supplied yourself is only removed locally.
 
 ## Generating images
 
@@ -203,7 +217,7 @@ src/
   config.ts       environment and build-time constants
   errors.ts       error types and the exit-code contract
   api/            one module per API resource, over a shared fetch client
-  auth/           credential storage, OAuth device flow, session resolution
+  auth/           credential file, device login, API key minting
   commands/       one module per command; they only orchestrate
   output/         printing, tables, spinners, and shared result renderers
   utils/          parsing, file, download, and concurrency helpers

@@ -6,7 +6,9 @@
  * exist in the published bundle and users cannot override them.
  */
 export const WORKOS_CLIENT_ID = process.env.MYNTH_WORKOS_CLIENT_ID!;
-export const WORKOS_API_URL = "https://api.workos.com";
+
+/** Overridable so the device-login flow can be exercised against a test server. */
+export const WORKOS_API_URL = process.env["MYNTH_WORKOS_API_URL"] ?? "https://api.workos.com";
 export const CLI_VERSION = process.env.MYNTH_CLI_VERSION ?? "0.0.0-dev";
 
 export type Config = {

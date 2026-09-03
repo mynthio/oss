@@ -1,53 +1,23 @@
-import * as keychain from "cross-keychain";
-import { chmod, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
-import { join } from "node:path";
-import { CliError } from "../errors.ts";
+import { dirname, join } from "node:path";
 import { credentials as credentialsSchema, type Credentials } from "../api/schemas.ts";
+import { CliError } from "../errors.ts";
 
-const SERVICE_NAME = "mynth-cli";
-const ACCOUNT_NAME = "default";
 const FILE_NAME = "credentials.json";
+const FILE_MODE = 0o600;
 
-/** Escape hatch for CI and containers where a keyring exists but is unusable. */
-const keychainDisabled = (): boolean =>
-  process.env["MYNTH_NO_KEYCHAIN"] === "1" || process.env["MYNTH_NO_KEYCHAIN"] === "true";
-
-/** `cross-keychain` signals "no keyring on this machine" through these names. */
-const isKeychainUnavailable = (cause: unknown): boolean => {
-  const name = (cause as { name?: string } | null)?.name;
-  return name === "NoKeyringError" || name === "InitError";
-};
-
-type KeychainAttempt<A> =
-  | { readonly available: true; readonly value: A }
-  | { readonly available: false };
-
-const tryKeychain = async <A>(fn: () => Promise<A>, label: string): Promise<KeychainAttempt<A>> => {
-  if (keychainDisabled()) return { available: false };
-  try {
-    return { available: true, value: await fn() };
-  } catch (cause) {
-    if (isKeychainUnavailable(cause)) return { available: false };
-    throw new CliError(`${label} failed: ${(cause as Error).message}`, { cause });
-  }
-};
-
-const decode = (raw: string): Credentials => {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (cause) {
-    throw new CliError("stored credentials are not valid JSON", { cause });
-  }
-
-  const result = credentialsSchema.safeParse(parsed);
-  if (!result.success) {
-    throw new CliError("stored credentials have an unexpected shape", { cause: result.error });
-  }
-  return result.data;
-};
-
+/**
+ * Credentials live in a `0600` file, the same as vercel, gcloud, npm and
+ * wrangler.
+ *
+ * A system keychain was tried and removed. A keychain ACL binds to a code
+ * signature, and there is no mynth binary to bind to — only a JS file run by
+ * whichever `node` is on PATH. macOS therefore prompted on every read, which is
+ * unanswerable for this CLI's main callers: agents, CI, containers and SSH. The
+ * protection was close to nil anyway, since anything able to run `node` could
+ * read the secret back out through the CLI itself.
+ */
 const configDir = (): string => {
   const xdg = process.env["XDG_CONFIG_HOME"];
   return join(xdg !== undefined && xdg.length > 0 ? xdg : join(homedir(), ".config"), "mynth");
@@ -62,53 +32,51 @@ const exists = async (path: string): Promise<boolean> => {
   }
 };
 
-/**
- * Credentials live in the system keychain when one is available, and fall back
- * to a 0600 file under `$XDG_CONFIG_HOME/mynth` (headless CI, containers).
- */
 export class CredentialsStore {
   readonly filePath: string;
-  private readonly dir: string;
 
   constructor() {
-    this.dir = configDir();
-    this.filePath = join(this.dir, FILE_NAME);
+    this.filePath = join(configDir(), FILE_NAME);
   }
 
   async get(): Promise<Credentials | undefined> {
-    const stored = await tryKeychain(
-      () => keychain.getPassword(SERVICE_NAME, ACCOUNT_NAME),
-      "keychain read",
-    );
-
-    if (stored.available) return stored.value === null ? undefined : decode(stored.value);
     if (!(await exists(this.filePath))) return undefined;
 
+    let raw: string;
     try {
-      return decode(await readFile(this.filePath, "utf8"));
+      raw = await readFile(this.filePath, "utf8");
     } catch (cause) {
-      if (cause instanceof CliError) throw cause;
       throw new CliError(`could not read ${this.filePath}: ${(cause as Error).message}`, { cause });
     }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (cause) {
+      throw new CliError(`${this.filePath} is not valid JSON`, { cause });
+    }
+
+    const result = credentialsSchema.safeParse(parsed);
+    if (!result.success) {
+      throw new CliError(`${this.filePath} has an unexpected shape; run \`mynth auth login\``, {
+        cause: result.error,
+      });
+    }
+    return result.data;
   }
 
   async set(credentials: Credentials): Promise<void> {
-    const encoded = JSON.stringify(credentials);
-    const wrote = await tryKeychain(
-      () => keychain.setPassword(SERVICE_NAME, ACCOUNT_NAME, encoded),
-      "keychain write",
-    );
-
-    if (wrote.available) {
-      // Never leave a stale plaintext copy behind once the keychain works.
-      await this.removeFile();
-      return;
-    }
-
     try {
-      await mkdir(this.dir, { recursive: true });
-      await writeFile(this.filePath, encoded, { encoding: "utf8", mode: 0o600 });
-      await chmod(this.filePath, 0o600);
+      await mkdir(dirname(this.filePath), { recursive: true, mode: 0o700 });
+      // `mode` only applies when a file is created, so writing over an existing
+      // file would keep its old permissions. Write a fresh file and rename it,
+      // which is atomic and always lands as 0600.
+      const temporary = `${this.filePath}.${process.pid}.tmp`;
+      await writeFile(temporary, JSON.stringify(credentials), {
+        encoding: "utf8",
+        mode: FILE_MODE,
+      });
+      await rename(temporary, this.filePath);
     } catch (cause) {
       throw new CliError(`could not write ${this.filePath}: ${(cause as Error).message}`, {
         cause,
@@ -117,30 +85,12 @@ export class CredentialsStore {
   }
 
   async clear(): Promise<void> {
-    await tryKeychain(
-      () => keychain.deletePassword(SERVICE_NAME, ACCOUNT_NAME),
-      "keychain delete",
-    ).catch(() => undefined);
-    await this.removeFile();
-  }
-
-  /** Whether credentials are (or would be) stored in the system keychain. */
-  async usingKeychain(): Promise<boolean> {
-    const result = await tryKeychain(() => keychain.getKeyring(), "keychain probe");
-    return result.available && result.value !== null;
-  }
-
-  /** Human-readable description of where credentials live. */
-  async backend(): Promise<string> {
-    return (await this.usingKeychain()) ? "system keychain" : `file (${this.filePath})`;
-  }
-
-  private async removeFile(): Promise<void> {
-    if (!(await exists(this.filePath))) return;
-    await rm(this.filePath).catch((cause: unknown) => {
+    try {
+      await rm(this.filePath, { force: true });
+    } catch (cause) {
       throw new CliError(`could not delete ${this.filePath}: ${(cause as Error).message}`, {
         cause,
       });
-    });
+    }
   }
 }

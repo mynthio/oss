@@ -10,31 +10,11 @@ import {
 
 const DEVICE_GRANT = "urn:ietf:params:oauth:grant-type:device_code";
 
-export type IssuedToken = {
-  readonly token: TokenResponse;
-  /** Absolute expiry in epoch milliseconds, read from the access token's `exp`. */
-  readonly expiresAt: number;
-};
-
 const readJson = async (response: Response): Promise<unknown> => {
   try {
     return await response.json();
   } catch {
     return {};
-  }
-};
-
-const decodeExpiry = (accessToken: string): number => {
-  try {
-    const payload = accessToken.split(".")[1];
-    if (payload === undefined) throw new Error("malformed JWT");
-    const claims = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as {
-      exp?: number;
-    };
-    if (typeof claims.exp !== "number") throw new Error("JWT is missing an exp claim");
-    return claims.exp * 1000;
-  } catch (cause) {
-    throw new CliError("could not decode the access token", { cause });
   }
 };
 
@@ -83,11 +63,13 @@ export const requestDeviceAuthorization = async (): Promise<DeviceAuthorization>
 };
 
 /**
- * Step 2: exchange the device code for tokens. Throws a `DeviceFlowError` with
- * `authorization_pending` / `slow_down` / `expired_token` / `access_denied`,
- * which the login loop uses to decide whether to keep waiting.
+ * Step 2: exchange the device code for a session. Throws a `DeviceFlowError`
+ * with `authorization_pending` / `slow_down` / `expired_token` /
+ * `access_denied`, which the login loop uses to decide whether to keep waiting.
+ *
+ * The access token is used once, to mint an API key, and never stored.
  */
-export const exchangeDeviceCode = async (deviceCode: string): Promise<IssuedToken> => {
+export const exchangeDeviceCode = async (deviceCode: string): Promise<TokenResponse> => {
   const response = await post(
     "/user_management/authenticate",
     JSON.stringify({
@@ -98,23 +80,5 @@ export const exchangeDeviceCode = async (deviceCode: string): Promise<IssuedToke
     "device token exchange",
   );
   if (!response.ok) throw await failure(response, "device token exchange");
-
-  const token = await parse(response, tokenResponse, "device token exchange");
-  return { token, expiresAt: decodeExpiry(token.access_token) };
-};
-
-export const refreshToken = async (refresh: string): Promise<IssuedToken> => {
-  const response = await post(
-    "/user_management/authenticate",
-    JSON.stringify({
-      grant_type: "refresh_token",
-      client_id: WORKOS_CLIENT_ID,
-      refresh_token: refresh,
-    }),
-    "token refresh",
-  );
-  if (!response.ok) throw await failure(response, "token refresh");
-
-  const token = await parse(response, tokenResponse, "token refresh");
-  return { token, expiresAt: decodeExpiry(token.access_token) };
+  return parse(response, tokenResponse, "device token exchange");
 };

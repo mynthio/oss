@@ -1,10 +1,18 @@
 import { spawn } from "node:child_process";
+import { mkdtempSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
-import { dirname, resolve } from "node:path";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+
+/**
+ * Every run gets its own config home, so tests can never read or clobber the
+ * developer's real ~/.config/mynth/credentials.json.
+ */
+export const isolatedConfigHome = (): string => mkdtempSync(join(tmpdir(), "mynth-cli-config-"));
 
 export type CliResult = {
   readonly status: number | null;
@@ -23,8 +31,7 @@ export const runCli = (
       env: {
         ...process.env,
         MYNTH_API_KEY: undefined,
-        // Never touch the developer's real keychain from a test run.
-        MYNTH_NO_KEYCHAIN: "1",
+        XDG_CONFIG_HOME: isolatedConfigHome(),
         ...env,
         NO_COLOR: "1",
       },

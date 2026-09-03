@@ -9,14 +9,16 @@ export const configCommand = (app: App): Command => {
 
   set
     .command("api-key")
-    .description("Save a Mynth API key to the system keychain (or a 0600 file)")
+    .description("Save an existing Mynth API key to the credentials file")
     .argument("<value>", "API key value, or `-` to read it from stdin")
     .action(async (value: string) => {
       const key = (value === "-" ? await readStdin() : value).trim();
       if (key.length === 0) throw new UsageError("API key is empty");
 
-      await app.session.saveApiKey(key);
-      print(`${glyph.ok} API key saved to ${await app.session.store.backend()}`);
+      // Saved without an id: the CLI did not mint it, so `auth logout` must not
+      // revoke it.
+      await app.session.save({ kind: "api_key", api_key: key });
+      print(`${glyph.ok} API key saved to ${app.session.store.filePath}`);
       if (app.session.envApiKeySet) {
         print("Note: MYNTH_API_KEY is also set in your environment and takes precedence.");
       }
@@ -28,8 +30,9 @@ export const configCommand = (app: App): Command => {
     .command("api-key")
     .description("Clear stored Mynth credentials")
     .action(async () => {
-      await app.session.logout();
+      await app.session.clear();
       print(`${glyph.ok} Stored credentials cleared`);
+      print("This does not revoke the key; use `mynth auth logout` for a CLI-created key.");
     });
 
   return new Command("config")

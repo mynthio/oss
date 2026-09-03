@@ -24,10 +24,10 @@ Exit codes:
   6  rate limited
 
 Environment:
-  MYNTH_API_KEY        API key; takes precedence over stored credentials
-  MYNTH_DESTINATION    default --destination for image generation
-  MYNTH_DEBUG=1        print error causes and stack details to stderr
-  MYNTH_NO_KEYCHAIN=1  store credentials in a file instead of the system keychain`;
+  MYNTH_API_KEY      API key; takes precedence over stored credentials
+  MYNTH_DESTINATION  default --destination for image generation
+  MYNTH_DEBUG=1      print error causes and stack details to stderr
+  XDG_CONFIG_HOME    where credentials are stored (default: ~/.config)`;
 
 /**
  * Renders options as `(--flag value)` and subcommands with their arguments,

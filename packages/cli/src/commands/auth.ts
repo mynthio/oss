@@ -1,18 +1,24 @@
+import { hostname } from "node:os";
 import { Command } from "commander";
 import { getMe } from "../api/account.ts";
+import { createApiKey, deleteApiKey } from "../api/api-keys.ts";
+import { API_KEY_SCOPES } from "../api/schemas.ts";
 import type { App } from "../app.ts";
 import { exchangeDeviceCode, requestDeviceAuthorization } from "../auth/workos.ts";
 import { AuthError, CliError, DeviceFlowError } from "../errors.ts";
-import { glyph, print, printJson } from "../output/print.ts";
+import { glyph, print, printErr, printJson } from "../output/print.ts";
 import { sleep } from "../utils/async.ts";
 import { jsonOption, type JsonFlag } from "./options.ts";
 
+const DASHBOARD_URL = "https://mynth.io/dashboard";
 const SLOW_DOWN_STEP_MS = 5_000;
 const DEFAULT_POLL_INTERVAL_SECONDS = 5;
 
+const keyName = (): string => `mynth-cli (${hostname()})`;
+
 /**
  * Polls WorkOS until the user approves the device code in their browser.
- * `authorization_pending` and `slow_down` are the only codes we keep waiting on.
+ * `authorization_pending` and `slow_down` are the only codes worth waiting on.
  */
 const awaitApproval = async (deviceCode: string, intervalMs: number, expiresAtMs: number) => {
   let interval = intervalMs;
@@ -24,7 +30,6 @@ const awaitApproval = async (deviceCode: string, intervalMs: number, expiresAtMs
       return await exchangeDeviceCode(deviceCode);
     } catch (error) {
       if (!(error instanceof DeviceFlowError)) throw error;
-
       if (error.code === "access_denied") throw new AuthError("login was denied");
       if (error.code === "expired_token") {
         throw new AuthError("device code expired; run `mynth auth login` again");
@@ -38,13 +43,42 @@ const awaitApproval = async (deviceCode: string, intervalMs: number, expiresAtMs
   }
 };
 
-const login = (app: App) =>
+/**
+ * Logging in trades a WorkOS session for a long-lived API key and stores only
+ * the key. WorkOS sessions cap out at 7 days (2 days idle) and their refresh
+ * tokens rotate, which races when an agent runs commands concurrently; an API
+ * key has neither problem, and can be inspected, limited and revoked from the
+ * dashboard.
+ */
+const login = (app: App): Command =>
   new Command("login")
-    .description("Authenticate with Mynth using OAuth device login")
-    .action(async () => {
+    .description("Authenticate with Mynth and store a long-lived API key")
+    .option(
+      "--scopes <list>",
+      `Comma-separated scopes for the created key (default: ${API_KEY_SCOPES.join(",")})`,
+    )
+    .addOption(jsonOption())
+    .action(async (options: JsonFlag & { readonly scopes?: string }) => {
       if (app.session.envApiKeySet) {
         throw new AuthError(
-          "MYNTH_API_KEY is set and takes precedence over login. Unset it to use OAuth, or keep using the env API key.",
+          "MYNTH_API_KEY is set and takes precedence over login. Unset it to log in, or keep using the env API key.",
+        );
+      }
+
+      const scopes =
+        options.scopes !== undefined
+          ? options.scopes
+              .split(",")
+              .map((scope) => scope.trim())
+              .filter(Boolean)
+          : [...API_KEY_SCOPES];
+
+      const unknown = scopes.filter(
+        (scope) => !(API_KEY_SCOPES as ReadonlyArray<string>).includes(scope),
+      );
+      if (scopes.length === 0 || unknown.length > 0) {
+        throw new AuthError(
+          `invalid --scopes: ${unknown.join(", ") || "empty"}. Valid scopes: ${API_KEY_SCOPES.join(", ")}`,
         );
       }
 
@@ -56,37 +90,103 @@ const login = (app: App) =>
       print("");
       print("Waiting for confirmation...");
 
-      const issued = await awaitApproval(
+      const session = await awaitApproval(
         device.device_code,
         (device.interval ?? DEFAULT_POLL_INTERVAL_SECONDS) * 1000,
         Date.now() + device.expires_in * 1000,
       );
 
-      await app.session.saveOAuth({
-        access_token: issued.token.access_token,
-        refresh_token: issued.token.refresh_token,
-        expires_at: issued.expiresAt,
-        ...(issued.token.user !== undefined ? { user: issued.token.user } : {}),
+      const name = keyName();
+      const created = await createApiKey(app.api, {
+        name,
+        scopes,
+        token: session.access_token,
       });
 
-      const who = issued.token.user?.email ?? issued.token.user?.id ?? "unknown user";
+      await app.session.save({
+        kind: "api_key",
+        api_key: created.raw,
+        id: created.apiKey.id,
+        name: created.apiKey.name ?? name,
+        scopes: created.apiKey.scopes,
+      });
+
+      const who = session.user?.email ?? session.user?.id ?? "unknown user";
+
+      if (options.json) {
+        printJson({
+          user: session.user?.id ?? null,
+          apiKey: {
+            id: created.apiKey.id,
+            name: created.apiKey.name ?? name,
+            keyPreview: created.apiKey.keyPreview,
+            scopes: created.apiKey.scopes,
+          },
+          storedAt: app.session.store.filePath,
+        });
+        return;
+      }
+
       print(`${glyph.ok} Logged in as ${who}`);
+      print(`  Created API key "${name}" with scopes: ${created.apiKey.scopes.join(", ")}`);
+      print(`  Stored in ${app.session.store.filePath}`);
+      print(`  Adjust its scopes or set a spending limit at ${DASHBOARD_URL}`);
     });
 
-const logout = (app: App) =>
-  new Command("logout").description("Clear locally stored Mynth credentials").action(async () => {
-    await app.session.logout();
-    print(`${glyph.ok} Local credentials cleared`);
-    if (app.session.envApiKeySet) {
-      print("Note: MYNTH_API_KEY is still set in your environment and will still be used.");
-    }
-  });
+const logout = (app: App): Command =>
+  new Command("logout")
+    .description("Revoke this machine's API key and clear local credentials")
+    .action(async () => {
+      const status = await app.session.status();
+      const id = status.kind === "stored" ? status.credentials.id : undefined;
 
-const status = (app: App) =>
+      // Revoke before clearing: once the file is gone we lose the ability to
+      // authenticate the delete.
+      let revoked = false;
+      if (id !== undefined) {
+        try {
+          await deleteApiKey(app.api, id);
+          revoked = true;
+        } catch (error) {
+          printErr(`Warning: could not revoke API key ${id}: ${(error as Error).message}`);
+          printErr(`Revoke it manually at ${DASHBOARD_URL}`);
+        }
+      }
+
+      await app.session.clear();
+
+      print(`${glyph.ok} Local credentials cleared${revoked ? " and API key revoked" : ""}`);
+      if (id === undefined && status.kind === "stored") {
+        print(`  The stored key was not created by \`auth login\`, so it was left active.`);
+      }
+      if (app.session.envApiKeySet) {
+        print("Note: MYNTH_API_KEY is still set in your environment and will still be used.");
+      }
+    });
+
+const status = (app: App): Command =>
   new Command("status")
     .description("Show how this machine is authenticated, without calling the API")
-    .action(async () => {
+    .addOption(jsonOption())
+    .action(async (options: JsonFlag) => {
       const current = await app.session.status();
+
+      if (options.json) {
+        printJson({
+          source: current.kind,
+          ...(current.kind === "stored"
+            ? {
+                apiKey: {
+                  id: current.credentials.id ?? null,
+                  name: current.credentials.name ?? null,
+                  scopes: current.credentials.scopes ?? null,
+                },
+                path: app.session.store.filePath,
+              }
+            : {}),
+        });
+        return;
+      }
 
       switch (current.kind) {
         case "env":
@@ -95,20 +195,18 @@ const status = (app: App) =>
         case "none":
           print("Not authenticated. Run `mynth auth login`, or set an API key.");
           return;
-        case "api_key":
-          print(`Authenticated via stored API key (${await app.session.store.backend()})`);
-          return;
-        case "oauth":
-          print(
-            `Authenticated via OAuth as ${current.user?.email ?? current.user?.id ?? "unknown user"} (${await app.session.store.backend()})`,
-          );
-          print(`  access token expires: ${new Date(current.expiresAt).toISOString()}`);
+        case "stored": {
+          const { name, scopes } = current.credentials;
+          print(`Authenticated via stored API key${name !== undefined ? ` "${name}"` : ""}`);
+          if (scopes !== undefined) print(`  scopes: ${scopes.join(", ")}`);
+          print(`  stored: ${app.session.store.filePath}`);
+        }
       }
     });
 
 /**
- * Verifies credentials against the API, so a revoked key or expired session
- * fails here instead of part-way through a real command.
+ * Verifies credentials against the API, so a revoked key fails here instead of
+ * part-way through a real command.
  */
 export const whoamiCommand = (app: App): Command =>
   new Command("whoami")
@@ -127,14 +225,7 @@ export const whoamiCommand = (app: App): Command =>
         return;
       }
 
-      const label =
-        current.kind === "env"
-          ? "env:MYNTH_API_KEY"
-          : current.kind === "api_key"
-            ? "api-key"
-            : (current.user?.email ?? current.user?.id ?? "oauth");
-
-      print(label);
+      print(current.kind === "env" ? "env:MYNTH_API_KEY" : "api-key");
       print(`  user:   ${me.userId}`);
       print(`  method: ${me.auth.method}`);
 

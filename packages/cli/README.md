@@ -91,6 +91,32 @@ mynth image generate -p "A neon koi pond" -c 10 --dry-run   # validate + price, 
 Estimates for `--model auto` are an upper bound. Add `--json` to either command for machine-readable
 output.
 
+### Finding a model
+
+`mynth models list` prints the catalog. Filters are applied locally, so they compose freely:
+
+| Flag           | Purpose                                                              |
+| -------------- | -------------------------------------------------------------------- |
+| `-s, --search` | Fuzzy match on model ID (which carries the org) and display name.    |
+| `--org`        | Only one org, fuzzy matched — `--org bfl` finds `black-forest-labs`. |
+| `--max-price`  | Base per-image price at or below this, in USD.                       |
+| `--min-price`  | Base per-image price at or above this, in USD.                       |
+| `--4k`         | Only models that publish a 4K price.                                 |
+| `--capability` | `img2img` (bills for image inputs) or `txt2img` (prompt only).       |
+
+```bash
+mynth models list -s "gemini flash"                  # fuzzy: tolerates typos and word order
+mynth models list --capability img2img --max-price 0.03
+mynth models list --org bfl --json
+```
+
+Search is fuzzy, not substring: `sedream` finds Seedream, and results come back ranked by relevance.
+A query that matches nothing prints `No models matched the filters.` and still exits `0`.
+
+`--capability` is derived from pricing, because the catalog exposes no capability field: a model that
+publishes `perInput` pricing bills for image inputs, so it accepts them. Models that both take a
+prompt and accept images are therefore reported as `img2img`.
+
 ## Analyzing images
 
 Every analysis command takes one URL or one local file, and waits for the result:
@@ -123,7 +149,9 @@ mynth task list --after tsk_...        # next page
 `--async --json` also returns a short-lived public access token, so browser or CI code can poll the
 task without your API key.
 
-`task wait` exits non-zero when the task fails or the timeout is hit.
+`task wait` exits non-zero when the task fails or the timeout is hit. Transient API failures
+(404, 429, 5xx, dropped connections) are retried while polling — the wait only gives up on them
+after ~40s of consecutive failures, or immediately on an error that cannot self-heal (401, 403).
 
 ## API keys
 

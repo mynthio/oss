@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.0.20](https://github.com/mynthio/oss/compare/cli-v0.0.19...cli-v0.0.20) (2026-09-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* **cli:** stored credentials are now an API key in $XDG_CONFIG_HOME/mynth/credentials.json rather than OAuth tokens in the system keychain. Existing sessions are not migrated; run `mynth auth login` again.
+
+### Features
+
+* **cli:** add api-key commands, browser login, and clearer device prompt ([d68774f](https://github.com/mynthio/oss/commit/d68774ff63a42592cfcb3fee99ae98cddf9bbdd2))
+* **cli:** add fuzzy model search and catalog filters ([a35a037](https://github.com/mynthio/oss/commit/a35a0371619df0df35023244771e15a40cf7f705))
+* **cli:** show mint glyph on TTY help ([b4885ab](https://github.com/mynthio/oss/commit/b4885ab0fef999cab85c5d29bd2b87bb55d13af4))
+* **cli:** store a minted API key instead of OAuth tokens ([2388521](https://github.com/mynthio/oss/commit/2388521720ff8c9e16c258fe59d1e794fb3669c4))
+
+
+### Bug Fixes
+
+* **cli:** stop caching a key's name and scopes on disk ([168e432](https://github.com/mynthio/oss/commit/168e4323935e35ed7c281ba716e51ba78e190238))
+* **cli:** wait 30 minutes and retry transient poll failures ([23ec85e](https://github.com/mynthio/oss/commit/23ec85e216b7492c3e6bbd580680717b55f03c9b))
+
 ## [0.0.19](https://github.com/mynthio/oss/compare/cli-v0.0.18...cli-v0.0.19) (2026-08-02)
 
 

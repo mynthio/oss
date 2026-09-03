@@ -70,8 +70,6 @@ export const credentials = z.object({
   api_key: z.string(),
   /** Present when the CLI minted the key, so `auth logout` can revoke it. */
   id: z.string().optional(),
-  name: z.string().optional(),
-  scopes: z.array(z.string()).optional(),
 });
 export type Credentials = z.infer<typeof credentials>;
 

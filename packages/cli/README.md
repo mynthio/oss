@@ -49,7 +49,10 @@ mynth auth logout    # revokes the key it created, then clears the file
 ```
 
 Credentials live in `$XDG_CONFIG_HOME/mynth/credentials.json` (default `~/.config`), written `0600`.
-`auth logout` revokes keys the CLI created; a key you supplied yourself is only removed locally.
+The file holds the key and its id, nothing else — a key's name, scopes and spending limit can be
+changed in the dashboard at any time, so `whoami` reads them live rather than caching a copy that
+could disagree. `auth logout` revokes keys the CLI created; a key you supplied yourself is only
+removed locally.
 
 ## Generating images
 

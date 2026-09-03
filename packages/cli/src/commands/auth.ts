@@ -122,13 +122,10 @@ const login = (app: App): Command =>
           token: session.access_token,
         });
 
-        await app.session.save({
-          kind: "api_key",
-          api_key: created.raw,
-          id: created.apiKey.id,
-          name: created.apiKey.name ?? name,
-          scopes: created.apiKey.scopes,
-        });
+        // Only the key and its id are stored. Name and scopes live on the
+        // server and can be changed there, so a local copy would silently go
+        // stale — `whoami` reads them live instead.
+        await app.session.save({ kind: "api_key", api_key: created.raw, id: created.apiKey.id });
 
         const who = session.user?.email ?? session.user?.id ?? "unknown user";
 
@@ -195,14 +192,7 @@ const status = (app: App): Command =>
         printJson({
           source: current.kind,
           ...(current.kind === "stored"
-            ? {
-                apiKey: {
-                  id: current.credentials.id ?? null,
-                  name: current.credentials.name ?? null,
-                  scopes: current.credentials.scopes ?? null,
-                },
-                path: app.session.store.filePath,
-              }
+            ? { apiKeyId: current.credentials.id ?? null, path: app.session.store.filePath }
             : {}),
         });
         return;
@@ -216,10 +206,11 @@ const status = (app: App): Command =>
           print("Not authenticated. Run `mynth auth login`, or set an API key.");
           return;
         case "stored": {
-          const { name, scopes } = current.credentials;
-          print(`Authenticated via stored API key${name !== undefined ? ` "${name}"` : ""}`);
-          if (scopes !== undefined) print(`  scopes: ${scopes.join(", ")}`);
+          const { id } = current.credentials;
+          print("Authenticated via stored API key");
+          if (id !== undefined) print(`  key:    ${id}`);
           print(`  stored: ${app.session.store.filePath}`);
+          print("  Run `mynth whoami` for its current scopes and spending limit.");
         }
       }
     });

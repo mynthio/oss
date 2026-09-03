@@ -77,13 +77,13 @@ describe("auth login", () => {
       // Minting must use the short-lived WorkOS token, not a stored key.
       expect(create?.authorization).toBe("Bearer wos_access_token");
 
+      // Name and scopes are deliberately not persisted: the server owns them,
+      // so a cached copy would go stale the moment the key is edited.
       const stored = await readCredentials(configHome);
       expect(stored).toEqual({
         kind: "api_key",
         api_key: "mak_live_secret",
         id: "key_1",
-        name: "mynth-cli (test-host)",
-        scopes: ["generate", "manage", "keys"],
       });
       // No OAuth material ever reaches disk.
       expect(JSON.stringify(stored)).not.toContain("wos_refresh_token");
@@ -249,9 +249,23 @@ describe("auth status", () => {
 
       expect(JSON.parse(result.stdout)).toMatchObject({
         source: "stored",
-        apiKey: { id: "key_1", scopes: ["generate", "manage", "keys"] },
+        apiKeyId: "key_1",
       });
       expect(requests).toHaveLength(before);
+    });
+  });
+
+  it("reports nothing that the server could have changed since login", async () => {
+    const configHome = isolatedConfigHome();
+
+    await withApi(loginRoutes, async (env) => {
+      await runCli(["auth", "login"], loginEnv(env, configHome));
+      const result = await runCli(["auth", "status"], loginEnv(env, configHome));
+
+      expect(result.stdout).toContain("key:    key_1");
+      // Scopes can be narrowed in the dashboard, so status must not claim them.
+      expect(result.stdout).not.toContain("manage");
+      expect(result.stdout).toContain("mynth whoami");
     });
   });
 

@@ -31,6 +31,10 @@ export MYNTH_API_KEY=mak_...                # or supply one per-process; wins ov
 `auth login` opens a device login, then exchanges that short-lived session for a long-lived API key
 named `mynth-cli (hostname)`. **Only the API key is stored** — no OAuth tokens ever reach disk.
 
+Your browser is opened automatically when the CLI is running interactively on a desktop. It is not
+opened over SSH, in CI, in a container, or when output is piped — the login URL is always printed as
+well, so those cases still work. `--no-browser` disables it outright.
+
 This matters for unattended use. A browser session expires (7 days, or 2 days idle) and its refresh
 token rotates on every use, which races when several commands run at once. An API key does neither,
 and it can be inspected, limited, or revoked from the [dashboard](https://mynth.io/dashboard).
@@ -117,6 +121,28 @@ mynth task list --after tsk_...        # next page
 task without your API key.
 
 `task wait` exits non-zero when the task fails or the timeout is hit.
+
+## API keys
+
+`auth login` creates a key for the machine you're on. For an app or a deploy target, create one
+explicitly:
+
+```bash
+mynth api-key create my-app                       # generate scope
+mynth api-key create my-app --json | jq -r .key   # capture it for a .env
+mynth api-key list
+mynth api-key delete key_... --yes
+```
+
+The key is printed once and cannot be retrieved again.
+
+Keys created from the CLI only get the `generate` scope. That's what an app needs to call the image
+API; `manage` and `keys` have to come from the
+[dashboard](https://mynth.io/dashboard), because the API refuses scope escalation from a CLI
+session. Registering webhooks and destinations for that app is done with _your_ credentials, so the
+app's key doesn't need `manage`.
+
+Set a spending limit on app keys in the dashboard — it's the cheapest way to bound a leaked key.
 
 ## Destinations
 

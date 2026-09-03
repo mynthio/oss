@@ -93,6 +93,20 @@ export const createdApiKey = z.object({
 });
 export type CreatedApiKey = z.infer<typeof createdApiKey>;
 
+/** Money fields come back as decimal strings, but tolerate numbers. */
+const decimal = z.union([z.string(), z.number()]).nullable().optional();
+
+export const apiKey = z.object({
+  id: z.string(),
+  name: z.string().nullable(),
+  keyPreview: z.string(),
+  scopes: z.array(z.string()),
+  spendingLimit: decimal,
+  spendingLimitPeriod: z.string().nullable().optional(),
+  createdAt: z.string(),
+});
+export type ApiKey = z.infer<typeof apiKey>;
+
 //
 // Account
 //

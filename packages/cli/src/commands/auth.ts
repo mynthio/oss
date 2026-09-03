@@ -8,9 +8,11 @@ import { exchangeDeviceCode, requestDeviceAuthorization } from "../auth/workos.t
 import { AuthError, CliError, DeviceFlowError } from "../errors.ts";
 import { glyph, print, printErr, printJson } from "../output/print.ts";
 import { sleep } from "../utils/async.ts";
+import { canOpenBrowser, openInBrowser } from "../utils/browser.ts";
 import { jsonOption, type JsonFlag } from "./options.ts";
 
 const DASHBOARD_URL = "https://mynth.io/dashboard";
+const keyUrl = (id: string): string => `${DASHBOARD_URL}/keys/${id}`;
 const SLOW_DOWN_STEP_MS = 5_000;
 const DEFAULT_POLL_INTERVAL_SECONDS = 5;
 
@@ -57,81 +59,99 @@ const login = (app: App): Command =>
       "--scopes <list>",
       `Comma-separated scopes for the created key (default: ${API_KEY_SCOPES.join(",")})`,
     )
+    .option("--no-browser", "Print the login URL instead of opening a browser")
     .addOption(jsonOption())
-    .action(async (options: JsonFlag & { readonly scopes?: string }) => {
-      if (app.session.envApiKeySet) {
-        throw new AuthError(
-          "MYNTH_API_KEY is set and takes precedence over login. Unset it to log in, or keep using the env API key.",
+    .action(
+      async (options: JsonFlag & { readonly scopes?: string; readonly browser?: boolean }) => {
+        if (app.session.envApiKeySet) {
+          throw new AuthError(
+            "MYNTH_API_KEY is set and takes precedence over login. Unset it to log in, or keep using the env API key.",
+          );
+        }
+
+        const scopes =
+          options.scopes !== undefined
+            ? options.scopes
+                .split(",")
+                .map((scope) => scope.trim())
+                .filter(Boolean)
+            : [...API_KEY_SCOPES];
+
+        const unknown = scopes.filter(
+          (scope) => !(API_KEY_SCOPES as ReadonlyArray<string>).includes(scope),
         );
-      }
+        if (scopes.length === 0 || unknown.length > 0) {
+          throw new AuthError(
+            `invalid --scopes: ${unknown.join(", ") || "empty"}. Valid scopes: ${API_KEY_SCOPES.join(", ")}`,
+          );
+        }
 
-      const scopes =
-        options.scopes !== undefined
-          ? options.scopes
-              .split(",")
-              .map((scope) => scope.trim())
-              .filter(Boolean)
-          : [...API_KEY_SCOPES];
+        const device = await requestDeviceAuthorization();
 
-      const unknown = scopes.filter(
-        (scope) => !(API_KEY_SCOPES as ReadonlyArray<string>).includes(scope),
-      );
-      if (scopes.length === 0 || unknown.length > 0) {
-        throw new AuthError(
-          `invalid --scopes: ${unknown.join(", ") || "empty"}. Valid scopes: ${API_KEY_SCOPES.join(", ")}`,
+        // `verification_uri_complete` embeds the code, so the browser prefills it
+        // and the user only confirms it matches — the device-flow phishing check.
+        // Without it they have to type the code in themselves.
+        const url = device.verification_uri_complete ?? device.verification_uri;
+        const prefilled = device.verification_uri_complete !== undefined;
+
+        const opened =
+          options.browser !== false && canOpenBrowser() ? await openInBrowser(url) : false;
+
+        print("");
+        // Printed either way: the browser may open on a screen the user is not
+        // watching, or be signed into a different account.
+        print(`  ${opened ? "Opened" : "Open"}: ${url}`);
+        print(
+          prefilled
+            ? `  Check the page shows this code: ${device.user_code}`
+            : `  Enter this code: ${device.user_code}`,
         );
-      }
+        print("");
+        print("Waiting for confirmation...");
 
-      const device = await requestDeviceAuthorization();
+        const session = await awaitApproval(
+          device.device_code,
+          (device.interval ?? DEFAULT_POLL_INTERVAL_SECONDS) * 1000,
+          Date.now() + device.expires_in * 1000,
+        );
 
-      print("");
-      print(`  First copy your one-time code: ${device.user_code}`);
-      print(`  Then open: ${device.verification_uri_complete ?? device.verification_uri}`);
-      print("");
-      print("Waiting for confirmation...");
-
-      const session = await awaitApproval(
-        device.device_code,
-        (device.interval ?? DEFAULT_POLL_INTERVAL_SECONDS) * 1000,
-        Date.now() + device.expires_in * 1000,
-      );
-
-      const name = keyName();
-      const created = await createApiKey(app.api, {
-        name,
-        scopes,
-        token: session.access_token,
-      });
-
-      await app.session.save({
-        kind: "api_key",
-        api_key: created.raw,
-        id: created.apiKey.id,
-        name: created.apiKey.name ?? name,
-        scopes: created.apiKey.scopes,
-      });
-
-      const who = session.user?.email ?? session.user?.id ?? "unknown user";
-
-      if (options.json) {
-        printJson({
-          user: session.user?.id ?? null,
-          apiKey: {
-            id: created.apiKey.id,
-            name: created.apiKey.name ?? name,
-            keyPreview: created.apiKey.keyPreview,
-            scopes: created.apiKey.scopes,
-          },
-          storedAt: app.session.store.filePath,
+        const name = keyName();
+        const created = await createApiKey(app.api, {
+          name,
+          scopes,
+          token: session.access_token,
         });
-        return;
-      }
 
-      print(`${glyph.ok} Logged in as ${who}`);
-      print(`  Created API key "${name}" with scopes: ${created.apiKey.scopes.join(", ")}`);
-      print(`  Stored in ${app.session.store.filePath}`);
-      print(`  Adjust its scopes or set a spending limit at ${DASHBOARD_URL}`);
-    });
+        await app.session.save({
+          kind: "api_key",
+          api_key: created.raw,
+          id: created.apiKey.id,
+          name: created.apiKey.name ?? name,
+          scopes: created.apiKey.scopes,
+        });
+
+        const who = session.user?.email ?? session.user?.id ?? "unknown user";
+
+        if (options.json) {
+          printJson({
+            user: session.user?.id ?? null,
+            apiKey: {
+              id: created.apiKey.id,
+              name: created.apiKey.name ?? name,
+              keyPreview: created.apiKey.keyPreview,
+              scopes: created.apiKey.scopes,
+            },
+            storedAt: app.session.store.filePath,
+          });
+          return;
+        }
+
+        print(`${glyph.ok} Logged in as ${who}`);
+        print(`  Created API key "${name}" with scopes: ${created.apiKey.scopes.join(", ")}`);
+        print(`  Stored in ${app.session.store.filePath}`);
+        print(`  Set a spending limit or change scopes: ${keyUrl(created.apiKey.id)}`);
+      },
+    );
 
 const logout = (app: App): Command =>
   new Command("logout")
@@ -149,7 +169,7 @@ const logout = (app: App): Command =>
           revoked = true;
         } catch (error) {
           printErr(`Warning: could not revoke API key ${id}: ${(error as Error).message}`);
-          printErr(`Revoke it manually at ${DASHBOARD_URL}`);
+          printErr(`Revoke it manually at ${keyUrl(id)}`);
         }
       }
 

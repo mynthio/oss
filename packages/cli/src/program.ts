@@ -1,6 +1,7 @@
 import { Command, Help, Option } from "commander";
 import { createApp } from "./app.ts";
 import { CLI_VERSION } from "./config.ts";
+import { apiKeyCommand } from "./commands/api-key.ts";
 import { authCommand, whoamiCommand } from "./commands/auth.ts";
 import { balanceCommand } from "./commands/balance.ts";
 import { configCommand } from "./commands/config.ts";
@@ -67,6 +68,7 @@ export const createProgram = (): Command => {
     .addHelpText("after", EXIT_CODE_HELP);
 
   for (const command of [
+    apiKeyCommand(app),
     authCommand(app),
     balanceCommand(app),
     configCommand(app),

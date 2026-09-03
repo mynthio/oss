@@ -68,9 +68,9 @@ describe("auth login", () => {
       const result = await runCli(["auth", "login"], loginEnv(env, configHome));
 
       expect(result.status).toBe(0);
-      expect(result.stdout).toContain("WDJB-MJHT");
+      expect(result.stdout).toContain("Check the page shows this code: WDJB-MJHT");
       expect(result.stdout).toContain("Logged in as tom@mynth.io");
-      expect(result.stdout).toContain("Adjust its scopes or set a spending limit");
+      expect(result.stdout).toContain("https://mynth.io/dashboard/keys/key_1");
 
       const create = requests.find((request) => request.url === "/api-key");
       expect(create?.body).toMatchObject({ scopes: ["generate", "manage", "keys"] });
@@ -89,6 +89,48 @@ describe("auth login", () => {
       expect(JSON.stringify(stored)).not.toContain("wos_refresh_token");
       expect(JSON.stringify(stored)).not.toContain("wos_access_token");
     });
+  });
+
+  it("never opens a browser when stdio is not a terminal", async () => {
+    await withApi(loginRoutes, async (env) => {
+      const result = await runCli(["auth", "login"], loginEnv(env, isolatedConfigHome()));
+
+      // Tests run with piped stdio, so detection must decline and print instead.
+      expect(result.stdout).toContain("Open: https://auth.test/device");
+      expect(result.stdout).not.toContain("Opened:");
+    });
+  });
+
+  it("prints the URL rather than opening it with --no-browser", async () => {
+    await withApi(loginRoutes, async (env) => {
+      const result = await runCli(
+        ["auth", "login", "--no-browser"],
+        loginEnv(env, isolatedConfigHome()),
+      );
+
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain("Open: https://auth.test/device");
+      expect(result.stdout).not.toContain("Opened:");
+    });
+  });
+
+  it("tells the user to type the code when the URL has none embedded", async () => {
+    await withApi(
+      (request, response) => {
+        if (request.url === "/user_management/authorize/device") {
+          const { verification_uri_complete: _omitted, ...bare } = DEVICE;
+          return json(response, 200, bare);
+        }
+        loginRoutes(request, response);
+      },
+      async (env) => {
+        const result = await runCli(["auth", "login"], loginEnv(env, isolatedConfigHome()));
+
+        expect(result.status).toBe(0);
+        expect(result.stdout).toContain("Enter this code: WDJB-MJHT");
+        expect(result.stdout).not.toContain("Check the page shows");
+      },
+    );
   });
 
   it("writes the credentials file as 0600", async () => {

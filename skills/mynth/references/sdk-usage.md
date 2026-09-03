@@ -12,7 +12,7 @@ Constructor options: `{ apiKey?, baseUrl?, destination? }`.
 
 ## Generate
 
-`generate()` waits until the task completes (polls up to 5 minutes).
+`generate()` waits until the task completes (polls up to 30 minutes).
 
 ```ts
 const task = await mynth.image.generate({

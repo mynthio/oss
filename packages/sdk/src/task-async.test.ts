@@ -434,19 +434,63 @@ describe("TaskAsync", () => {
       await expect(taskAsync.wait()).rejects.toThrow(TaskAsyncUnauthorizedError);
     });
 
-    test("throws TaskAsyncUnauthorizedError on 404 response", async () => {
+    test("retries a 404 status poll and succeeds once the task is visible", async () => {
+      // Arrange - a created task is owed an answer, so a 404 from the cached
+      // status endpoint is a cold cache rather than a verdict
+      const taskData = createMockTaskData({ id: "notfound-then-ok-task" });
+      const mockGet = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 404,
+          data: { error: "Not found" },
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          data: { data: { status: "completed" } },
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          data: { data: taskData },
+        });
+
+      const client = createMockClient({ get: mockGet });
+      const taskAsync = createTaskAsync("notfound-then-ok-task", { client });
+
+      // Act
+      const resultPromise = taskAsync.wait();
+      await vi.advanceTimersByTimeAsync(3000);
+      const result = await resultPromise;
+
+      // Assert
+      expect(result.id).toBe("notfound-then-ok-task");
+    });
+
+    test("throws TaskAsyncFetchError after exceeding max retry count on persistent 404s", async () => {
       // Arrange
-      const mockGet = vi.fn().mockResolvedValueOnce({
+      const mockGet = vi.fn().mockResolvedValue({
         ok: false,
         status: 404,
         data: { error: "Not found" },
       });
 
       const client = createMockClient({ get: mockGet });
-      const taskAsync = createTaskAsync("notfound-task", { client });
+      const taskAsync = createTaskAsync("persistent-notfound-task", { client });
 
-      // Act & Assert
-      await expect(taskAsync.wait()).rejects.toThrow(TaskAsyncUnauthorizedError);
+      // Act - start the task promise and set up the rejection expectation together
+      // to avoid unhandled rejection warnings
+      const resultPromise = taskAsync.wait();
+      const rejectionExpectation = expect(resultPromise).rejects.toThrow(TaskAsyncFetchError);
+
+      // Advance timers to trigger all retries (20 retries max)
+      for (let i = 0; i < 21; i++) {
+        await vi.advanceTimersByTimeAsync(6000);
+      }
+
+      // Assert
+      await rejectionExpectation;
     });
 
     test("retries on 5xx server errors and succeeds after recovery", async () => {
@@ -504,8 +548,8 @@ describe("TaskAsync", () => {
       const resultPromise = taskAsync.wait();
       const rejectionExpectation = expect(resultPromise).rejects.toThrow(TaskAsyncFetchError);
 
-      // Advance timers to trigger all retries (7 retries max)
-      for (let i = 0; i < 8; i++) {
+      // Advance timers to trigger all retries (20 retries max)
+      for (let i = 0; i < 21; i++) {
         await vi.advanceTimersByTimeAsync(6000);
       }
 
@@ -576,6 +620,41 @@ describe("TaskAsync", () => {
       expect(result.id).toBe("pat-fallback-task");
     });
 
+    test("falls back to API key when PAT returns 404", async () => {
+      // Arrange - a PAT that cannot see the task answers 404 the same way a cold
+      // cache does, so the fallback is spent before the retry budget
+      const taskData = createMockTaskData({ id: "pat-404-fallback-task" });
+      const mockGet = vi
+        .fn()
+        // First call with PAT returns 404
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 404,
+          data: { error: "Not found" },
+        })
+        // Immediate retry with API key succeeds
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          data: { data: { status: "completed" } },
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          data: { data: taskData },
+        });
+
+      const client = createMockClient({ get: mockGet });
+      const taskAsync = createTaskAsync("pat-404-fallback-task", { client, pat: "scoped-pat" });
+
+      // Act - no timer advance: the fallback retries without waiting
+      const result = await taskAsync.wait();
+
+      // Assert
+      expect(mockGet).toHaveBeenCalledTimes(3);
+      expect(result.id).toBe("pat-404-fallback-task");
+    });
+
     test("throws TaskAsyncUnauthorizedError when both PAT and API key fail", async () => {
       // Arrange
       const mockGet = vi
@@ -619,8 +698,7 @@ describe("TaskAsync", () => {
       const resultPromise = taskAsync.wait();
       const rejectionExpectation = expect(resultPromise).rejects.toThrow(TaskAsyncTimeoutError);
 
-      // Advance time past the 5-minute timeout
-      await vi.advanceTimersByTimeAsync(1000 * 60 * 6); // 6 minutes
+      await vi.advanceTimersByTimeAsync(31 * 60 * 1000);
 
       // Assert
       await rejectionExpectation;
@@ -662,7 +740,7 @@ describe("TaskAsync", () => {
       await expect(taskAsync.wait()).rejects.toThrow(TaskAsyncUnauthorizedError);
     });
 
-    test("throws TaskAsyncTaskFetchError when task fetch returns unexpected error", async () => {
+    test("throws TaskAsyncTaskFetchError when task fetch fails unrecoverably", async () => {
       // Arrange
       const mockGet = vi
         .fn()
@@ -673,15 +751,54 @@ describe("TaskAsync", () => {
         })
         .mockResolvedValueOnce({
           ok: false,
-          status: 500,
-          data: { error: "Internal server error" },
+          status: 422,
+          data: { error: "Unprocessable" },
         });
 
       const client = createMockClient({ get: mockGet });
-      const taskAsync = createTaskAsync("fetch-500-task", { client });
+      const taskAsync = createTaskAsync("fetch-422-task", { client });
 
       // Act & Assert
       await expect(taskAsync.wait()).rejects.toThrow(TaskAsyncTaskFetchError);
+    });
+
+    test("retries a 5xx task fetch and succeeds after recovery", async () => {
+      // Arrange - the status already settled, so the record exists; a 5xx on the
+      // way to it must not lose the caller their result
+      const taskData = createMockTaskData({ id: "fetch-recovery-task" });
+      const mockGet = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          data: { data: { status: "completed" } },
+        })
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 503,
+          data: { error: "Service unavailable" },
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          data: { data: { status: "completed" } },
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          data: { data: taskData },
+        });
+
+      const client = createMockClient({ get: mockGet });
+      const taskAsync = createTaskAsync("fetch-recovery-task", { client });
+
+      // Act
+      const resultPromise = taskAsync.wait();
+      await vi.advanceTimersByTimeAsync(3000);
+      const result = await resultPromise;
+
+      // Assert
+      expect(result.id).toBe("fetch-recovery-task");
     });
 
     test("throws TaskAsyncUnauthorizedError when task fetch returns 403", async () => {
@@ -706,8 +823,9 @@ describe("TaskAsync", () => {
       await expect(taskAsync.wait()).rejects.toThrow(TaskAsyncUnauthorizedError);
     });
 
-    test("throws TaskAsyncUnauthorizedError when task fetch returns 404", async () => {
+    test("retries a 404 task fetch and succeeds once the record is visible", async () => {
       // Arrange
+      const taskData = createMockTaskData({ id: "fetch-404-task" });
       const mockGet = vi
         .fn()
         .mockResolvedValueOnce({
@@ -719,13 +837,28 @@ describe("TaskAsync", () => {
           ok: false,
           status: 404,
           data: { error: "Not found" },
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          data: { data: { status: "completed" } },
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          data: { data: taskData },
         });
 
       const client = createMockClient({ get: mockGet });
       const taskAsync = createTaskAsync("fetch-404-task", { client });
 
-      // Act & Assert
-      await expect(taskAsync.wait()).rejects.toThrow(TaskAsyncUnauthorizedError);
+      // Act
+      const resultPromise = taskAsync.wait();
+      await vi.advanceTimersByTimeAsync(3000);
+      const result = await resultPromise;
+
+      // Assert
+      expect(result.id).toBe("fetch-404-task");
     });
   });
 

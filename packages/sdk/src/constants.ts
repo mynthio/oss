@@ -210,6 +210,16 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: [],
   },
   {
+    id: "recraft/recraft-v4-style",
+    label: "Recraft V4 Styles",
+    capabilities: ["inputs"],
+  },
+  {
+    id: "recraft/recraft-v4-style-pro",
+    label: "Recraft V4 Styles Pro",
+    capabilities: ["inputs"],
+  },
+  {
     id: "reve/reve",
     label: "Reve",
     capabilities: ["inputs"],

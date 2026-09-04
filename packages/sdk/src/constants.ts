@@ -130,6 +130,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["inputs"],
   },
   {
+    id: "bria/fibo-edit-1.5",
+    label: "FIBO Edit 1.5",
+    capabilities: ["inputs"],
+  },
+  {
     id: "bria/fibo-generate-1.5",
     label: "FIBO Generate 1.5",
     capabilities: [],

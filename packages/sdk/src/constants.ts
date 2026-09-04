@@ -280,6 +280,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["inputs"],
   },
   {
+    id: "xai/grok-imagine-image-2.0",
+    label: "Grok Imagine Image 2.0",
+    capabilities: ["inputs"],
+  },
+  {
     id: "xai/grok-imagine-image-quality",
     label: "Grok Imagine Image Quality",
     capabilities: ["inputs"],

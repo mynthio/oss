@@ -517,6 +517,7 @@ Current model IDs include:
 - `wan/wan2.7-image`
 - `wan/wan2.7-image-pro`
 - `xai/grok-imagine-image`
+- `xai/grok-imagine-image-2.0`
 - `xai/grok-imagine-image-quality`
 
 ## TypeScript Types

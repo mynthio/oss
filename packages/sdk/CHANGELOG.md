@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.38](https://github.com/mynthio/oss/compare/sdk-v0.0.37...sdk-v0.0.38) (2026-09-04)
+
+
+### Features
+
+* **sdk:** add bria/fibo-edit-1.5 ([#94](https://github.com/mynthio/oss/issues/94)) ([4928b38](https://github.com/mynthio/oss/commit/4928b380d80ec8f125819565cbe5ce5aefc575ed))
+* **sdk:** add xai/grok-imagine-image-2.0 ([#91](https://github.com/mynthio/oss/issues/91)) ([4a82ca2](https://github.com/mynthio/oss/commit/4a82ca24d10459996ff8a47d7422cadb978d3708))
+
 ## [0.0.37](https://github.com/mynthio/oss/compare/sdk-v0.0.36...sdk-v0.0.37) (2026-09-03)
 
 

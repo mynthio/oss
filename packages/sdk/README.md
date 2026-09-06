@@ -1,8 +1,8 @@
 # @mynthio/sdk
 
-Official SDK for the [Mynth](https://mynth.io) image API.
+Official SDK for the [Mynth](https://mynth.io) image and video API.
 
-The SDK gives you a typed `Mynth` client, temporary image uploads, sync and async image generation and analysis flows, model metadata, and webhook helpers for Next.js, TanStack Start, and Convex.
+The SDK gives you a typed `Mynth` client, temporary image uploads, sync and async image generation and analysis flows, video generation, model metadata, and webhook helpers for Next.js, TanStack Start, and Convex.
 
 ## Installation
 
@@ -422,7 +422,7 @@ const result = await taskAsync.wait();
 console.log(result.summary);
 ```
 
-## Working With Results
+## Working With Image Results
 
 Completed generation tasks expose a few helpful accessors:
 
@@ -455,9 +455,28 @@ console.log(models[0]);
 // {
 //   id: "black-forest-labs/flux.2-pro",
 //   displayName: "FLUX.2 Pro",
+//   type: "image",
+//   modes: { "txt->img": {}, "img->img": { inputs: { rules: [...], maxTotal: 4 } } },
 //   pricing: { perImage: { base: "0.05" } }
 // }
 ```
+
+The catalog covers image and video models. Narrow on `type` to reach the
+media-specific modes and pricing: image models price per image, video models
+price per second of output, keyed by resolution tier.
+
+```ts
+for (const model of models) {
+  if (model.type === "video") {
+    console.log(model.id, model.pricing?.perSecond["720p"], Object.keys(model.modes));
+  } else {
+    console.log(model.id, model.pricing?.perImage.base, Object.keys(model.modes));
+  }
+}
+```
+
+`modes` lists the generation modes the model currently serves, each with the
+input contract it accepts — how many images, and in which roles.
 
 The SDK also exports `AVAILABLE_MODELS`, which mirrors the static model list and capability metadata shipped with the package.
 
@@ -520,6 +539,133 @@ Current model IDs include:
 - `xai/grok-imagine-image-2.0`
 - `xai/grok-imagine-image-quality`
 
+## Video Generation
+
+`mynth.video` mirrors `mynth.image`: `generate()` waits, `generateAsync()` hands you a pollable task, and local files in `inputs` are uploaded for you.
+
+```ts
+const task = await mynth.video.generate({
+  model: "google/gemini-omni-flash-1.1",
+  prompt: "A drone shot over a misty forest at dawn",
+  duration: 8,
+  resolution: "1080p",
+  audio: true,
+});
+
+console.log(task.urls);
+console.log(task.getVideos()[0]?.duration);
+```
+
+Video generation always runs on a pinned model: unlike images, there is no `auto`, so `model` is required.
+
+### Waiting vs Polling
+
+Video renders take minutes, not seconds. `generate()` polls every 10 seconds for up to an hour before throwing `TaskAsyncTimeoutError` — comfortably longer than the image profile, but far too long to hold an HTTP request open.
+
+Prefer `generateAsync()` on the server and let the browser (or a webhook) pick the result up:
+
+```ts
+const taskAsync = await mynth.video.generateAsync({
+  model: "bytedance/seedance-2.0-mini",
+  prompt: "A neon city street in the rain",
+});
+
+return { id: taskAsync.id, access: taskAsync.access };
+```
+
+`taskAsync.access.publicAccessToken` works exactly as it does for images: scoped to that one task, safe to send to the client, and usable against `GET /tasks/:id/status` and `GET /tasks/:id/result`.
+
+### Duration, Resolution and Audio
+
+`duration` is in whole seconds and `resolution` is a tier (`"480p"`, `"720p"`, `"1080p"`, `"4k"`). Each model accepts a subset of both, and rejects a request outside it. Omit either to take the model default. `audio: true` enables model-native generated audio.
+
+### Input Images
+
+`inputs` accepts up to five image inputs, as URL strings, `File`/`Blob` values, or structured objects. Declare the role with `as`:
+
+- `"first_frame"` — the clip starts from this image
+- `"last_frame"` — the clip ends on this image
+- `"reference"` — guidance only
+- `"auto"` (default) — the first image becomes the first frame
+
+```ts
+const task = await mynth.video.generate({
+  model: "bytedance/seedance-2.0-mini",
+  prompt: "Morph smoothly between the two frames",
+  inputs: [
+    firstFrameFile,
+    {
+      type: "image",
+      as: "last_frame",
+      source: { type: "url", url: "https://example.com/last.png" },
+    },
+  ],
+});
+```
+
+Local files are uploaded to temporary input storage before the request, in a single batch, preserving order. `mynth.video.upload()` is available when you want to reuse the URLs across several requests — video inputs are images, so it is the same storage `mynth.image.upload()` uses.
+
+### Estimating Cost
+
+Video is priced per render, so you can price a request before running it. The endpoint validates the request the same way `generate()` does, which makes it a pre-flight check as well as a cost lookup:
+
+```ts
+const { estimatedCost } = await mynth.video.estimate({
+  model: "google/gemini-omni-flash-1.1",
+  prompt: "A timelapse of clouds over a canyon",
+  duration: 10,
+  resolution: "4k",
+});
+```
+
+Because the model is always concrete, the estimate is exact.
+
+### Working With Video Results
+
+```ts
+console.log(task.id);
+console.log(task.status);
+console.log(task.isCompleted);
+console.log(task.urls);
+console.log(task.getVideos());
+console.log(task.getVideos({ includeFailed: true }));
+console.log(task.getMetadata());
+```
+
+Each successful video carries `url`, `mynth_url`, `cost`, `duration`, `resolution`, and `audio`.
+
+### Video Models
+
+The SDK exports `AVAILABLE_VIDEO_MODELS` with the capability metadata each model enforces:
+
+```ts
+import { AVAILABLE_VIDEO_MODELS } from "@mynthio/sdk";
+
+const model = AVAILABLE_VIDEO_MODELS.find((item) => item.id === "google/gemini-omni-flash-1.1");
+
+console.log(model);
+// {
+//   id: "google/gemini-omni-flash-1.1",
+//   label: "Gemini Omni Flash 1.1",
+//   resolutions: ["720p", "1080p", "4k"],
+//   defaultResolution: "720p",
+//   duration: { default: 8, min: 3, max: 10 },
+//   audio: true,
+//   inputs: ["first_frame", "last_frame"],
+//   maxInputs: 2
+// }
+```
+
+| Model                          | Resolutions     | Duration (s)     | Inputs                  |
+| ------------------------------ | --------------- | ---------------- | ----------------------- |
+| `bytedance/seedance-2.0-mini`  | 480p, 720p      | 4–15 (default 5) | first frame, last frame |
+| `google/gemini-omni-flash-1.1` | 720p, 1080p, 4k | 3–10 (default 8) | first frame, last frame |
+| `prunaai/p-video`              | 720p, 1080p     | 1–10 (default 5) | first frame             |
+
+All three support generated audio.
+
+`mynth.models.list()` covers these video models alongside the image catalog.
+
 ## TypeScript Types
 
 The SDK exports the request and payload types via `MynthSDKTypes`.
@@ -556,6 +702,9 @@ export const POST = mynthWebhookHandler({
   },
   imageTaskFailed: async (payload) => {
     await markTaskFailed(payload.task.id, payload.errors);
+  },
+  videoTaskCompleted: async (payload) => {
+    await saveVideos(payload.task.id, payload.result.videos);
   },
 });
 ```
@@ -631,6 +780,13 @@ export const mynthWebhook = mynthWebhookAction({
   imageReviewTaskFailed: async (payload) => {
     console.error("Mynth review task failed:", payload.task.id);
   },
+  videoTaskCompleted: async (payload) => {
+    console.log("Completed video task:", payload.task.id);
+    console.log(payload.result.videos);
+  },
+  videoTaskFailed: async (payload) => {
+    console.error("Mynth video task failed:", payload.task.id);
+  },
 });
 ```
 
@@ -638,9 +794,9 @@ Set `MYNTH_WEBHOOK_SECRET` in your environment, or pass `webhookSecret` explicit
 
 ## Error Handling
 
-`upload()`, `generate()`, `generateAsync()`, `rate()`, `rateAsync()`, `alt()`, `altAsync()`, `review()`, `reviewAsync()`, and `models.list()` may throw `MynthAPIError` if the request fails. Polling can also throw task-specific errors:
+`upload()`, `generate()`, `generateAsync()`, `rate()`, `rateAsync()`, `alt()`, `altAsync()`, `review()`, `reviewAsync()`, `models.list()`, and the `video` equivalents (`video.generate()`, `video.generateAsync()`, `video.upload()`, `video.estimate()`) may throw `MynthAPIError` if the request fails. Polling can also throw task-specific errors:
 
-While polling, transient failures (404, 5xx, dropped connections) are retried: a created task is owed an answer, so a cold cache or a brief outage does not lose you the result. Polling gives up after 20 consecutive failures (~100s) with `TaskAsyncFetchError` or `TaskAsyncTaskFetchError`, and immediately on a 401 or 403 with `TaskAsyncUnauthorizedError`.
+While polling, transient failures (404, 5xx, dropped connections) are retried: a created task is owed an answer, so a cold cache or a brief outage does not lose you the result. Polling gives up after 20 consecutive failures (~100s) with `TaskAsyncFetchError` or `TaskAsyncTaskFetchError`, and immediately on a 401 or 403 with `TaskAsyncUnauthorizedError`. Image waits time out after 30 minutes, video waits after an hour.
 
 ```ts
 import {

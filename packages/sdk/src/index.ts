@@ -1,15 +1,19 @@
 import { MynthAPIError, MynthClient } from "./client";
 import type { AvailableModel, ModelCapability } from "./constants";
+import type { AvailableVideoModel, VideoInputRole, VideoResolutionTier } from "./constants";
 import {
   ALT_IMAGE_PATH,
   API_KEY_ENV_VAR,
   AVAILABLE_MODELS,
+  AVAILABLE_VIDEO_MODELS,
   DESTINATION_ENV_VAR,
+  ESTIMATE_VIDEO_PATH,
   GENERATE_IMAGE_PATH,
+  GENERATE_VIDEO_PATH,
   MODELS_PATH,
   RATE_IMAGE_PATH,
   REVIEW_IMAGE_PATH,
-  UPLOAD_IMAGE_PATH,
+  VIDEO_POLLING,
 } from "./constants";
 import { ImageAltResult } from "./image-alt-result";
 import { ImageGenerationResult } from "./image-generation-result";
@@ -25,6 +29,8 @@ import {
   TaskAsyncUnauthorizedError,
 } from "./task-async";
 import type { MynthSDKTypes } from "./types";
+import { resolveInputs, uploadImages } from "./uploads";
+import { VideoGenerationResult } from "./video-generation-result";
 
 /**
  * Configuration options for the Mynth client.
@@ -49,11 +55,10 @@ type MynthOptions = {
 type MynthModel = MynthSDKTypes.Model;
 type MynthModelPricing = MynthSDKTypes.ModelPricing;
 
-const UPLOAD_FIELD_NAME = "images";
-const UPLOAD_FILENAME = "image";
-
 // Extract metadata type from ImageGenerationClientRequest
 type ExtractMetadata<T extends MynthSDKTypes.ImageGenerationClientRequest> = T["metadata"];
+
+type ExtractVideoMetadata<T extends MynthSDKTypes.VideoGenerationClientRequest> = T["metadata"];
 
 type ExtractRatingConfig<T extends MynthSDKTypes.ImageGenerationClientRequest> = T["rating"];
 
@@ -97,10 +102,6 @@ type ExtractRateLevelValues<T extends MynthSDKTypes.ImageRateClientRequest> = T 
     ? V
     : string
   : MynthSDKTypes.ImageResultRatingDefaultLevel;
-
-function isUploadInput(value: unknown): value is MynthSDKTypes.ImageUploadInput {
-  return typeof Blob !== "undefined" && value instanceof Blob;
-}
 
 /**
  * Attempts to read the API key from environment variables.
@@ -214,22 +215,7 @@ class MynthImage {
   public async upload(
     input: MynthSDKTypes.ImageUploadInput | readonly MynthSDKTypes.ImageUploadInput[],
   ): Promise<MynthSDKTypes.ImageUploadResponse> {
-    const form = new FormData();
-    const inputs = Array.isArray(input) ? input : [input];
-
-    for (const upload of inputs) {
-      form.append(
-        UPLOAD_FIELD_NAME,
-        upload,
-        typeof File !== "undefined" && upload instanceof File ? upload.name : UPLOAD_FILENAME,
-      );
-    }
-
-    const json = await this.client.post<
-      MynthSDKTypes.ApiResponse<MynthSDKTypes.ImageUploadResponse>
-    >(UPLOAD_IMAGE_PATH, form);
-
-    return json.data;
+    return uploadImages(this.client, input);
   }
 
   /**
@@ -253,39 +239,13 @@ class MynthImage {
     return this.createGenerationTask(request);
   }
 
-  private async resolveGenerationInputs(
-    inputs: MynthSDKTypes.ImageGenerationClientRequest["inputs"],
-  ): Promise<MynthSDKTypes.ImageGenerationRequest["inputs"]> {
-    if (!inputs?.length) {
-      return undefined;
-    }
-
-    const files = inputs.flatMap((input) => {
-      if (isUploadInput(input)) return [input];
-      if (typeof input !== "string" && input.source.type === "file") return [input.source.file];
-      return [];
-    });
-    const urls = files.length ? (await this.upload(files)).urls : [];
-    let i = 0;
-
-    return inputs.map((input) => {
-      if (typeof input === "string") return input;
-      if (isUploadInput(input)) return urls[i++]!;
-      if (input.source.type === "file") {
-        return {
-          type: "image" as const,
-          as: input.as,
-          source: { type: "url" as const, url: urls[i++]! },
-        };
-      }
-      return { type: "image" as const, as: input.as, source: input.source };
-    });
-  }
-
   private async createGenerationTask<const T extends MynthSDKTypes.ImageGenerationClientRequest>(
     request: T,
   ): Promise<TaskAsync<ImageGenerationResult<ExtractMetadata<T>, ExtractRatingResponse<T>>>> {
-    const inputs = await this.resolveGenerationInputs(request.inputs);
+    const inputs = await resolveInputs<MynthSDKTypes.ImageGenerationRequestInputAs>(
+      this.client,
+      request.inputs,
+    );
 
     const json = await this.client.post<
       MynthSDKTypes.ApiResponse<{
@@ -518,6 +478,184 @@ class MynthImage {
 }
 
 /**
+ * Client for interacting with the Mynth video generation API.
+ *
+ * Mirrors {@link MynthImage}: `generate()` waits, `generateAsync()` hands you a
+ * pollable task, and local files passed in `inputs` are uploaded for you.
+ * Video tasks run for minutes, so waits use a longer, slower polling profile.
+ *
+ * @example
+ * ```typescript
+ * const video = new MynthVideo({ apiKey: "mak_..." });
+ *
+ * const result = await video.generate({
+ *   model: "google/gemini-omni-flash-1.1",
+ *   prompt: "A cat surfing a wave at sunset",
+ *   duration: 8,
+ *   resolution: "1080p",
+ * });
+ *
+ * console.log(result.urls); // ["https://..."]
+ * ```
+ */
+class MynthVideo {
+  private readonly client: MynthClient;
+
+  /**
+   * Creates a new MynthVideo client instance.
+   *
+   * @param options - Configuration options
+   * @param options.apiKey - Your API key (defaults to MYNTH_API_KEY env var)
+   * @param options.baseUrl - Custom API base URL
+   * @throws {Error} If no API key is provided and MYNTH_API_KEY is not set
+   */
+  constructor(options: Omit<MynthOptions, "destination"> = {}) {
+    const apiKey = options.apiKey ?? getApiKeyFromEnv();
+
+    if (!apiKey) {
+      throw new Error(
+        `Mynth API key is required. Either pass it as an option or set the ${API_KEY_ENV_VAR} environment variable.`,
+      );
+    }
+
+    this.client = new MynthClient({
+      apiKey,
+      baseUrl: options.baseUrl,
+    });
+  }
+
+  /**
+   * Generate a video from a text prompt, optionally guided by input images.
+   *
+   * Waits for the task to complete. Video generation is slow: this poll can
+   * legitimately run for many minutes. Use `generateAsync()` (or a webhook)
+   * when you cannot hold a request open that long.
+   *
+   * @param request - Video generation request parameters
+   * @returns A completed VideoGenerationResult
+   *
+   * @example
+   * ```typescript
+   * const result = await video.generate({
+   *   model: "bytedance/seedance-2.0-mini",
+   *   prompt: "A drone shot over a misty forest at dawn",
+   * });
+   * console.log(result.urls);
+   * ```
+   */
+  public async generate<const T extends MynthSDKTypes.VideoGenerationClientRequest>(
+    request: T,
+  ): Promise<VideoGenerationResult<ExtractVideoMetadata<T>>> {
+    const taskAsync = await this.createGenerationTask(request);
+
+    return taskAsync.wait();
+  }
+
+  /**
+   * Start video generation without waiting for completion.
+   *
+   * The preferred entry point for server code: hand `taskAsync.id` and
+   * `taskAsync.access.publicAccessToken` to the browser, or register a webhook,
+   * instead of holding a connection open for the length of a render.
+   *
+   * @param request - Video generation request parameters
+   * @returns A TaskAsync that can be polled for completion via `.wait()`
+   *
+   * @example
+   * ```typescript
+   * const taskAsync = await video.generateAsync({
+   *   model: "prunaai/p-video",
+   *   prompt: "A neon city street in the rain",
+   * });
+   *
+   * return { id: taskAsync.id, access: taskAsync.access };
+   * ```
+   */
+  public async generateAsync<const T extends MynthSDKTypes.VideoGenerationClientRequest>(
+    request: T,
+  ): Promise<TaskAsync<VideoGenerationResult<ExtractVideoMetadata<T>>>> {
+    return this.createGenerationTask(request);
+  }
+
+  /**
+   * Upload one or more images to Mynth temporary input storage.
+   *
+   * Video inputs are images, so this is the same storage `image.upload()` uses.
+   * Passing files straight to `generate()` uploads them for you; call this
+   * directly only when you want to reuse the URLs across several requests.
+   *
+   * @param input - Image input or inputs to upload
+   * @returns Uploaded image URLs that can be passed to generation `inputs`
+   */
+  public async upload(
+    input: MynthSDKTypes.ImageUploadInput | readonly MynthSDKTypes.ImageUploadInput[],
+  ): Promise<MynthSDKTypes.ImageUploadResponse> {
+    return uploadImages(this.client, input);
+  }
+
+  /**
+   * Price a video generation request without generating anything.
+   *
+   * The request is validated exactly as `generate()` would validate it, so an
+   * unsupported duration, resolution or input combination throws here too —
+   * making this a cheap pre-flight check as well as a cost lookup. Because
+   * video pins a concrete model, the returned estimate is exact.
+   *
+   * @param request - The same request you would pass to `generate()`
+   * @returns The estimated cost in USD
+   *
+   * @example
+   * ```typescript
+   * const { estimatedCost } = await video.estimate({
+   *   model: "google/gemini-omni-flash-1.1",
+   *   prompt: "A timelapse of clouds over a canyon",
+   *   duration: 10,
+   *   resolution: "4k",
+   * });
+   * ```
+   */
+  public async estimate(
+    request: MynthSDKTypes.VideoGenerationClientRequest,
+  ): Promise<MynthSDKTypes.VideoGenerationEstimate> {
+    const json = await this.client.post<
+      MynthSDKTypes.ApiResponse<MynthSDKTypes.VideoGenerationEstimate>
+    >(ESTIMATE_VIDEO_PATH, await this.toRequestBody(request));
+
+    return json.data;
+  }
+
+  private async toRequestBody(
+    request: MynthSDKTypes.VideoGenerationClientRequest,
+  ): Promise<MynthSDKTypes.VideoGenerationRequest> {
+    const inputs = await resolveInputs<MynthSDKTypes.VideoGenerationRequestInputAs>(
+      this.client,
+      request.inputs,
+    );
+
+    return { ...request, inputs };
+  }
+
+  private async createGenerationTask<const T extends MynthSDKTypes.VideoGenerationClientRequest>(
+    request: T,
+  ): Promise<TaskAsync<VideoGenerationResult<ExtractVideoMetadata<T>>>> {
+    const json = await this.client.post<
+      MynthSDKTypes.ApiResponse<MynthSDKTypes.VideoGenerationCreatedResponse>
+    >(GENERATE_VIDEO_PATH, await this.toRequestBody(request));
+
+    const data = json.data;
+    type Result = VideoGenerationResult<ExtractVideoMetadata<T>>;
+
+    return new TaskAsync<Result>(data.taskId, {
+      client: this.client,
+      pat: data.access?.publicAccessToken,
+      polling: VIDEO_POLLING,
+      resultFactory: (taskData) =>
+        new VideoGenerationResult(taskData as MynthSDKTypes.VideoGenerationTaskData) as Result,
+    });
+  }
+}
+
+/**
  * Client for interacting with the public Mynth model catalog.
  */
 class MynthModels {
@@ -540,7 +678,7 @@ class MynthModels {
    *
    * This endpoint is public and does not require a Mynth API key.
    *
-   * @returns Available image generation models with display names and pricing metadata
+   * @returns Available image and video models with display names, served modes, and pricing
    *
    * @example
    * ```typescript
@@ -576,6 +714,7 @@ class Mynth {
 
   private readonly options: MynthOptions;
   private imageClient?: MynthImage;
+  private videoClient?: MynthVideo;
 
   /**
    * Creates a new Mynth client instance.
@@ -595,10 +734,18 @@ class Mynth {
 
     return this.imageClient;
   }
+
+  /** Video generation client */
+  get video(): MynthVideo {
+    this.videoClient ??= new MynthVideo(this.options);
+
+    return this.videoClient;
+  }
 }
 
 export {
   AVAILABLE_MODELS,
+  AVAILABLE_VIDEO_MODELS,
   ImageAltResult,
   ImageGenerationResult,
   ImageRateResult,
@@ -606,7 +753,9 @@ export {
   Mynth,
   MynthImage,
   MynthModels,
+  MynthVideo,
   TaskAsync,
+  VideoGenerationResult,
   // Error classes
   MynthAPIError,
   TaskAsyncFetchError,
@@ -617,11 +766,14 @@ export {
 };
 export type {
   AvailableModel,
+  AvailableVideoModel,
   ModelCapability,
   MynthModel,
   MynthModelPricing,
   MynthOptions,
   MynthSDKTypes,
   TaskAsyncAccess,
+  VideoInputRole,
+  VideoResolutionTier,
 };
 export default Mynth;

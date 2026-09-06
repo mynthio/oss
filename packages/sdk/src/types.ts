@@ -1,3 +1,5 @@
+import type { VideoResolutionTier } from "./constants";
+
 /**
  * Type definitions for the Mynth SDK.
  * Import as `import type { MynthSDKTypes } from "@mynthio/sdk"`.
@@ -9,7 +11,12 @@ export namespace MynthSDKTypes {
 
   export type TaskStatus = "pending" | "completed" | "failed";
 
-  export type TaskType = "image.generate" | "image.rate" | "image.alt" | "image.review";
+  export type TaskType =
+    | "image.generate"
+    | "image.rate"
+    | "image.alt"
+    | "image.review"
+    | "video.generate";
 
   export type TaskBase = {
     id: string;
@@ -52,18 +59,39 @@ export namespace MynthSDKTypes {
         type: "image.review";
         request: ImageReviewRequest;
         result: ImageReviewTaskResult | null;
+      })
+    | (TaskBase & {
+        type: "video.generate";
+        request: VideoGenerationRequest;
+        result: VideoResult | null;
       });
 
   export type ImageGenerationTaskData = Extract<TaskData, { type: "image.generate" }>;
   export type ImageRateTaskData = Extract<TaskData, { type: "image.rate" }>;
   export type ImageAltTaskData = Extract<TaskData, { type: "image.alt" }>;
   export type ImageReviewTaskData = Extract<TaskData, { type: "image.review" }>;
+  export type VideoGenerationTaskData = Extract<TaskData, { type: "video.generate" }>;
 
   // ============================================================
   // Models
   // ============================================================
 
-  export type ModelPricing = {
+  export type ModelInputRule = {
+    type: "image";
+    /** Role the input plays. Absent means the rule accepts any image. */
+    kind?: string;
+    min?: number;
+    max: number;
+  };
+
+  export type ModelMode = {
+    inputs?: {
+      rules: ModelInputRule[];
+      maxTotal?: number;
+    };
+  };
+
+  export type ImageModelPricing = {
     perImage: {
       base: string;
       "4k"?: string;
@@ -71,11 +99,33 @@ export namespace MynthSDKTypes {
     perInput?: string;
   };
 
-  export type Model = {
+  export type VideoModelPricing = {
+    /** USD per second, keyed by resolution tier. Tiers the model cannot produce are absent. */
+    perSecond: Partial<Record<VideoResolutionTier, string>>;
+    /** Present only when audio is billed on top of the per-second video rate. */
+    audio?: { perSecond: string };
+  };
+
+  export type ModelPricing = ImageModelPricing | VideoModelPricing;
+
+  export type ImageModel = {
     id: string;
     displayName: string | null;
-    pricing: ModelPricing | null;
+    type: "image";
+    modes: Partial<Record<"txt->img" | "img->img", ModelMode>>;
+    pricing: ImageModelPricing | null;
   };
+
+  export type VideoModel = {
+    id: string;
+    displayName: string | null;
+    type: "video";
+    modes: Partial<Record<"txt->vid" | "img->vid", ModelMode>>;
+    pricing: VideoModelPricing | null;
+  };
+
+  /** Narrow on `type` to reach the media-specific modes and pricing. */
+  export type Model = ImageModel | VideoModel;
 
   export type ModelsListResponse = ApiResponse<Model[]>;
 
@@ -523,6 +573,129 @@ export namespace MynthSDKTypes {
   };
 
   // ============================================================
+  // Video Generate
+  // ============================================================
+
+  /**
+   * Video generation always runs on a pinned model; there is no `auto`.
+   */
+  export type VideoGenerationModelId =
+    | "bytedance/seedance-2.0-mini"
+    | "google/gemini-omni-flash-1.1"
+    | "prunaai/p-video";
+
+  export type VideoGenerationModel = VideoGenerationModelId;
+
+  /** Resolution tier. Each model supports a subset; see `AVAILABLE_VIDEO_MODELS`. */
+  export type VideoGenerationRequestResolution = "480p" | "720p" | "1080p" | "4k";
+
+  /** Video webhook configuration (same shape as image generation). */
+  export type VideoGenerationRequestWebhook = ImageGenerationRequestWebhook;
+
+  /** Video access configuration (same shape as image generation). */
+  export type VideoGenerationRequestAccess = ImageGenerationRequestAccess;
+
+  /** Video input source (API wire format) */
+  export type VideoGenerationRequestInputSource = {
+    type: "url";
+    url: string;
+  };
+
+  /**
+   * Role of an input image.
+   * `first_frame` and `last_frame` bracket the generated clip; `reference` is
+   * guidance only. Defaults to `auto`, which assigns the first image as the
+   * first frame.
+   */
+  export type VideoGenerationRequestInputAs = "auto" | "first_frame" | "last_frame" | "reference";
+
+  /** Structured video input (API wire format) */
+  export type VideoGenerationRequestInput = {
+    type: "image";
+    as?: VideoGenerationRequestInputAs;
+    source: VideoGenerationRequestInputSource;
+  };
+
+  /** Structured video input for the SDK client (may include local files) */
+  export type VideoGenerationClientInput = Omit<VideoGenerationRequestInput, "source"> & {
+    source: VideoGenerationRequestInputSource | { type: "file"; file: ImageUploadInput };
+  };
+
+  /**
+   * Video generation request parameters (API wire format).
+   */
+  export type VideoGenerationRequest = {
+    model: VideoGenerationModel;
+    prompt: string;
+    negative_prompt?: string;
+    /** Duration in whole seconds. Defaults to the model's default duration. */
+    duration?: number;
+    /** Resolution tier. Defaults to the model's default tier. */
+    resolution?: VideoGenerationRequestResolution;
+    /** Model-native generated audio. Only for models with the audio capability. */
+    audio?: boolean;
+    inputs?: (string | VideoGenerationRequestInput)[];
+    webhook?: VideoGenerationRequestWebhook;
+    access?: VideoGenerationRequestAccess;
+    metadata?: Record<string, unknown>;
+  };
+
+  /**
+   * Video generation request parameters for the SDK client.
+   * Accepts local files in `inputs`; they are uploaded before the API call.
+   */
+  export type VideoGenerationClientRequest = Omit<VideoGenerationRequest, "inputs"> & {
+    inputs?: (string | ImageUploadInput | VideoGenerationClientInput)[];
+  };
+
+  /** Create-task response from the video generate endpoint */
+  export type VideoGenerationCreatedResponse = {
+    taskId: string;
+    /** Cost reserved for the task. Failed videos are refunded. */
+    estimatedCost: string;
+    access?: {
+      publicAccessToken: string;
+    };
+  };
+
+  /** Response from the video generation cost estimate endpoint */
+  export type VideoGenerationEstimate = {
+    /** Estimated cost in USD. Nothing is generated or charged. */
+    estimatedCost: string;
+    currency: "usd";
+    /** Video generation always pins a model, so the estimate is exact. */
+    estimateKind: "exact";
+  };
+
+  export type VideoResultVideoSuccess = {
+    status: "success";
+    id: string;
+    url: string;
+    mynth_url: string;
+    cost: string;
+    /** Duration of the generated video in seconds */
+    duration: number;
+    resolution: VideoGenerationRequestResolution;
+    /** Whether the video was generated with audio */
+    audio: boolean;
+  };
+
+  export type VideoResultVideoFailure = {
+    status: "failed";
+    error: {
+      code: string;
+      message?: string;
+    };
+  };
+
+  export type VideoResultVideo = VideoResultVideoSuccess | VideoResultVideoFailure;
+
+  export type VideoResult = {
+    model: VideoGenerationModelId;
+    videos: VideoResultVideo[];
+  };
+
+  // ============================================================
   // Webhooks
   // ============================================================
 
@@ -607,6 +780,26 @@ export namespace MynthSDKTypes {
   };
 
   /**
+   * Webhook payload for video generation task completion.
+   */
+  export type WebhookTaskVideoCompletedPayload = {
+    task: { id: string };
+    event: "task.video.generate.completed";
+    result: VideoResult;
+    request: VideoGenerationRequest;
+  };
+
+  /**
+   * Webhook payload for video generation task failure.
+   */
+  export type WebhookTaskVideoFailedPayload = {
+    task: { id: string };
+    event: "task.video.generate.failed";
+    request: VideoGenerationRequest;
+    errors: TaskError[];
+  };
+
+  /**
    * Webhook payload union.
    */
   export type WebhookPayload =
@@ -617,5 +810,7 @@ export namespace MynthSDKTypes {
     | WebhookTaskImageAltCompletedPayload
     | WebhookTaskImageAltFailedPayload
     | WebhookTaskImageReviewCompletedPayload
-    | WebhookTaskImageReviewFailedPayload;
+    | WebhookTaskImageReviewFailedPayload
+    | WebhookTaskVideoCompletedPayload
+    | WebhookTaskVideoFailedPayload;
 }

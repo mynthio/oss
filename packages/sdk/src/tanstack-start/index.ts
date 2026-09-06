@@ -52,6 +52,14 @@ export type MynthTanStackStartEventHandlers<
     payload: MynthSDKTypes.WebhookTaskImageReviewFailedPayload,
     context: MynthTanStackStartHandlerContext<TContext, TParams>,
   ) => void | Promise<void>;
+  videoTaskCompleted?: (
+    payload: MynthSDKTypes.WebhookTaskVideoCompletedPayload,
+    context: MynthTanStackStartHandlerContext<TContext, TParams>,
+  ) => void | Promise<void>;
+  videoTaskFailed?: (
+    payload: MynthSDKTypes.WebhookTaskVideoFailedPayload,
+    context: MynthTanStackStartHandlerContext<TContext, TParams>,
+  ) => void | Promise<void>;
 };
 
 export type MynthTanStackStartHandlerOptions = MynthWebhookHandlerOptions;
@@ -77,6 +85,8 @@ export function mynthWebhookHandler<
         imageReviewTaskCompleted: (payload) =>
           eventHandlers.imageReviewTaskCompleted?.(payload, context),
         imageReviewTaskFailed: (payload) => eventHandlers.imageReviewTaskFailed?.(payload, context),
+        videoTaskCompleted: (payload) => eventHandlers.videoTaskCompleted?.(payload, context),
+        videoTaskFailed: (payload) => eventHandlers.videoTaskFailed?.(payload, context),
       },
       options,
     );

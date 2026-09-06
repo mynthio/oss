@@ -5,24 +5,72 @@ const catalog = [
   {
     id: "black-forest-labs/flux.1-dev",
     displayName: "FLUX.1 Dev",
+    type: "image",
+    modes: { "txt->img": {} },
     pricing: { perImage: { base: "0.004" } },
   },
   {
     id: "black-forest-labs/flux.2-pro",
     displayName: "FLUX.2 Pro",
+    type: "image",
+    modes: {
+      "txt->img": {},
+      "img->img": { inputs: { rules: [{ type: "image", max: 4 }], maxTotal: 4 } },
+    },
     pricing: { perImage: { base: "0.03" }, perInput: "0.03" },
   },
   {
     id: "bytedance/seedream-pro",
     displayName: "Seedream Pro",
+    type: "image",
+    modes: {
+      "txt->img": {},
+      "img->img": { inputs: { rules: [{ type: "image", kind: "source", min: 1, max: 1 }] } },
+    },
     pricing: { perImage: { base: "0.1" }, perInput: "0.00321" },
   },
   {
     id: "google/gemini-3-pro-image-preview",
     displayName: "Gemini 3 Pro Image Preview",
+    type: "image",
+    modes: { "txt->img": {} },
     pricing: { perImage: { base: "0.14", "4k": "0.2" } },
   },
-  { id: "recraft/recraft-v4", displayName: "Recraft V4", pricing: { perImage: { base: "0.04" } } },
+  {
+    id: "recraft/recraft-v4",
+    displayName: "Recraft V4",
+    type: "image",
+    modes: { "txt->img": {} },
+    pricing: { perImage: { base: "0.04" } },
+  },
+  {
+    id: "bytedance/seedance-2.0-mini",
+    displayName: "Seedance 2.0 Mini",
+    type: "video",
+    modes: {
+      "txt->vid": {},
+      "img->vid": {
+        inputs: {
+          rules: [
+            { type: "image", kind: "first_frame", min: 1, max: 1 },
+            { type: "image", kind: "last_frame", min: 0, max: 1 },
+          ],
+          maxTotal: 2,
+        },
+      },
+    },
+    pricing: { perSecond: { "480p": "0.036", "720p": "0.081" } },
+  },
+  {
+    id: "google/gemini-omni-flash-1.1",
+    displayName: "Gemini Omni Flash 1.1",
+    type: "video",
+    modes: { "txt->vid": {}, "img->vid": { inputs: { rules: [{ type: "image", max: 2 }] } } },
+    pricing: {
+      perSecond: { "720p": "0.10", "1080p": "0.15", "4k": "0.30" },
+      audio: { perSecond: "0.002" },
+    },
+  },
 ];
 
 const route = (request: { url: string }, response: Parameters<typeof json>[0]) =>
@@ -68,11 +116,25 @@ describe("models list filtering", () => {
   });
 
   it("filters by exact org without dragging in fuzzy neighbours", async () => {
-    expect(await ids(["--org", "google"])).toEqual(["google/gemini-3-pro-image-preview"]);
+    expect(await ids(["--org", "google"])).toEqual([
+      "google/gemini-3-pro-image-preview",
+      "google/gemini-omni-flash-1.1",
+    ]);
   });
 
-  it("filters by 4K pricing", async () => {
-    expect(await ids(["--4k"])).toEqual(["google/gemini-3-pro-image-preview"]);
+  it("filters by 4K pricing across both per-image and per-second rates", async () => {
+    expect(await ids(["--4k"])).toEqual([
+      "google/gemini-3-pro-image-preview",
+      "google/gemini-omni-flash-1.1",
+    ]);
+  });
+
+  it("filters by media type", async () => {
+    expect(await ids(["--type", "video"])).toEqual([
+      "bytedance/seedance-2.0-mini",
+      "google/gemini-omni-flash-1.1",
+    ]);
+    expect(await ids(["--type", "image"])).toHaveLength(5);
   });
 
   it("filters by max and min base price inclusively", async () => {
@@ -80,22 +142,39 @@ describe("models list filtering", () => {
       "black-forest-labs/flux.1-dev",
       "black-forest-labs/flux.2-pro",
       "recraft/recraft-v4",
+      // Cheapest per-second tier, so a video model is comparable on price.
+      "bytedance/seedance-2.0-mini",
     ]);
     expect(await ids(["--min-price", "0.1"])).toEqual([
       "bytedance/seedream-pro",
       "google/gemini-3-pro-image-preview",
+      "google/gemini-omni-flash-1.1",
     ]);
   });
 
-  it("splits the catalog on image-input capability", async () => {
+  it("filters on the modes a model actually serves", async () => {
     expect(await ids(["--capability", "img2img"])).toEqual([
       "black-forest-labs/flux.2-pro",
       "bytedance/seedream-pro",
     ]);
+    // A model serving both modes matches both filters.
     expect(await ids(["--capability", "txt2img"])).toEqual([
       "black-forest-labs/flux.1-dev",
+      "black-forest-labs/flux.2-pro",
+      "bytedance/seedream-pro",
       "google/gemini-3-pro-image-preview",
       "recraft/recraft-v4",
+    ]);
+  });
+
+  it("filters on video modes", async () => {
+    expect(await ids(["--capability", "txt2vid"])).toEqual([
+      "bytedance/seedance-2.0-mini",
+      "google/gemini-omni-flash-1.1",
+    ]);
+    expect(await ids(["--capability", "img2vid"])).toEqual([
+      "bytedance/seedance-2.0-mini",
+      "google/gemini-omni-flash-1.1",
     ]);
   });
 
@@ -124,9 +203,20 @@ describe("models list filtering", () => {
     });
   });
 
+  it("renders per-second pricing and modes for a video model", async () => {
+    await withApi(route, async (env) => {
+      const result = await runCli(["models", "list", "--type", "video"], env);
+
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain("video");
+      expect(result.stdout).toContain("0.036/s");
+      expect(result.stdout).toContain("txt->vid,img->vid");
+    });
+  });
+
   it("rejects an unknown capability", async () => {
     await withApi(route, async (env) => {
-      const result = await runCli(["models", "list", "--capability", "video"], env);
+      const result = await runCli(["models", "list", "--capability", "txt2audio"], env);
       expect(result.status).toBe(2);
     });
   });

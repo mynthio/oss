@@ -99,23 +99,29 @@ output.
 | -------------- | -------------------------------------------------------------------- |
 | `-s, --search` | Fuzzy match on model ID (which carries the org) and display name.    |
 | `--org`        | Only one org, fuzzy matched — `--org bfl` finds `black-forest-labs`. |
-| `--max-price`  | Base per-image price at or below this, in USD.                       |
-| `--min-price`  | Base per-image price at or above this, in USD.                       |
+| `--type`       | Only one media type: `image` or `video`.                             |
+| `--max-price`  | Price at or below this, in USD.                                      |
+| `--min-price`  | Price at or above this, in USD.                                      |
 | `--4k`         | Only models that publish a 4K price.                                 |
-| `--capability` | `img2img` (bills for image inputs) or `txt2img` (prompt only).       |
+| `--capability` | One generation mode: `txt2img`, `img2img`, `txt2vid`, or `img2vid`.  |
 
 ```bash
 mynth models list -s "gemini flash"                  # fuzzy: tolerates typos and word order
 mynth models list --capability img2img --max-price 0.03
+mynth models list --type video --json
 mynth models list --org bfl --json
 ```
 
 Search is fuzzy, not substring: `sedream` finds Seedream, and results come back ranked by relevance.
 A query that matches nothing prints `No models matched the filters.` and still exits `0`.
 
-`--capability` is derived from pricing, because the catalog exposes no capability field: a model that
-publishes `perInput` pricing bills for image inputs, so it accepts them. Models that both take a
-prompt and accept images are therefore reported as `img2img`.
+The catalog carries image and video models. Image models are priced per image, video models per
+second of output, so the `Price` column reports the cheapest rate a model charges and marks the
+per-second ones with `/s`. `--max-price` and `--min-price` compare against that same figure, which
+is why they are most useful alongside `--type`.
+
+`--capability` matches the modes a model actually serves, so a model that both takes a prompt and
+accepts images matches `txt2img` and `img2img` alike.
 
 ## Analyzing images
 

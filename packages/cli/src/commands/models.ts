@@ -2,37 +2,88 @@ import { Command, Option } from "commander";
 import fuzzysort from "fuzzysort";
 import { listModels } from "../api/models.ts";
 import type { App } from "../app.ts";
-import type { Model } from "../api/schemas.ts";
+import type { Model, ModelPricing } from "../api/schemas.ts";
 import { UsageError } from "../errors.ts";
 import { printJson } from "../output/print.ts";
 import { printTable } from "../output/table.ts";
 import { jsonOption, type JsonFlag } from "./options.ts";
 
+/** The catalog names modes `txt->img`; the flag spells them the way a shell can. */
+const MODE_BY_CAPABILITY = {
+  txt2img: "txt->img",
+  img2img: "img->img",
+  txt2vid: "txt->vid",
+  img2vid: "img->vid",
+} as const;
+
+type Capability = keyof typeof MODE_BY_CAPABILITY;
+
 type ListFlags = JsonFlag & {
   readonly search?: string;
   readonly org?: string;
+  readonly type?: string;
   readonly maxPrice?: number;
   readonly minPrice?: number;
   readonly "4k"?: boolean;
-  readonly capability?: "img2img" | "txt2img";
+  readonly capability?: Capability;
 };
 
 /** Model IDs are `org/name`, so the org is the id prefix — the API has no separate field. */
 const orgOf = (model: Model): string => model.id.split("/")[0]!;
 
-const basePrice = (model: Model): number | undefined => {
-  const raw = model.pricing?.perImage.base;
-  if (raw === undefined) return undefined;
-  const parsed = Number.parseFloat(raw);
-  return Number.isFinite(parsed) ? parsed : undefined;
+const isImagePricing = (
+  pricing: ModelPricing,
+): pricing is Extract<ModelPricing, { perImage: unknown }> => "perImage" in pricing;
+
+/** Image models are priced per image, video models per second of output. */
+const rateUnit = (model: Model): string => (model.type === "video" ? "/s" : "");
+
+const rates = (model: Model): string[] => {
+  const pricing = model.pricing;
+  if (pricing === null) return [];
+
+  return isImagePricing(pricing) ? [pricing.perImage.base] : Object.values(pricing.perSecond);
 };
 
 /**
- * The catalog exposes no capability field. `perInput` pricing is the documented
- * signal that a model bills for image inputs, so it stands in for image-to-image
- * support; its absence means the model takes a prompt only.
+ * The cheapest rate a model charges, so one price column and one pair of price
+ * filters span both media types. The raw string is kept for display, because it
+ * carries the precision the catalog published.
  */
-const takesImageInputs = (model: Model): boolean => model.pricing?.perInput !== undefined;
+const cheapestRate = (model: Model): { raw: string; value: number } | undefined => {
+  let best: { raw: string; value: number } | undefined;
+
+  for (const raw of rates(model)) {
+    const value = Number.parseFloat(raw);
+    if (Number.isFinite(value) && (best === undefined || value < best.value)) best = { raw, value };
+  }
+
+  return best;
+};
+
+const basePrice = (model: Model): number | undefined => cheapestRate(model)?.value;
+
+const priceLabel = (model: Model): string => {
+  const rate = cheapestRate(model);
+  return rate === undefined ? "-" : `${rate.raw}${rateUnit(model)}`;
+};
+
+const price4k = (model: Model): string | undefined => {
+  const pricing = model.pricing;
+  if (pricing === null) return undefined;
+  return isImagePricing(pricing) ? pricing.perImage["4k"] : pricing.perSecond["4k"];
+};
+
+const price4kLabel = (model: Model): string => {
+  const raw = price4k(model);
+  return raw === undefined ? "-" : `${raw}${rateUnit(model)}`;
+};
+
+const inputFee = (model: Model): string | undefined => {
+  const pricing = model.pricing;
+  if (pricing === null || !isImagePricing(pricing)) return undefined;
+  return pricing.perInput;
+};
 
 const parsePrice =
   (label: string) =>
@@ -74,12 +125,16 @@ const applyFilters = (models: ReadonlyArray<Model>, flags: ListFlags): ReadonlyA
     const orgs = matchOrgs(result, flags.org);
     result = result.filter((model) => orgs.has(orgOf(model)));
   }
+  if (flags.type !== undefined) {
+    const type = flags.type;
+    result = result.filter((model) => model.type === type);
+  }
   if (flags["4k"]) {
-    result = result.filter((model) => model.pricing?.perImage["4k"] !== undefined);
+    result = result.filter((model) => price4k(model) !== undefined);
   }
   if (flags.capability !== undefined) {
-    const wantsInputs = flags.capability === "img2img";
-    result = result.filter((model) => takesImageInputs(model) === wantsInputs);
+    const mode = MODE_BY_CAPABILITY[flags.capability];
+    result = result.filter((model) => mode in model.modes);
   }
   if (flags.maxPrice !== undefined) {
     const max = flags.maxPrice;
@@ -100,28 +155,28 @@ export const modelsCommand = (app: App): Command => {
 
   models
     .command("list")
-    .description("List available image generation models and their per-image pricing")
+    .description("List available generation models and their pricing")
     .option(
       "-s, --search <query>",
       "Fuzzy match against model ID (which includes the org) and name",
     )
     .option("--org <org>", "Only models from this org, fuzzy matched (e.g. bfl, google)")
+    .option("--type <type>", "Only models of this media type (image, video)")
     .option(
       "--max-price <usd>",
-      "Only models at or below this base per-image price",
+      "Only models at or below this price (per image, or per second for video)",
       parsePrice("--max-price"),
     )
     .option(
       "--min-price <usd>",
-      "Only models at or above this base per-image price",
+      "Only models at or above this price (per image, or per second for video)",
       parsePrice("--min-price"),
     )
     .option("--4k", "Only models with 4K pricing")
     .addOption(
-      new Option(
-        "--capability <capability>",
-        "img2img: bills for image inputs. txt2img: prompt-only, no image inputs",
-      ).choices(["img2img", "txt2img"]),
+      new Option("--capability <capability>", "Only models serving this generation mode").choices(
+        Object.keys(MODE_BY_CAPABILITY),
+      ),
     )
     .addOption(jsonOption())
     .action(async (options: ListFlags) => {
@@ -136,9 +191,11 @@ export const modelsCommand = (app: App): Command => {
         [
           { header: "ID", value: (model) => model.id },
           { header: "Name", value: (model) => model.displayName ?? "-" },
-          { header: "Base", value: (model) => model.pricing?.perImage.base ?? "-" },
-          { header: "4K", value: (model) => model.pricing?.perImage["4k"] ?? "-" },
-          { header: "Input fee", value: (model) => model.pricing?.perInput ?? "-" },
+          { header: "Type", value: (model) => model.type },
+          { header: "Modes", value: (model) => Object.keys(model.modes).join(",") || "-" },
+          { header: "Price", value: (model) => priceLabel(model) },
+          { header: "4K", value: (model) => price4kLabel(model) },
+          { header: "Input fee", value: (model) => inputFee(model) ?? "-" },
         ],
         "No models matched the filters.",
       );

@@ -149,17 +149,41 @@ export type Balance = z.infer<typeof balance>;
 // Models
 //
 
+const modelInputRule = z.object({
+  type: z.string(),
+  kind: z.string().optional(),
+  min: z.number().optional(),
+  max: z.number(),
+});
+
+const modelMode = z.object({
+  inputs: z.object({ rules: z.array(modelInputRule), maxTotal: z.number().optional() }).optional(),
+});
+
+export const imagePricing = z.object({
+  perImage: z.object({ base: z.string(), "4k": z.string().optional() }),
+  perInput: z.string().optional(),
+});
+
+export const videoPricing = z.object({
+  perSecond: z.record(z.string(), z.string()),
+  audio: z.object({ perSecond: z.string() }).optional(),
+});
+
+/**
+ * Media types, mode names, and input kinds are read as open strings for the same
+ * reason task types are: the API adds them and a released CLI must still render
+ * them. Only the pricing shapes are narrowed, because the two are read per key.
+ */
 export const model = z.object({
   id: z.string(),
   displayName: z.string().nullable(),
-  pricing: z
-    .object({
-      perImage: z.object({ base: z.string(), "4k": z.string().optional() }),
-      perInput: z.string().optional(),
-    })
-    .nullable(),
+  type: z.string(),
+  modes: z.record(z.string(), modelMode),
+  pricing: z.union([imagePricing, videoPricing]).nullable(),
 });
 export type Model = z.infer<typeof model>;
+export type ModelPricing = NonNullable<Model["pricing"]>;
 
 //
 // Tasks

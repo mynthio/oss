@@ -86,6 +86,11 @@ describe("models", () => {
             {
               id: "black-forest-labs/flux.2-pro",
               displayName: "FLUX.2 Pro",
+              type: "image",
+              modes: {
+                "txt->img": {},
+                "img->img": { inputs: { rules: [{ type: "image", max: 4 }] } },
+              },
               pricing: { perImage: { base: "0.04", "4k": "0.08" }, perInput: "0.002" },
             },
           ],

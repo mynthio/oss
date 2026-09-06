@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { Mynth, MynthImage, TaskAsync } from "./index";
+import { Mynth, MynthImage, MynthVideo, TaskAsync } from "./index";
 import type { MynthSDKTypes } from "./types";
 
 function jsonResponse(data: unknown, init: ResponseInit = {}) {
@@ -576,7 +576,24 @@ describe("Mynth", () => {
       {
         id: "black-forest-labs/flux.2-pro",
         displayName: "FLUX.2 Pro",
+        type: "image",
+        modes: {
+          "txt->img": {},
+          "img->img": { inputs: { rules: [{ type: "image", max: 4 }], maxTotal: 4 } },
+        },
         pricing: { perImage: { base: "0.05" } },
+      },
+      {
+        id: "bytedance/seedance-2.0-mini",
+        displayName: "Seedance 2.0 Mini",
+        type: "video",
+        modes: {
+          "txt->vid": {},
+          "img->vid": {
+            inputs: { rules: [{ type: "image", kind: "first_frame", min: 1, max: 1 }] },
+          },
+        },
+        pricing: { perSecond: { "480p": "0.036", "720p": "0.081" } },
       },
     ];
     const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse({ data: models }));
@@ -627,5 +644,219 @@ describe("Mynth", () => {
       status: 503,
       code: "models_unavailable",
     });
+  });
+});
+
+function createVideoTaskData(
+  overrides: Partial<MynthSDKTypes.VideoGenerationTaskData> = {},
+): MynthSDKTypes.VideoGenerationTaskData {
+  return {
+    id: "task-video-123",
+    status: "completed",
+    type: "video.generate",
+    apiKeyId: "api-key-123",
+    userId: "user-123",
+    cost: "0.42",
+    result: {
+      model: "google/gemini-omni-flash-1.1",
+      videos: [
+        {
+          status: "success",
+          id: "vid_1",
+          url: "https://cdn.test/video.mp4",
+          mynth_url: "https://mynthcdn.test/video.mp4",
+          cost: "0.42",
+          duration: 8,
+          resolution: "1080p",
+          audio: true,
+        },
+        {
+          status: "failed",
+          error: { code: "PROVIDER_ERROR" },
+        },
+      ],
+    },
+    request: {
+      model: "google/gemini-omni-flash-1.1",
+      prompt: "test prompt",
+      metadata: { generationId: "gen_1" },
+    },
+    createdAt: "2026-01-29T12:00:00Z",
+    updatedAt: "2026-01-29T12:00:00Z",
+    ...overrides,
+  } as MynthSDKTypes.VideoGenerationTaskData;
+}
+
+describe("MynthVideo", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  test("generateAsync returns a pollable task without waiting", async () => {
+    // Arrange
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      jsonResponse({
+        data: {
+          taskId: "task-video-123",
+          estimatedCost: "0.42",
+          access: { publicAccessToken: "pat-video" },
+        },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const video = new MynthVideo({ apiKey: "mak_test", baseUrl: "https://api.test" });
+
+    // Act
+    const task = await video.generateAsync({
+      model: "google/gemini-omni-flash-1.1",
+      prompt: "a cat surfing",
+      duration: 8,
+      resolution: "1080p",
+      audio: true,
+    });
+
+    // Assert
+    expect(task).toBeInstanceOf(TaskAsync);
+    expect(task.id).toBe("task-video-123");
+    expect(task.access.publicAccessToken).toBe("pat-video");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.test/video/generate",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          model: "google/gemini-omni-flash-1.1",
+          prompt: "a cat surfing",
+          duration: 8,
+          resolution: "1080p",
+          audio: true,
+        }),
+      }),
+    );
+  });
+
+  test("generate waits for the completed task and exposes video results", async () => {
+    // Arrange
+    const taskData = createVideoTaskData();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse({ data: { taskId: "task-video-123", estimatedCost: "0.42" } }),
+      )
+      .mockResolvedValueOnce(jsonResponse({ data: { status: "completed" } }))
+      .mockResolvedValueOnce(jsonResponse({ data: taskData }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const video = new MynthVideo({ apiKey: "mak_test", baseUrl: "https://api.test" });
+
+    // Act
+    const result = await video.generate({
+      model: "google/gemini-omni-flash-1.1",
+      prompt: "test prompt",
+      metadata: { generationId: "gen_1" },
+    });
+
+    // Assert
+    expect({
+      id: result.id,
+      isCompleted: result.isCompleted,
+      urls: result.urls,
+      successCount: result.getVideos().length,
+      allCount: result.getVideos({ includeFailed: true }).length,
+      metadata: result.getMetadata(),
+      model: result.result?.model,
+    }).toEqual({
+      id: "task-video-123",
+      isCompleted: true,
+      urls: ["https://cdn.test/video.mp4"],
+      successCount: 1,
+      allCount: 2,
+      metadata: { generationId: "gen_1" },
+      model: "google/gemini-omni-flash-1.1",
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "https://api.test/tasks/task-video-123/status",
+      expect.any(Object),
+    );
+  });
+
+  test("generateAsync uploads local files in inputs before generate", async () => {
+    // Arrange
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse({
+          data: { urls: ["https://cdn.test/first.webp", "https://cdn.test/last.webp"] },
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({ data: { taskId: "task-video-123", estimatedCost: "0.42" } }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const video = new MynthVideo({ apiKey: "mak_test", baseUrl: "https://api.test" });
+    const first = new File(["first-frame"], "first.webp", { type: "image/webp" });
+    const last = new Blob(["last-frame"], { type: "image/png" });
+
+    // Act
+    await video.generateAsync({
+      model: "bytedance/seedance-2.0-mini",
+      prompt: "morph between the frames",
+      inputs: [first, { type: "image", as: "last_frame", source: { type: "file", file: last } }],
+    });
+
+    // Assert
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("https://api.test/image/upload");
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "https://api.test/video/generate",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          model: "bytedance/seedance-2.0-mini",
+          prompt: "morph between the frames",
+          inputs: [
+            "https://cdn.test/first.webp",
+            {
+              type: "image",
+              as: "last_frame",
+              source: { type: "url", url: "https://cdn.test/last.webp" },
+            },
+          ],
+        }),
+      }),
+    );
+  });
+
+  test("estimate prices a request without creating a task", async () => {
+    // Arrange
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      jsonResponse({
+        data: { estimatedCost: "0.42", currency: "usd", estimateKind: "exact" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const video = new MynthVideo({ apiKey: "mak_test", baseUrl: "https://api.test" });
+
+    // Act
+    const estimate = await video.estimate({
+      model: "prunaai/p-video",
+      prompt: "a neon city street",
+    });
+
+    // Assert
+    expect(estimate).toEqual({ estimatedCost: "0.42", currency: "usd", estimateKind: "exact" });
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("https://api.test/video/generate/estimate");
+  });
+
+  test("mynth.video reuses a single client instance", () => {
+    // Arrange
+    const mynth = new Mynth({ apiKey: "mak_test", baseUrl: "https://api.test" });
+
+    // Act & Assert
+    expect(mynth.video).toBeInstanceOf(MynthVideo);
+    expect(mynth.video).toBe(mynth.video);
   });
 });

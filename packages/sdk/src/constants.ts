@@ -12,6 +12,8 @@ export const UPLOAD_IMAGE_PATH = "/image/upload";
 export const RATE_IMAGE_PATH = "/image/rate";
 export const ALT_IMAGE_PATH = "/image/alt";
 export const REVIEW_IMAGE_PATH = "/image/review";
+export const GENERATE_VIDEO_PATH = "/video/generate";
+export const ESTIMATE_VIDEO_PATH = "/video/generate/estimate";
 export const MODELS_PATH = "/models";
 export const TASK_PATH = "/tasks";
 export const TASK_DETAILS_PATH = (id: string) => `${TASK_PATH}/${id}`;
@@ -303,5 +305,90 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     id: "xai/grok-imagine-image-quality",
     label: "Grok Imagine Image Quality",
     capabilities: ["inputs"],
+  },
+];
+
+/**
+ * Polling profile for video tasks.
+ *
+ * Video generation runs for minutes rather than seconds, so there is no fast
+ * opening phase to spend requests on, the steady interval is longer, and the
+ * wait budget is an hour instead of the 30 minutes image tasks get.
+ */
+export const VIDEO_POLLING = {
+  timeoutMs: 60 * 60 * 1000,
+  fastDurationMs: 0,
+  intervalMs: 10_000,
+} as const;
+
+/**
+ * Information about an available video generation model.
+ *
+ * Video models reject requests outside their declared resolution, duration and
+ * audio support, so this metadata is what you validate a request against (or
+ * build a model picker from) before spending a round trip.
+ */
+export type AvailableVideoModel = {
+  /** Unique model identifier used in API requests */
+  id: string;
+  /** Human-readable display name */
+  label: string;
+  /** Resolution tiers the model accepts */
+  resolutions: readonly VideoResolutionTier[];
+  /** Tier used when the request omits `resolution` */
+  defaultResolution: VideoResolutionTier;
+  /** Accepted duration range in whole seconds, and the default */
+  duration: { default: number; min: number; max: number };
+  /** Whether the model can generate native audio */
+  audio: boolean;
+  /**
+   * Input roles accepted for image-to-video.
+   * Empty when the model is text-to-video only.
+   */
+  inputs: readonly VideoInputRole[];
+  /** Maximum number of input images */
+  maxInputs: number;
+};
+
+export type VideoResolutionTier = "480p" | "720p" | "1080p" | "4k";
+
+export type VideoInputRole = "first_frame" | "last_frame" | "reference";
+
+/**
+ * List of all available video generation models with their capabilities.
+ * Unlike images, video generation has no `auto` model: pick one explicitly.
+ */
+// ponytail: every current model takes a contiguous duration range. A model with
+// a fixed set of durations needs a `values` field here and in the picker.
+export const AVAILABLE_VIDEO_MODELS: readonly AvailableVideoModel[] = [
+  {
+    id: "bytedance/seedance-2.0-mini",
+    label: "Seedance 2.0 Mini",
+    resolutions: ["480p", "720p"],
+    defaultResolution: "720p",
+    duration: { default: 5, min: 4, max: 15 },
+    audio: true,
+    inputs: ["first_frame", "last_frame"],
+    maxInputs: 2,
+  },
+  {
+    id: "google/gemini-omni-flash-1.1",
+    label: "Gemini Omni Flash 1.1",
+    resolutions: ["720p", "1080p", "4k"],
+    defaultResolution: "720p",
+    duration: { default: 8, min: 3, max: 10 },
+    audio: true,
+    inputs: ["first_frame", "last_frame"],
+    maxInputs: 2,
+  },
+  {
+    id: "prunaai/p-video",
+    label: "P-Video",
+    resolutions: ["720p", "1080p"],
+    defaultResolution: "720p",
+    duration: { default: 5, min: 1, max: 10 },
+    audio: true,
+    inputs: ["first_frame"],
+    maxInputs: 1,
   },
 ];

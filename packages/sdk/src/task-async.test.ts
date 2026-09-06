@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import type { MynthClient } from "./client";
 import { ImageGenerationResult } from "./image-generation-result";
+import type { TaskAsyncPolling } from "./task-async";
 import {
   TaskAsync,
   TaskAsyncFetchError,
@@ -48,7 +49,7 @@ function createMockTaskData(
 
 function createTaskAsync(
   id: string,
-  options: { client: MynthClient; pat?: string },
+  options: { client: MynthClient; pat?: string; polling?: TaskAsyncPolling },
 ): TaskAsync<ImageGenerationResult> {
   return new TaskAsync(id, {
     ...options,
@@ -701,6 +702,41 @@ describe("TaskAsync", () => {
       await vi.advanceTimersByTimeAsync(31 * 60 * 1000);
 
       // Assert
+      await rejectionExpectation;
+    });
+
+    test("honours a custom polling profile for the interval and the timeout", async () => {
+      // Arrange - the video profile: no fast phase, 10s interval, 60m budget
+      const polling: TaskAsyncPolling = {
+        timeoutMs: 60 * 60 * 1000,
+        fastDurationMs: 0,
+        intervalMs: 10_000,
+      };
+      const mockGet = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        data: { data: { status: "pending" } },
+      });
+
+      const client = createMockClient({ get: mockGet });
+      const taskAsync = createTaskAsync("slow-task", { client, polling });
+
+      // Act
+      const resultPromise = taskAsync.wait();
+      const rejectionExpectation = expect(resultPromise).rejects.toThrow(TaskAsyncTimeoutError);
+      let settled = false;
+      void resultPromise.catch(() => {}).finally(() => (settled = true));
+
+      await vi.advanceTimersByTimeAsync(30_000);
+
+      // Assert - the image defaults would have polled far more often by now...
+      expect(mockGet.mock.calls.length).toBeLessThanOrEqual(4);
+
+      // ...and would already have given up before the 30 minute mark.
+      await vi.advanceTimersByTimeAsync(31 * 60 * 1000);
+      expect(settled).toBe(false);
+
+      await vi.advanceTimersByTimeAsync(30 * 60 * 1000);
       await rejectionExpectation;
     });
   });

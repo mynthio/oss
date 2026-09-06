@@ -43,6 +43,14 @@ export type MynthWebhookEventHandlers = {
     payload: MynthSDKTypes.WebhookTaskImageReviewFailedPayload,
     context: MynthWebhookHandlerContext,
   ) => void | Promise<void>;
+  videoTaskCompleted?: (
+    payload: MynthSDKTypes.WebhookTaskVideoCompletedPayload,
+    context: MynthWebhookHandlerContext,
+  ) => void | Promise<void>;
+  videoTaskFailed?: (
+    payload: MynthSDKTypes.WebhookTaskVideoFailedPayload,
+    context: MynthWebhookHandlerContext,
+  ) => void | Promise<void>;
 };
 
 export type MynthWebhookHandlerOptions = {
@@ -147,6 +155,18 @@ export function mynthWebhookHandler(
       case "task.image.review.failed":
         await eventHandlers.imageReviewTaskFailed?.(
           payload as MynthSDKTypes.WebhookTaskImageReviewFailedPayload,
+          context,
+        );
+        break;
+      case "task.video.generate.completed":
+        await eventHandlers.videoTaskCompleted?.(
+          payload as MynthSDKTypes.WebhookTaskVideoCompletedPayload,
+          context,
+        );
+        break;
+      case "task.video.generate.failed":
+        await eventHandlers.videoTaskFailed?.(
+          payload as MynthSDKTypes.WebhookTaskVideoFailedPayload,
           context,
         );
         break;

@@ -52,6 +52,16 @@ export type EventHandlers<T extends GenericActionCtx<any> = GenericActionCtx<any
     payload: MynthSDKTypes.WebhookTaskImageReviewFailedPayload,
     context: { context: T; request: Request },
   ) => Promise<void>;
+  /** Called when a video generation task completes successfully */
+  videoTaskCompleted?: (
+    payload: MynthSDKTypes.WebhookTaskVideoCompletedPayload,
+    context: { context: T; request: Request },
+  ) => Promise<void>;
+  /** Called when a video generation task fails */
+  videoTaskFailed?: (
+    payload: MynthSDKTypes.WebhookTaskVideoFailedPayload,
+    context: { context: T; request: Request },
+  ) => Promise<void>;
 };
 
 /**
@@ -185,6 +195,18 @@ export const mynthWebhookAction = (
         break;
       case "task.image.review.failed":
         await eventHandlers.imageReviewTaskFailed?.(payload, {
+          context: ctx,
+          request,
+        });
+        break;
+      case "task.video.generate.completed":
+        await eventHandlers.videoTaskCompleted?.(payload, {
+          context: ctx,
+          request,
+        });
+        break;
+      case "task.video.generate.failed":
+        await eventHandlers.videoTaskFailed?.(payload, {
           context: ctx,
           request,
         });

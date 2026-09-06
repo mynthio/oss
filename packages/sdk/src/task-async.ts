@@ -13,11 +13,25 @@ const SLOW_POLLING_INTERVAL_MS = 5_000; // 5 seconds
 const MAX_RETRY_COUNT = 20;
 
 /**
+ * Polling cadence overrides. Anything omitted keeps the image-task default.
+ */
+export type TaskAsyncPolling = {
+  /** Total wait budget before `TaskAsyncTimeoutError`. */
+  timeoutMs?: number;
+  /** How long the opening fast-polling phase lasts. `0` disables it. */
+  fastDurationMs?: number;
+  /** Interval used during the fast phase. */
+  fastIntervalMs?: number;
+  /** Interval used after the fast phase. */
+  intervalMs?: number;
+};
+
+/**
  * Error thrown when task polling exceeds the maximum timeout duration.
  */
 export class TaskAsyncTimeoutError extends Error {
-  constructor(taskId: string) {
-    super(`Task ${taskId} polling timed out after ${POLLING_TIMEOUT_MS}ms`);
+  constructor(taskId: string, timeoutMs: number = POLLING_TIMEOUT_MS) {
+    super(`Task ${taskId} polling timed out after ${timeoutMs}ms`);
     this.name = "TaskAsyncTimeoutError";
   }
 }
@@ -97,6 +111,8 @@ export class TaskAsync<ResultT> {
 
   private readonly resultFactory: (data: MynthSDKTypes.TaskData) => ResultT;
 
+  private readonly polling: Required<TaskAsyncPolling>;
+
   private _completionPromise: Promise<ResultT> | null = null;
 
   constructor(
@@ -105,12 +121,19 @@ export class TaskAsync<ResultT> {
       client: MynthClient;
       pat?: string;
       resultFactory: (data: MynthSDKTypes.TaskData) => ResultT;
+      polling?: TaskAsyncPolling;
     },
   ) {
     this.id = id;
     this.client = options.client;
     this._access = { publicAccessToken: options.pat };
     this.resultFactory = options.resultFactory;
+    this.polling = {
+      timeoutMs: options.polling?.timeoutMs ?? POLLING_TIMEOUT_MS,
+      fastDurationMs: options.polling?.fastDurationMs ?? FAST_POLLING_DURATION_MS,
+      fastIntervalMs: options.polling?.fastIntervalMs ?? FAST_POLLING_INTERVAL_MS,
+      intervalMs: options.polling?.intervalMs ?? SLOW_POLLING_INTERVAL_MS,
+    };
   }
 
   /**
@@ -145,6 +168,7 @@ export class TaskAsync<ResultT> {
   }
 
   private async pollUntilCompleted(): Promise<ResultT> {
+    const { timeoutMs, fastDurationMs, fastIntervalMs, intervalMs } = this.polling;
     const startTime = Date.now();
     let retryCount = 0;
     let useApiKeyFallback = false;
@@ -153,8 +177,8 @@ export class TaskAsync<ResultT> {
     while (true) {
       const elapsed = Date.now() - startTime;
 
-      if (elapsed >= POLLING_TIMEOUT_MS) {
-        throw new TaskAsyncTimeoutError(this.id);
+      if (elapsed >= timeoutMs) {
+        throw new TaskAsyncTimeoutError(this.id, timeoutMs);
       }
 
       const result = await this.fetchStatus(useApiKeyFallback);
@@ -213,13 +237,13 @@ export class TaskAsync<ResultT> {
       }
 
       // Calculate polling interval with slight randomness
-      const isInFastPhase = elapsed < FAST_POLLING_DURATION_MS;
-      const baseInterval = isInFastPhase ? FAST_POLLING_INTERVAL_MS : SLOW_POLLING_INTERVAL_MS;
+      const isInFastPhase = elapsed < fastDurationMs;
+      const baseInterval = isInFastPhase ? fastIntervalMs : intervalMs;
       const jitter = Math.random() * 500; // 0-500ms randomness
       const interval = baseInterval + jitter;
 
       // Don't wait longer than remaining timeout
-      const remainingTime = POLLING_TIMEOUT_MS - elapsed;
+      const remainingTime = timeoutMs - elapsed;
       const waitTime = Math.min(interval, remainingTime);
 
       await this.sleep(waitTime);

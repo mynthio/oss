@@ -110,6 +110,7 @@ export namespace MynthSDKTypes {
     | "luma/uni-1"
     | "luma/uni-1-max"
     | "meta/muse-image"
+    | "minimax/h3"
     | "openai/gpt-image-2"
     | "prunaai/p-image-try-on"
     | "tongyi-mai/z-image"

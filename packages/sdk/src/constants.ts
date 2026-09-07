@@ -195,6 +195,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["inputs"],
   },
   {
+    id: "minimax/h3",
+    label: "MiniMax H3",
+    capabilities: ["inputs"],
+  },
+  {
     id: "purplesmartai/pony-diffusion-v6-xl",
     label: "Pony Diffusion V6 XL",
     capabilities: ["negative_prompt"],

@@ -260,6 +260,16 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["inputs"],
   },
   {
+    id: "openai/gpt-image-2.5-flare",
+    label: "GPT Image 2.5 Flare",
+    capabilities: ["inputs"],
+  },
+  {
+    id: "openai/gpt-image-2.5-sunburst",
+    label: "GPT Image 2.5 Sunburst",
+    capabilities: ["inputs"],
+  },
+  {
     id: "prunaai/p-image-try-on",
     label: "P-Image Try-On",
     capabilities: ["inputs"],

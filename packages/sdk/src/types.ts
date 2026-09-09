@@ -112,6 +112,8 @@ export namespace MynthSDKTypes {
     | "meta/muse-image"
     | "minimax/h3"
     | "openai/gpt-image-2"
+    | "openai/gpt-image-2.5-flare"
+    | "openai/gpt-image-2.5-sunburst"
     | "prunaai/p-image-try-on"
     | "tongyi-mai/z-image"
     | "tongyi-mai/z-image-turbo"

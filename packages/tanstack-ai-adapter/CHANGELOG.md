@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.0.26](https://github.com/mynthio/oss/compare/tan-ai-v0.0.25...tan-ai-v0.0.26) (2026-09-09)
+
+
+### Features
+
+* **tanstack-ai-adapter:** sync models with latest SDK ([3338f28](https://github.com/mynthio/oss/commit/3338f28a1ea491de337f380010e9c66b758d533a))
+
+
+### Bug Fixes
+
+* **tan-ai:** bump @mynthio/sdk dependency to 0.0.38 ([8f9aef5](https://github.com/mynthio/oss/commit/8f9aef51047158f831d0f4caf6e9934705a618c5))
+
 ## [0.0.25](https://github.com/mynthio/oss/compare/tan-ai-v0.0.24...tan-ai-v0.0.25) (2026-08-05)
 
 

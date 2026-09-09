@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.21](https://github.com/mynthio/oss/compare/cli-v0.0.20...cli-v0.0.21) (2026-09-09)
+
+
+### Features
+
+* **cli:** list video models in the model catalog ([4fda5bf](https://github.com/mynthio/oss/commit/4fda5bf387b493efa13b5879b970d176351ca2c1))
+
 ## [0.0.20](https://github.com/mynthio/oss/compare/cli-v0.0.19...cli-v0.0.20) (2026-09-03)
 
 

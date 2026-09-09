@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.0.38](https://github.com/mynthio/oss/compare/sdk-v0.0.37...sdk-v0.0.38) (2026-09-09)
+
+
+### Features
+
+* **sdk:** add bria/fibo-edit-1.5 ([#94](https://github.com/mynthio/oss/issues/94)) ([4928b38](https://github.com/mynthio/oss/commit/4928b380d80ec8f125819565cbe5ce5aefc575ed))
+* **sdk:** add GPT Image 2.5 Flare and Sunburst ([#99](https://github.com/mynthio/oss/issues/99)) ([b932f30](https://github.com/mynthio/oss/commit/b932f300b782f96c3c3191d8417a95185a59ceb9))
+* **sdk:** add minimax/h3 ([#97](https://github.com/mynthio/oss/issues/97)) ([5bdfac2](https://github.com/mynthio/oss/commit/5bdfac2d5acfc577a87bcb40a1940cc239e22ba3))
+* **sdk:** add the video generation client and video models to the catalog ([280d91d](https://github.com/mynthio/oss/commit/280d91dfd31545a97df80f7e81a83bc5564f092a))
+* **sdk:** add xai/grok-imagine-image-2.0 ([#91](https://github.com/mynthio/oss/issues/91)) ([4a82ca2](https://github.com/mynthio/oss/commit/4a82ca24d10459996ff8a47d7422cadb978d3708))
+
 ## [0.0.37](https://github.com/mynthio/oss/compare/sdk-v0.0.36...sdk-v0.0.37) (2026-09-03)
 
 

@@ -142,6 +142,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: [],
   },
   {
+    id: "bria/increase-resolution",
+    label: "Bria Increase Resolution",
+    capabilities: ["inputs"],
+  },
+  {
     id: "ideogram/remove-background",
     label: "Ideogram Remove Background",
     capabilities: ["inputs"],

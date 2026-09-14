@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.39](https://github.com/mynthio/oss/compare/sdk-v0.0.38...sdk-v0.0.39) (2026-09-14)
+
+
+### Features
+
+* **sdk:** add circlestone-labs/anima ([#102](https://github.com/mynthio/oss/issues/102)) ([7453f7f](https://github.com/mynthio/oss/commit/7453f7f330452ecdf0238e5e5cb47599ea0082b1))
+* **sdk:** add microsoft/mai-image-2.6 and 2.6-flash ([#103](https://github.com/mynthio/oss/issues/103)) ([55fd17a](https://github.com/mynthio/oss/commit/55fd17abe2296e1259939253a2251d35b1274e39))
+
 ## [0.0.38](https://github.com/mynthio/oss/compare/sdk-v0.0.37...sdk-v0.0.38) (2026-09-09)
 
 

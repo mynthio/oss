@@ -160,6 +160,8 @@ export namespace MynthSDKTypes {
     | "luma/uni-1"
     | "luma/uni-1-max"
     | "meta/muse-image"
+    | "microsoft/mai-image-2.6"
+    | "microsoft/mai-image-2.6-flash"
     | "minimax/h3"
     | "openai/gpt-image-2"
     | "openai/gpt-image-2.5-flare"

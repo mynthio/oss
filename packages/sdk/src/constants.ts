@@ -197,6 +197,16 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["inputs"],
   },
   {
+    id: "microsoft/mai-image-2.6",
+    label: "MAI Image 2.6",
+    capabilities: ["inputs"],
+  },
+  {
+    id: "microsoft/mai-image-2.6-flash",
+    label: "MAI Image 2.6 Flash",
+    capabilities: ["inputs"],
+  },
+  {
     id: "minimax/h3",
     label: "MiniMax H3",
     capabilities: ["inputs"],

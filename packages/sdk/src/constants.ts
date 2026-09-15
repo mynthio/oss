@@ -373,7 +373,7 @@ export type VideoInputRole = "first_frame" | "last_frame" | "reference";
  * List of all available video generation models with their capabilities.
  * Unlike images, video generation has no `auto` model: pick one explicitly.
  */
-// ponytail: every current model takes a contiguous duration range. A model with
+// every current model takes a contiguous duration range. A model with
 // a fixed set of durations needs a `values` field here and in the picker.
 export const AVAILABLE_VIDEO_MODELS: readonly AvailableVideoModel[] = [
   {

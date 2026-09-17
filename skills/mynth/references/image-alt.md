@@ -10,7 +10,6 @@ const result = await mynth.image.alt({
 });
 
 result.alt;
-result.url;
 result.cost;
 ```
 
@@ -46,4 +45,4 @@ Response (201):
 }
 ```
 
-Poll `/tasks/:id` for `{ "result": { "url": "...", "alt": "..." } }` or use the `task.image.alt.completed` webhook. On failure the task is `failed`.
+Poll `/tasks/:id` for `{ "result": { "alt": "..." } }` or use the `task.image.alt.completed` webhook. On failure the task is `failed`.

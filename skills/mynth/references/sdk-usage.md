@@ -120,7 +120,6 @@ const result = await mynth.image.alt({
 });
 
 result.alt;
-result.url;
 result.cost;
 ```
 

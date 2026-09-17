@@ -13,7 +13,6 @@ result.image.url; // destination URL, or the Mynth URL without a destination
 result.image.mynth_url;
 result.image.format; // "png" | "webp"
 result.image.size; // "1024x768"
-result.url; // the submitted image
 result.cost;
 ```
 
@@ -68,7 +67,6 @@ Poll `/tasks/:id` for the result, or use the `task.image.remove_background.compl
 ```json
 {
   "result": {
-    "url": "https://example.com/product.jpg",
     "image": {
       "id": "img_...",
       "url": "https://cdn.mynth.io/...",

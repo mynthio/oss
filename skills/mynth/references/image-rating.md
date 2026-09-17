@@ -44,7 +44,6 @@ const result = await mynth.image.rate({
 });
 
 result.level; // "sfw" | "nsfw"
-result.url;
 result.cost;
 ```
 
@@ -69,4 +68,4 @@ Response (201):
 }
 ```
 
-Poll `/tasks/:id` for `{ "result": { "url": "...", "level": "sfw" } }` or use the `task.image.rate.completed` webhook. On failure the task is `failed`.
+Poll `/tasks/:id` for `{ "result": { "level": "sfw" } }` or use the `task.image.rate.completed` webhook. On failure the task is `failed`.

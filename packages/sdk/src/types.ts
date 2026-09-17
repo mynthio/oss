@@ -489,7 +489,6 @@ export namespace MynthSDKTypes {
   };
 
   export type ImageRateTaskResult<LevelT extends string = string> = {
-    url: string;
     level: LevelT;
   };
 
@@ -516,7 +515,6 @@ export namespace MynthSDKTypes {
   };
 
   export type ImageAltTaskResult = {
-    url: string;
     alt: string;
   };
 
@@ -571,7 +569,6 @@ export namespace MynthSDKTypes {
   };
 
   export type ImageReviewTaskResult = {
-    url: string;
     /** Median reviewer score from 1 to 4. Higher is better. */
     score: number;
     summary: string;
@@ -630,8 +627,6 @@ export namespace MynthSDKTypes {
   };
 
   export type ImageRemoveBackgroundTaskResult = {
-    /** The submitted image URL. */
-    url: string;
     image: ImageRemoveBackgroundResultImage;
   };
 

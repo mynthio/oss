@@ -45,7 +45,6 @@ function createRateTaskData(
     userId: "user-123",
     cost: "0.01",
     result: {
-      url: "https://cdn.test/image.webp",
       level: "sfw",
     },
     request: {
@@ -69,7 +68,6 @@ function createAltTaskData(
     userId: "user-123",
     cost: "0.01",
     result: {
-      url: "https://cdn.test/image.webp",
       alt: "A studio product photo of a ceramic mug.",
     },
     request: {
@@ -92,7 +90,6 @@ function createReviewTaskData(
     userId: "user-123",
     cost: "0.02",
     result: {
-      url: "https://cdn.test/image.webp",
       score: 3,
       summary: "Strong composition with one visible artifact.",
       findings: [
@@ -127,7 +124,6 @@ function createRemoveBackgroundTaskData(
     userId: "user-123",
     cost: "0.02",
     result: {
-      url: "https://cdn.test/image.jpg",
       image: {
         id: "img_123",
         url: "https://cdn.test/cutout.png",
@@ -455,12 +451,10 @@ describe("MynthImage", () => {
     expect({
       taskId: result.taskId,
       cost: result.cost,
-      url: result.url,
       level: result.level,
     }).toEqual({
       taskId: "task-rate-123",
       cost: "0.01",
-      url: "https://cdn.test/image.webp",
       level: "sfw",
     });
   });
@@ -540,12 +534,10 @@ describe("MynthImage", () => {
     expect({
       taskId: result.taskId,
       cost: result.cost,
-      url: result.url,
       alt: result.alt,
     }).toEqual({
       taskId: "task-alt-123",
       cost: "0.01",
-      url: "https://cdn.test/image.webp",
       alt: "A studio product photo of a ceramic mug.",
     });
   });
@@ -581,7 +573,6 @@ describe("MynthImage", () => {
     expect({
       taskId: result.taskId,
       cost: result.cost,
-      url: result.url,
       score: result.score,
       summary: result.summary,
       findings: result.findings,
@@ -589,7 +580,6 @@ describe("MynthImage", () => {
     }).toEqual({
       taskId: "task-review-123",
       cost: "0.02",
-      url: "https://cdn.test/image.webp",
       score: 3,
       summary: "Strong composition with one visible artifact.",
       findings: [
@@ -643,13 +633,11 @@ describe("MynthImage.removeBackground", () => {
     expect({
       taskId: result.taskId,
       cost: result.cost,
-      url: result.url,
       image: result.image,
       productId,
     }).toEqual({
       taskId: "task-remove-background-123",
       cost: "0.02",
-      url: "https://cdn.test/image.jpg",
       image: {
         id: "img_123",
         url: "https://cdn.test/cutout.png",

@@ -10,9 +10,6 @@ export class ImageReviewResult {
   /** Cost charged for the completed task */
   public readonly cost: string;
 
-  /** The submitted image URL */
-  public readonly url: string;
-
   /** Median reviewer score from 1 to 4. Higher is better. */
   public readonly score: number;
 
@@ -28,7 +25,6 @@ export class ImageReviewResult {
   constructor(data: {
     taskId: string;
     cost: string;
-    url: string;
     score: number;
     summary: string;
     findings: MynthSDKTypes.ImageReviewFinding[];
@@ -36,7 +32,6 @@ export class ImageReviewResult {
   }) {
     this.taskId = data.taskId;
     this.cost = data.cost;
-    this.url = data.url;
     this.score = data.score;
     this.summary = data.summary;
     this.findings = data.findings;

@@ -48,7 +48,6 @@ describe("mynthWebhookAction", () => {
         url: "https://cdn.example.com/image.webp",
       },
       result: {
-        url: "https://cdn.example.com/image.webp",
         level: "sfw",
       },
     };
@@ -106,7 +105,6 @@ describe("mynthWebhookAction", () => {
         url: "https://cdn.example.com/image.webp",
       },
       result: {
-        url: "https://cdn.example.com/image.webp",
         alt: "A studio product photo of a ceramic mug.",
       },
     };
@@ -164,7 +162,6 @@ describe("mynthWebhookAction", () => {
         effort: "high",
       },
       result: {
-        url: "https://cdn.example.com/image.webp",
         score: 3,
         summary: "Strong composition with one visible artifact.",
         findings: [
@@ -229,7 +226,6 @@ describe("mynthWebhookAction", () => {
       task: { id: "tsk_remove_background" },
       request: { url: "https://cdn.example.com/image.jpg" },
       result: {
-        url: "https://cdn.example.com/image.jpg",
         image: {
           id: "img_1",
           url: "https://cdn.example.com/cutout.png",

@@ -12,16 +12,12 @@ export class ImageRateResult<LevelT extends string = "sfw" | "nsfw"> {
   /** Cost charged for the completed task */
   public readonly cost: string;
 
-  /** The submitted image URL */
-  public readonly url: string;
-
   /** Assigned rating level */
   public readonly level: LevelT;
 
-  constructor(data: { taskId: string; cost: string; url: string; level: LevelT }) {
+  constructor(data: { taskId: string; cost: string; level: LevelT }) {
     this.taskId = data.taskId;
     this.cost = data.cost;
-    this.url = data.url;
     this.level = data.level;
   }
 
@@ -39,7 +35,6 @@ export class ImageRateResult<LevelT extends string = "sfw" | "nsfw"> {
     return new ImageRateResult<LevelT>({
       taskId: data.id,
       cost: data.cost,
-      url: data.result.url,
       level: data.result.level as LevelT,
     });
   }

@@ -12,9 +12,6 @@ export class ImageRemoveBackgroundResult<MetadataT = Record<string, unknown> | u
   /** Cost charged for the completed task */
   public readonly cost: string;
 
-  /** The submitted image URL */
-  public readonly url: string;
-
   /** The image with its background removed */
   public readonly image: MynthSDKTypes.ImageRemoveBackgroundResultImage;
 
@@ -24,13 +21,11 @@ export class ImageRemoveBackgroundResult<MetadataT = Record<string, unknown> | u
   constructor(data: {
     taskId: string;
     cost: string;
-    url: string;
     image: MynthSDKTypes.ImageRemoveBackgroundResultImage;
     metadata: MetadataT;
   }) {
     this.taskId = data.taskId;
     this.cost = data.cost;
-    this.url = data.url;
     this.image = data.image;
     this.metadata = data.metadata;
   }
@@ -49,7 +44,6 @@ export class ImageRemoveBackgroundResult<MetadataT = Record<string, unknown> | u
     return new ImageRemoveBackgroundResult<MetadataT>({
       taskId: data.id,
       cost: data.cost,
-      url: data.result.url,
       image: data.result.image,
       metadata: data.request.metadata as MetadataT,
     });

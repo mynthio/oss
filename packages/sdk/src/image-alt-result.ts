@@ -10,16 +10,12 @@ export class ImageAltResult {
   /** Cost charged for the completed task */
   public readonly cost: string;
 
-  /** The submitted image URL */
-  public readonly url: string;
-
   /** Generated alt text */
   public readonly alt: string;
 
-  constructor(data: { taskId: string; cost: string; url: string; alt: string }) {
+  constructor(data: { taskId: string; cost: string; alt: string }) {
     this.taskId = data.taskId;
     this.cost = data.cost;
-    this.url = data.url;
     this.alt = data.alt;
   }
 
@@ -35,7 +31,6 @@ export class ImageAltResult {
     return new ImageAltResult({
       taskId: data.id,
       cost: data.cost,
-      url: data.result.url,
       alt: data.result.alt,
     });
   }

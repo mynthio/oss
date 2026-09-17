@@ -87,7 +87,7 @@ export type MynthImageModelSizeByName = {
  * Type-only map from model name to the non-text prompt modalities it accepts.
  *
  * Models that support image inputs accept `"image"` content parts in the
- * TanStack `prompt` (image-to-image, reference-guided, edit, try-on); the
+ * TanStack `prompt` (image-to-image, reference-guided, edit); the
  * adapter maps those parts onto Mynth's `inputs`. Text-only models map to an
  * empty tuple so passing image parts fails at compile time.
  */

@@ -147,7 +147,7 @@ Notes:
 
 ## Image Inputs (image-to-image)
 
-Models that accept image inputs work with TanStack AI's content-part prompts, so you can mix instruction text with reference images for image-to-image, reference-guided, edit, and try-on flows. The adapter maps the image parts onto Mynth's `inputs`:
+Models that accept image inputs work with TanStack AI's content-part prompts, so you can mix instruction text with reference images for image-to-image, reference-guided, and edit flows. The adapter maps the image parts onto Mynth's `inputs`:
 
 ```ts
 import { generateImage } from "@tanstack/ai";
@@ -170,7 +170,7 @@ A few things worth knowing:
 - Only models in `MYNTH_IMAGE_INPUT_MODELS` accept image parts. Passing image parts to a text-only model is a compile-time error
 - Both URL sources (`{ type: "url", value }`) and inline data sources (`{ type: "data", value, mimeType }`, encoded as a data URI) are supported
 - A part's `metadata.role` maps to Mynth's input role. TanStack's `"reference"` and `"character"` roles map to Mynth's `"reference"` guidance role, and the other generic roles fall back to Mynth's default source/edit behavior
-- For explicit routing, pass `modelOptions.inputs` with SDK-supported `as` values such as `"source"`, `"reference"`, `"person"`, `"garment"`, or `"pose"`
+- For explicit routing, pass `modelOptions.inputs` with SDK-supported `as` values `"source"` or `"reference"`
 - Image parts from the prompt and entries in `modelOptions.inputs` are combined, with prompt parts first
 
 ## Available Models
@@ -189,7 +189,7 @@ for (const model of MYNTH_IMAGE_MODELS) {
 
 This is handy for model selectors, validation, and keeping client and server code in sync. There is a matching `MYNTH_IMAGE_INPUT_MODELS` list (and `MynthImageInputModel` type) for the subset that accepts image inputs.
 
-Mynth supports model IDs across multiple providers, including `auto`, Flux, Recraft, Gemini, Qwen, Seedream, Imagine, Wan, Grok Imagine, and try-on models. The exported list is a fixed snapshot for type safety. For the live catalog with pricing, use the models endpoint below.
+Mynth supports model IDs across multiple providers, including `auto`, Flux, Recraft, Gemini, Qwen, Seedream, Imagine, Wan, and Grok Imagine. The exported list is a fixed snapshot for type safety. For the live catalog with pricing, use the models endpoint below.
 
 ### Models endpoint
 
@@ -285,7 +285,7 @@ Type union of supported Mynth image model IDs.
 
 ### `MYNTH_IMAGE_INPUT_MODELS`
 
-Readonly array of model IDs that accept image inputs (image-to-image, try-on).
+Readonly array of model IDs that accept image inputs (image-to-image, edit).
 
 ### `MynthImageInputModel`
 

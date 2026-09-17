@@ -23,11 +23,9 @@ export const MYNTH_IMAGE_MODELS = [
   "black-forest-labs/flux.2-flex",
   "black-forest-labs/flux.2-max",
   "black-forest-labs/flux.2-klein-4b",
-  "black-forest-labs/flux-virtual-try-on",
   "bria/fibo-edit-1.5",
   "bria/fibo-generate-1.5",
   "circlestone-labs/anima",
-  "ideogram/remove-background",
   "john6666/bismuth-illustrious-mix",
   "maxfeifei8/one-obsession",
   "klingai/kling-image-3.0",
@@ -55,7 +53,6 @@ export const MYNTH_IMAGE_MODELS = [
   "openai/gpt-image-2",
   "openai/gpt-image-2.5-flare",
   "openai/gpt-image-2.5-sunburst",
-  "prunaai/p-image-try-on",
   "wan/wan2.6-image",
   "wan/wan2.7-image",
   "wan/wan2.7-image-pro",
@@ -71,7 +68,7 @@ export type MynthImageModel = (typeof MYNTH_IMAGE_MODELS)[number];
 
 /**
  * Mynth image models that accept image inputs (image-to-image,
- * reference-guided, edit, try-on). These are the models for which TanStack AI
+ * reference-guided, edit). These are the models for which TanStack AI
  * allows passing image content parts in the `prompt`; the adapter maps those
  * parts onto Mynth's `inputs`. Mirrors the `inputs` capability in the SDK's
  * `AVAILABLE_MODELS`.
@@ -89,10 +86,8 @@ export const MYNTH_IMAGE_INPUT_MODELS = [
   "black-forest-labs/flux.2-flex",
   "black-forest-labs/flux.2-max",
   "black-forest-labs/flux.2-klein-4b",
-  "black-forest-labs/flux-virtual-try-on",
   "bria/fibo-edit-1.5",
   "circlestone-labs/anima",
-  "ideogram/remove-background",
   "klingai/kling-image-3.0",
   "klingai/kling-image-o3",
   "krea/krea-2-turbo",
@@ -114,7 +109,6 @@ export const MYNTH_IMAGE_INPUT_MODELS = [
   "openai/gpt-image-2",
   "openai/gpt-image-2.5-flare",
   "openai/gpt-image-2.5-sunburst",
-  "prunaai/p-image-try-on",
   "wan/wan2.7-image",
   "wan/wan2.7-image-pro",
   "xai/grok-imagine-image",

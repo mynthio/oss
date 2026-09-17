@@ -148,7 +148,7 @@ Use `scale: "4k"` when you want the higher tier and the model supports it.
 
 Models that support image inputs accept TanStack AI's content-part prompts, so
 you can interleave instruction text with reference images for image-to-image,
-reference-guided, edit, and try-on flows. The adapter maps the image parts onto
+reference-guided, and edit flows. The adapter maps the image parts onto
 Mynth's `inputs`:
 
 ```ts
@@ -156,17 +156,17 @@ import { generateImage } from "@tanstack/ai";
 import { mynthImage } from "@mynthio/tanstack-ai-adapter";
 
 const result = await generateImage({
-  adapter: mynthImage("black-forest-labs/flux-virtual-try-on"),
+  adapter: mynthImage("luma/uni-1"),
   prompt: [
-    { type: "text", content: "Dress the person in this garment" },
+    { type: "text", content: "Place the product in the style of the reference" },
     {
       type: "image",
-      source: { type: "url", value: "https://example.com/person.jpg" },
-      metadata: { role: "reference" },
+      source: { type: "url", value: "https://example.com/product.jpg" },
     },
     {
       type: "image",
-      source: { type: "url", value: "https://example.com/garment.jpg" },
+      source: { type: "url", value: "https://example.com/style.jpg" },
+      metadata: { role: "reference" },
     },
   ],
 });
@@ -182,7 +182,7 @@ Notes:
   `"reference"` and `"character"` map to Mynth's `"reference"` guidance role.
   Other generic roles fall back to Mynth's default source/edit behavior. For
   explicit routing, pass `modelOptions.inputs` with SDK-supported `as` values
-  such as `"source"`, `"reference"`, `"person"`, `"garment"`, or `"pose"`.
+  `"source"` or `"reference"`.
 - Image parts from the prompt and entries in `modelOptions.inputs` are combined,
   prompt-derived inputs first.
 
@@ -259,7 +259,7 @@ Type union of all supported model IDs.
 
 ### `MYNTH_IMAGE_INPUT_MODELS`
 
-Readonly array of model IDs that accept image inputs (image-to-image, try-on).
+Readonly array of model IDs that accept image inputs (image-to-image, edit).
 
 ### `MynthImageInputModel`
 

@@ -251,14 +251,13 @@ export const estimate = z.object({
 });
 export type Estimate = z.infer<typeof estimate>;
 
-export const imageRateResult = z.object({ url: z.string(), level: z.string() });
+export const imageRateResult = z.object({ level: z.string() });
 export type ImageRateResult = z.infer<typeof imageRateResult>;
 
-export const imageAltResult = z.object({ url: z.string(), alt: z.string() });
+export const imageAltResult = z.object({ alt: z.string() });
 export type ImageAltResult = z.infer<typeof imageAltResult>;
 
 export const imageReviewResult = z.object({
-  url: z.string(),
   score: z.number(),
   summary: z.string(),
   findings: z
@@ -311,7 +310,6 @@ export const imageGenerateResult = z.object({
 export type ImageGenerateResult = z.infer<typeof imageGenerateResult>;
 
 export const imageRemoveBackgroundResult = z.object({
-  url: z.string(),
   image: z.object({
     id: z.string(),
     url: z.string().nullable(),

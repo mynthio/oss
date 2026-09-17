@@ -204,7 +204,7 @@ describe("image analysis", () => {
           type: "image.rate",
           status: "completed",
           cost: "0.0002",
-          result: { url: "https://cdn.test/a.webp", level: "sfw" },
+          result: { level: "sfw" },
         },
       }),
       async (env) => {
@@ -214,7 +214,6 @@ describe("image analysis", () => {
         expect(JSON.parse(result.stdout)).toEqual({
           taskId: "tsk_rate",
           cost: "0.0002",
-          url: "https://cdn.test/a.webp",
           level: "sfw",
         });
       },
@@ -230,7 +229,7 @@ describe("image analysis", () => {
           type: "image.rate",
           status: "completed",
           cost: "0.0002",
-          result: { url: "https://cdn.test/a.webp", level: "kids" },
+          result: { level: "kids" },
         },
       }),
       async (env, requests) => {
@@ -282,7 +281,7 @@ describe("image analysis", () => {
           type: "image.alt",
           status: "completed",
           cost: "0.0001",
-          result: { url: "https://cdn.test/a.webp", alt: "A tabby cat on a windowsill" },
+          result: { alt: "A tabby cat on a windowsill" },
         },
       }),
       async (env) => {
@@ -306,7 +305,6 @@ describe("image analysis", () => {
           status: "completed",
           cost: "0.02",
           result: {
-            url: "https://cdn.test/a.webp",
             score: 3,
             summary: "Usable with small fixes.",
             findings: [
@@ -351,7 +349,6 @@ const completedRemoval = {
   status: "completed",
   cost: "0.02",
   result: {
-    url: "https://cdn.test/product.jpg",
     image: {
       id: "img_1",
       url: "https://cdn.test/cutout.png",

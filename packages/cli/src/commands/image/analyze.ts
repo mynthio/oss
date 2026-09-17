@@ -55,7 +55,7 @@ const rateCommand = (app: App): Command => {
 
     renderUploads(uploads);
     print(`${glyph.ok} Rated (task ${taskId})`);
-    print(`  ${result.level}  ${result.url}`);
+    print(`  ${result.level}  ${url}`);
   });
 
   return rate;
@@ -84,7 +84,7 @@ const altCommand = (app: App): Command =>
       renderUploads(uploads);
       print(`${glyph.ok} Generated alt text (task ${taskId})`);
       print(`  ${result.alt}`);
-      print(`  ${result.url}`);
+      print(`  ${url}`);
     });
 
 const reviewCommand = (app: App): Command =>
@@ -117,6 +117,7 @@ const reviewCommand = (app: App): Command =>
       renderReview({
         taskId,
         cost,
+        url,
         ...result,
         findings: result.findings ?? [],
         strengths: result.strengths ?? [],

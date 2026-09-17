@@ -12,6 +12,7 @@ export const UPLOAD_IMAGE_PATH = "/image/upload";
 export const RATE_IMAGE_PATH = "/image/rate";
 export const ALT_IMAGE_PATH = "/image/alt";
 export const REVIEW_IMAGE_PATH = "/image/review";
+export const REMOVE_BACKGROUND_IMAGE_PATH = "/image/remove-background";
 export const GENERATE_VIDEO_PATH = "/video/generate";
 export const ESTIMATE_VIDEO_PATH = "/video/generate/estimate";
 export const MODELS_PATH = "/models";
@@ -127,11 +128,6 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["inputs"],
   },
   {
-    id: "black-forest-labs/flux-virtual-try-on",
-    label: "FLUX Virtual Try-On",
-    capabilities: ["inputs"],
-  },
-  {
     id: "bria/fibo-edit-1.5",
     label: "FIBO Edit 1.5",
     capabilities: ["inputs"],
@@ -144,11 +140,6 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
   {
     id: "circlestone-labs/anima",
     label: "Anima",
-    capabilities: ["inputs"],
-  },
-  {
-    id: "ideogram/remove-background",
-    label: "Ideogram Remove Background",
     capabilities: ["inputs"],
   },
   {
@@ -284,11 +275,6 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
   {
     id: "openai/gpt-image-2.5-sunburst",
     label: "GPT Image 2.5 Sunburst",
-    capabilities: ["inputs"],
-  },
-  {
-    id: "prunaai/p-image-try-on",
-    label: "P-Image Try-On",
     capabilities: ["inputs"],
   },
   {

@@ -116,6 +116,36 @@ function createReviewTaskData(
   } as MynthSDKTypes.ImageReviewTaskData;
 }
 
+function createRemoveBackgroundTaskData(
+  overrides: Partial<MynthSDKTypes.ImageRemoveBackgroundTaskData> = {},
+): MynthSDKTypes.ImageRemoveBackgroundTaskData {
+  return {
+    id: "task-remove-background-123",
+    status: "completed",
+    type: "image.remove_background",
+    apiKeyId: "api-key-123",
+    userId: "user-123",
+    cost: "0.02",
+    result: {
+      url: "https://cdn.test/image.jpg",
+      image: {
+        id: "img_123",
+        url: "https://cdn.test/cutout.png",
+        mynth_url: "https://mynth.test/cutout.png",
+        size: "1024x768",
+        format: "png",
+      },
+    },
+    request: {
+      url: "https://cdn.test/image.jpg",
+      metadata: { productId: "sku_1" },
+    },
+    createdAt: "2026-01-29T12:00:00Z",
+    updatedAt: "2026-01-29T12:00:00Z",
+    ...overrides,
+  } as MynthSDKTypes.ImageRemoveBackgroundTaskData;
+}
+
 describe("MynthImage", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -303,6 +333,17 @@ describe("MynthImage", () => {
       call: (image: MynthImage, file: File) => image.reviewAsync({ file, effort: "low" }),
       body: {
         effort: "low",
+        url: "https://cdn.test/uploaded.webp",
+      },
+    },
+    {
+      name: "removeBackgroundAsync",
+      path: "https://api.test/image/remove-background",
+      taskId: "task-remove-background-123",
+      call: (image: MynthImage, file: File) =>
+        image.removeBackgroundAsync({ file, output: { format: "webp" } }),
+      body: {
+        output: { format: "webp" },
         url: "https://cdn.test/uploaded.webp",
       },
     },
@@ -561,6 +602,98 @@ describe("MynthImage", () => {
         },
       ],
       strengths: [{ strength: "Balanced composition", confidence: "high" }],
+    });
+  });
+});
+
+describe("MynthImage.removeBackground", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  test("waits for the result and exposes the image and typed metadata", async () => {
+    // Arrange
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse(
+          {
+            data: {
+              taskId: "task-remove-background-123",
+              estimatedCost: "0.02",
+              access: { publicAccessToken: "pat_test" },
+            },
+          },
+          { status: 201 },
+        ),
+      )
+      .mockResolvedValueOnce(jsonResponse({ data: { status: "completed" } }))
+      .mockResolvedValueOnce(jsonResponse({ data: createRemoveBackgroundTaskData() }));
+    vi.stubGlobal("fetch", fetchMock);
+    const image = new MynthImage({ apiKey: "mak_test", baseUrl: "https://api.test" });
+
+    // Act
+    const result = await image.removeBackground({
+      url: "https://cdn.test/image.jpg",
+      metadata: { productId: "sku_1" },
+    });
+    const productId: string = result.metadata.productId;
+
+    // Assert
+    expect({
+      taskId: result.taskId,
+      cost: result.cost,
+      url: result.url,
+      image: result.image,
+      productId,
+    }).toEqual({
+      taskId: "task-remove-background-123",
+      cost: "0.02",
+      url: "https://cdn.test/image.jpg",
+      image: {
+        id: "img_123",
+        url: "https://cdn.test/cutout.png",
+        mynth_url: "https://mynth.test/cutout.png",
+        size: "1024x768",
+        format: "png",
+      },
+      productId: "sku_1",
+    });
+  });
+
+  test("sends the default destination and hands back the public access token", async () => {
+    // Arrange
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      jsonResponse(
+        {
+          data: {
+            taskId: "task-remove-background-123",
+            estimatedCost: "0.02",
+            access: { publicAccessToken: "pat_test" },
+          },
+        },
+        { status: 201 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const image = new MynthImage({
+      apiKey: "mak_test",
+      baseUrl: "https://api.test",
+      destination: "bunny-prod",
+    });
+
+    // Act
+    const taskAsync = await image.removeBackgroundAsync({ url: "https://cdn.test/image.jpg" });
+
+    // Assert
+    expect({
+      id: taskAsync.id,
+      access: taskAsync.access,
+      body: JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string),
+    }).toEqual({
+      id: "task-remove-background-123",
+      access: { publicAccessToken: "pat_test" },
+      body: { url: "https://cdn.test/image.jpg", destination: "bunny-prod" },
     });
   });
 });

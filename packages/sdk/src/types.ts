@@ -16,6 +16,7 @@ export namespace MynthSDKTypes {
     | "image.rate"
     | "image.alt"
     | "image.review"
+    | "image.remove_background"
     | "video.generate";
 
   export type TaskBase = {
@@ -61,6 +62,11 @@ export namespace MynthSDKTypes {
         result: ImageReviewTaskResult | null;
       })
     | (TaskBase & {
+        type: "image.remove_background";
+        request: ImageRemoveBackgroundRequest;
+        result: ImageRemoveBackgroundTaskResult | null;
+      })
+    | (TaskBase & {
         type: "video.generate";
         request: VideoGenerationRequest;
         result: VideoResult | null;
@@ -70,6 +76,10 @@ export namespace MynthSDKTypes {
   export type ImageRateTaskData = Extract<TaskData, { type: "image.rate" }>;
   export type ImageAltTaskData = Extract<TaskData, { type: "image.alt" }>;
   export type ImageReviewTaskData = Extract<TaskData, { type: "image.review" }>;
+  export type ImageRemoveBackgroundTaskData = Extract<
+    TaskData,
+    { type: "image.remove_background" }
+  >;
   export type VideoGenerationTaskData = Extract<TaskData, { type: "video.generate" }>;
 
   // ============================================================
@@ -143,14 +153,12 @@ export namespace MynthSDKTypes {
     | "black-forest-labs/flux.2-flex"
     | "black-forest-labs/flux.2-max"
     | "black-forest-labs/flux.2-klein-4b"
-    | "black-forest-labs/flux-virtual-try-on"
     | "bria/fibo-edit-1.5"
     | "bria/fibo-generate-1.5"
     | "circlestone-labs/anima"
     | "google/gemini-3.1-flash-lite-image"
     | "google/gemini-3.1-flash-image"
     | "google/gemini-3-pro-image-preview"
-    | "ideogram/remove-background"
     | "imagineart/imagineart-1.5-pro"
     | "imagineart/imagineart-2.0"
     | "klingai/kling-image-3.0"
@@ -167,7 +175,6 @@ export namespace MynthSDKTypes {
     | "openai/gpt-image-2"
     | "openai/gpt-image-2.5-flare"
     | "openai/gpt-image-2.5-sunburst"
-    | "prunaai/p-image-try-on"
     | "tongyi-mai/z-image"
     | "tongyi-mai/z-image-turbo"
     | "john6666/bismuth-illustrious-mix"
@@ -312,13 +319,7 @@ export namespace MynthSDKTypes {
     url: string;
   };
 
-  export type ImageGenerationRequestInputAs =
-    | "auto"
-    | "person"
-    | "garment"
-    | "pose"
-    | "source"
-    | "reference";
+  export type ImageGenerationRequestInputAs = "auto" | "source" | "reference";
 
   /** Structured image input (API wire format) */
   export type ImageGenerationRequestInput = {
@@ -579,6 +580,62 @@ export namespace MynthSDKTypes {
   };
 
   // ============================================================
+  // Image Remove Background
+  // ============================================================
+
+  /** Formats that keep the transparent background. */
+  export type ImageRemoveBackgroundOutputFormat = "png" | "webp";
+
+  export type ImageRemoveBackgroundRequestOutput = {
+    /** Converts the result to this format. When omitted, the provider's format is kept. */
+    format?: ImageRemoveBackgroundOutputFormat;
+  };
+
+  /** Request body for the image remove background endpoint (API wire format). */
+  export type ImageRemoveBackgroundRequest = {
+    /** Image URL to remove the background from. */
+    url: string;
+    output?: ImageRemoveBackgroundRequestOutput;
+    webhook?: ImageGenerationRequestWebhook;
+    access?: ImageGenerationRequestAccess;
+    metadata?: Record<string, unknown>;
+    destination?: string;
+  };
+
+  /**
+   * Image remove background request for the SDK client.
+   * Pass either `url` or `file` (files are uploaded before the API call).
+   */
+  export type ImageRemoveBackgroundClientRequest = ImageClientUrlOrFile &
+    Omit<ImageRemoveBackgroundRequest, "url">;
+
+  /** Create-task response from the image remove background endpoint. */
+  export type ImageRemoveBackgroundCreatedResponse = {
+    taskId: string;
+    estimatedCost: string;
+    access?: {
+      publicAccessToken: string;
+    };
+  };
+
+  export type ImageRemoveBackgroundResultImage = {
+    id: string;
+    /** Destination URL, or the Mynth URL without a destination. `null` when delivery failed. */
+    url: string | null;
+    mynth_url: string;
+    /** `{width}x{height}` */
+    size: string;
+    format: ImageRemoveBackgroundOutputFormat;
+    destination?: ImageResultDestination;
+  };
+
+  export type ImageRemoveBackgroundTaskResult = {
+    /** The submitted image URL. */
+    url: string;
+    image: ImageRemoveBackgroundResultImage;
+  };
+
+  // ============================================================
   // Video Generate
   // ============================================================
 
@@ -786,6 +843,26 @@ export namespace MynthSDKTypes {
   };
 
   /**
+   * Webhook payload for image remove background task completion.
+   */
+  export type WebhookTaskImageRemoveBackgroundCompletedPayload = {
+    task: { id: string };
+    event: "task.image.remove_background.completed";
+    result: ImageRemoveBackgroundTaskResult;
+    request: ImageRemoveBackgroundRequest;
+  };
+
+  /**
+   * Webhook payload for image remove background task failure.
+   */
+  export type WebhookTaskImageRemoveBackgroundFailedPayload = {
+    task: { id: string };
+    event: "task.image.remove_background.failed";
+    request: ImageRemoveBackgroundRequest;
+    errors: TaskError[];
+  };
+
+  /**
    * Webhook payload for video generation task completion.
    */
   export type WebhookTaskVideoCompletedPayload = {
@@ -817,6 +894,8 @@ export namespace MynthSDKTypes {
     | WebhookTaskImageAltFailedPayload
     | WebhookTaskImageReviewCompletedPayload
     | WebhookTaskImageReviewFailedPayload
+    | WebhookTaskImageRemoveBackgroundCompletedPayload
+    | WebhookTaskImageRemoveBackgroundFailedPayload
     | WebhookTaskVideoCompletedPayload
     | WebhookTaskVideoFailedPayload;
 }

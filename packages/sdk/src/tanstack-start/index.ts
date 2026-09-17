@@ -52,6 +52,14 @@ export type MynthTanStackStartEventHandlers<
     payload: MynthSDKTypes.WebhookTaskImageReviewFailedPayload,
     context: MynthTanStackStartHandlerContext<TContext, TParams>,
   ) => void | Promise<void>;
+  imageRemoveBackgroundTaskCompleted?: (
+    payload: MynthSDKTypes.WebhookTaskImageRemoveBackgroundCompletedPayload,
+    context: MynthTanStackStartHandlerContext<TContext, TParams>,
+  ) => void | Promise<void>;
+  imageRemoveBackgroundTaskFailed?: (
+    payload: MynthSDKTypes.WebhookTaskImageRemoveBackgroundFailedPayload,
+    context: MynthTanStackStartHandlerContext<TContext, TParams>,
+  ) => void | Promise<void>;
   videoTaskCompleted?: (
     payload: MynthSDKTypes.WebhookTaskVideoCompletedPayload,
     context: MynthTanStackStartHandlerContext<TContext, TParams>,
@@ -85,6 +93,10 @@ export function mynthWebhookHandler<
         imageReviewTaskCompleted: (payload) =>
           eventHandlers.imageReviewTaskCompleted?.(payload, context),
         imageReviewTaskFailed: (payload) => eventHandlers.imageReviewTaskFailed?.(payload, context),
+        imageRemoveBackgroundTaskCompleted: (payload) =>
+          eventHandlers.imageRemoveBackgroundTaskCompleted?.(payload, context),
+        imageRemoveBackgroundTaskFailed: (payload) =>
+          eventHandlers.imageRemoveBackgroundTaskFailed?.(payload, context),
         videoTaskCompleted: (payload) => eventHandlers.videoTaskCompleted?.(payload, context),
         videoTaskFailed: (payload) => eventHandlers.videoTaskFailed?.(payload, context),
       },

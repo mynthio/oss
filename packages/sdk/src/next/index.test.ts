@@ -196,6 +196,52 @@ describe("mynthWebhookHandler", () => {
     });
   });
 
+  test("dispatches image remove background completion events", async () => {
+    // Arrange
+    const eventPayload = payload("task.image.remove_background.completed");
+    const request = await createWebhookRequest(JSON.stringify(eventPayload), eventPayload.event);
+    const imageRemoveBackgroundTaskCompleted = vi.fn();
+    const handler = mynthWebhookHandler(
+      { imageRemoveBackgroundTaskCompleted },
+      { webhookSecret: SECRET },
+    );
+
+    // Act
+    const response = await handler(request);
+
+    // Assert
+    expect({
+      status: response.status,
+      calls: imageRemoveBackgroundTaskCompleted.mock.calls,
+    }).toEqual({
+      status: 200,
+      calls: [[eventPayload, { request }]],
+    });
+  });
+
+  test("dispatches image remove background failure events", async () => {
+    // Arrange
+    const eventPayload = payload("task.image.remove_background.failed");
+    const request = await createWebhookRequest(JSON.stringify(eventPayload), eventPayload.event);
+    const imageRemoveBackgroundTaskFailed = vi.fn();
+    const handler = mynthWebhookHandler(
+      { imageRemoveBackgroundTaskFailed },
+      { webhookSecret: SECRET },
+    );
+
+    // Act
+    const response = await handler(request);
+
+    // Assert
+    expect({
+      status: response.status,
+      calls: imageRemoveBackgroundTaskFailed.mock.calls,
+    }).toEqual({
+      status: 200,
+      calls: [[eventPayload, { request }]],
+    });
+  });
+
   test("reads the webhook secret when the request arrives", async () => {
     // Arrange
     const eventPayload = payload("task.image.generate.completed");

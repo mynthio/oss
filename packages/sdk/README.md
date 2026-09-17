@@ -290,8 +290,7 @@ inputs: [
 String URLs are a shorthand for image inputs. Structured inputs use `type` and `source`.
 
 Structured inputs can declare a role with `as` to guide the model. Valid values are
-`"auto"` (default), `"person"`, `"garment"`, `"pose"`, `"source"`, and `"reference"`.
-Most models auto-detect the kind from the image. Unified models such as Luma UNI-1 split
+`"auto"` (default), `"source"`, and `"reference"`. Unified models such as Luma UNI-1 split
 inputs by the declared role: `"source"` is the image being transformed or edited, and
 `"reference"` is guidance only (style, character, composition). A request where every
 input is `"reference"` runs as text-to-image guided by those references; any `"source"`
@@ -422,6 +421,43 @@ const result = await taskAsync.wait();
 console.log(result.summary);
 ```
 
+## Remove Background
+
+Remove the background from an existing image. Mynth picks the model, so there is no `model` field:
+
+```ts
+const result = await mynth.image.removeBackground({
+  url: "https://example.com/product.jpg",
+});
+
+console.log(result.image.url); // transparent image
+console.log(result.image.format); // "png" | "webp"
+```
+
+The result keeps the format the provider returned. Set `output.format` to always get `png` or `webp`.
+`removeBackground()` also takes a local `file`, plus `destination`, `webhook`, and `metadata` like `generate()`:
+
+```ts
+const result = await mynth.image.removeBackground({
+  file,
+  output: { format: "webp" },
+  destination: "bunny-prod",
+  metadata: { productId: "sku_1" },
+});
+
+console.log(result.metadata.productId);
+```
+
+Use `removeBackgroundAsync()` to create the task without waiting. It returns a public access token, like `generateAsync()`:
+
+```ts
+const taskAsync = await mynth.image.removeBackgroundAsync({
+  url: "https://example.com/product.jpg",
+});
+
+return { id: taskAsync.id, access: taskAsync.access };
+```
+
 ## Working With Image Results
 
 Completed generation tasks expose a few helpful accessors:
@@ -509,11 +545,9 @@ Current model IDs include:
 - `black-forest-labs/flux.2-flex`
 - `black-forest-labs/flux.2-max`
 - `black-forest-labs/flux.2-klein-4b`
-- `black-forest-labs/flux-virtual-try-on`
 - `google/gemini-3.1-flash-lite-image`
 - `google/gemini-3.1-flash-image`
 - `google/gemini-3-pro-image-preview`
-- `ideogram/remove-background`
 - `imagineart/imagineart-1.5-pro`
 - `imagineart/imagineart-2.0`
 - `john6666/bismuth-illustrious-mix`
@@ -525,7 +559,6 @@ Current model IDs include:
 - `luma/uni-1-max`
 - `meta/muse-image`
 - `openai/gpt-image-2`
-- `prunaai/p-image-try-on`
 - `purplesmartai/pony-diffusion-v6-xl`
 - `recraft/recraft-v4`
 - `recraft/recraft-v4-pro`
@@ -780,6 +813,13 @@ export const mynthWebhook = mynthWebhookAction({
   imageReviewTaskFailed: async (payload) => {
     console.error("Mynth review task failed:", payload.task.id);
   },
+  imageRemoveBackgroundTaskCompleted: async (payload) => {
+    console.log("Completed remove background task:", payload.task.id);
+    console.log(payload.result.image.url);
+  },
+  imageRemoveBackgroundTaskFailed: async (payload) => {
+    console.error("Mynth remove background task failed:", payload.task.id);
+  },
   videoTaskCompleted: async (payload) => {
     console.log("Completed video task:", payload.task.id);
     console.log(payload.result.videos);
@@ -794,7 +834,7 @@ Set `MYNTH_WEBHOOK_SECRET` in your environment, or pass `webhookSecret` explicit
 
 ## Error Handling
 
-`upload()`, `generate()`, `generateAsync()`, `rate()`, `rateAsync()`, `alt()`, `altAsync()`, `review()`, `reviewAsync()`, `models.list()`, and the `video` equivalents (`video.generate()`, `video.generateAsync()`, `video.upload()`, `video.estimate()`) may throw `MynthAPIError` if the request fails. Polling can also throw task-specific errors:
+`upload()`, `generate()`, `generateAsync()`, `rate()`, `rateAsync()`, `alt()`, `altAsync()`, `review()`, `reviewAsync()`, `removeBackground()`, `removeBackgroundAsync()`, `models.list()`, and the `video` equivalents (`video.generate()`, `video.generateAsync()`, `video.upload()`, `video.estimate()`) may throw `MynthAPIError` if the request fails. Polling can also throw task-specific errors:
 
 While polling, transient failures (404, 5xx, dropped connections) are retried: a created task is owed an answer, so a cold cache or a brief outage does not lose you the result. Polling gives up after 20 consecutive failures (~100s) with `TaskAsyncFetchError` or `TaskAsyncTaskFetchError`, and immediately on a 401 or 403 with `TaskAsyncUnauthorizedError`. Image waits time out after 30 minutes, video waits after an hour.
 

@@ -12,12 +12,14 @@ import {
   GENERATE_VIDEO_PATH,
   MODELS_PATH,
   RATE_IMAGE_PATH,
+  REMOVE_BACKGROUND_IMAGE_PATH,
   REVIEW_IMAGE_PATH,
   VIDEO_POLLING,
 } from "./constants";
 import { ImageAltResult } from "./image-alt-result";
 import { ImageGenerationResult } from "./image-generation-result";
 import { ImageRateResult } from "./image-rate-result";
+import { ImageRemoveBackgroundResult } from "./image-remove-background-result";
 import { ImageReviewResult } from "./image-review-result";
 import type { TaskAsyncAccess } from "./task-async";
 import {
@@ -59,6 +61,9 @@ type MynthModelPricing = MynthSDKTypes.ModelPricing;
 type ExtractMetadata<T extends MynthSDKTypes.ImageGenerationClientRequest> = T["metadata"];
 
 type ExtractVideoMetadata<T extends MynthSDKTypes.VideoGenerationClientRequest> = T["metadata"];
+
+type ExtractRemoveBackgroundMetadata<T extends MynthSDKTypes.ImageRemoveBackgroundClientRequest> =
+  T["metadata"];
 
 type ExtractRatingConfig<T extends MynthSDKTypes.ImageGenerationClientRequest> = T["rating"];
 
@@ -475,6 +480,80 @@ class MynthImage {
         ImageReviewResult.fromTaskData(taskData as MynthSDKTypes.ImageReviewTaskData),
     });
   }
+
+  /**
+   * Remove the background from a single image.
+   *
+   * Mynth picks the model. The result keeps the provider's format unless
+   * `output.format` asks for `png` or `webp`.
+   *
+   * @param request - Image URL or local file, plus optional output, destination, webhook, and metadata
+   * @returns An ImageRemoveBackgroundResult with the transparent image
+   *
+   * @example
+   * ```typescript
+   * const result = await image.removeBackground({ url: "https://..." });
+   * console.log(result.image.url);
+   * ```
+   */
+  public async removeBackground<const T extends MynthSDKTypes.ImageRemoveBackgroundClientRequest>(
+    request: T,
+  ): Promise<ImageRemoveBackgroundResult<ExtractRemoveBackgroundMetadata<T>>> {
+    const taskAsync = await this.createRemoveBackgroundTask(request);
+
+    return taskAsync.wait();
+  }
+
+  /**
+   * Start background removal without waiting for completion.
+   *
+   * @param request - Image URL or local file, plus optional output, destination, webhook, and metadata
+   * @returns A TaskAsync that can be polled for completion via `.wait()`
+   *
+   * @example
+   * ```typescript
+   * const taskAsync = await image.removeBackgroundAsync({ url: "https://..." });
+   *
+   * return { id: taskAsync.id, access: taskAsync.access };
+   * ```
+   */
+  public async removeBackgroundAsync<
+    const T extends MynthSDKTypes.ImageRemoveBackgroundClientRequest,
+  >(
+    request: T,
+  ): Promise<TaskAsync<ImageRemoveBackgroundResult<ExtractRemoveBackgroundMetadata<T>>>> {
+    return this.createRemoveBackgroundTask(request);
+  }
+
+  private async createRemoveBackgroundTask<
+    const T extends MynthSDKTypes.ImageRemoveBackgroundClientRequest,
+  >(
+    request: T,
+  ): Promise<TaskAsync<ImageRemoveBackgroundResult<ExtractRemoveBackgroundMetadata<T>>>> {
+    type MetadataT = ExtractRemoveBackgroundMetadata<T>;
+
+    const url = await this.resolveUrlOrFile(request);
+    const { file: _, url: __, ...rest } = request;
+
+    const json = await this.client.post<
+      MynthSDKTypes.ApiResponse<MynthSDKTypes.ImageRemoveBackgroundCreatedResponse>
+    >(REMOVE_BACKGROUND_IMAGE_PATH, {
+      ...rest,
+      url,
+      destination: request.destination ?? this.defaultDestination,
+    });
+
+    const data = json.data;
+
+    return new TaskAsync<ImageRemoveBackgroundResult<MetadataT>>(data.taskId, {
+      client: this.client,
+      pat: data.access?.publicAccessToken,
+      resultFactory: (taskData) =>
+        ImageRemoveBackgroundResult.fromTaskData<MetadataT>(
+          taskData as MynthSDKTypes.ImageRemoveBackgroundTaskData,
+        ),
+    });
+  }
 }
 
 /**
@@ -749,6 +828,7 @@ export {
   ImageAltResult,
   ImageGenerationResult,
   ImageRateResult,
+  ImageRemoveBackgroundResult,
   ImageReviewResult,
   Mynth,
   MynthImage,

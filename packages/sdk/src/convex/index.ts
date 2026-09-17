@@ -52,6 +52,16 @@ export type EventHandlers<T extends GenericActionCtx<any> = GenericActionCtx<any
     payload: MynthSDKTypes.WebhookTaskImageReviewFailedPayload,
     context: { context: T; request: Request },
   ) => Promise<void>;
+  /** Called when an image remove background task completes successfully */
+  imageRemoveBackgroundTaskCompleted?: (
+    payload: MynthSDKTypes.WebhookTaskImageRemoveBackgroundCompletedPayload,
+    context: { context: T; request: Request },
+  ) => Promise<void>;
+  /** Called when an image remove background task fails */
+  imageRemoveBackgroundTaskFailed?: (
+    payload: MynthSDKTypes.WebhookTaskImageRemoveBackgroundFailedPayload,
+    context: { context: T; request: Request },
+  ) => Promise<void>;
   /** Called when a video generation task completes successfully */
   videoTaskCompleted?: (
     payload: MynthSDKTypes.WebhookTaskVideoCompletedPayload,
@@ -195,6 +205,18 @@ export const mynthWebhookAction = (
         break;
       case "task.image.review.failed":
         await eventHandlers.imageReviewTaskFailed?.(payload, {
+          context: ctx,
+          request,
+        });
+        break;
+      case "task.image.remove_background.completed":
+        await eventHandlers.imageRemoveBackgroundTaskCompleted?.(payload, {
+          context: ctx,
+          request,
+        });
+        break;
+      case "task.image.remove_background.failed":
+        await eventHandlers.imageRemoveBackgroundTaskFailed?.(payload, {
           context: ctx,
           request,
         });

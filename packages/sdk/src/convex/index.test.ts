@@ -220,4 +220,67 @@ describe("mynthWebhookAction", () => {
       calls: [[payload, { context: {}, request: expect.any(Request) }]],
     });
   });
+
+  test("dispatches image remove background completion events", async () => {
+    // Arrange
+    const imageRemoveBackgroundTaskCompleted = vi.fn();
+    const payload: MynthSDKTypes.WebhookTaskImageRemoveBackgroundCompletedPayload = {
+      event: "task.image.remove_background.completed",
+      task: { id: "tsk_remove_background" },
+      request: { url: "https://cdn.example.com/image.jpg" },
+      result: {
+        url: "https://cdn.example.com/image.jpg",
+        image: {
+          id: "img_1",
+          url: "https://cdn.example.com/cutout.png",
+          mynth_url: "https://mynth.example.com/cutout.png",
+          size: "1024x768",
+          format: "png",
+        },
+      },
+    };
+    const action = mynthWebhookAction(
+      { imageRemoveBackgroundTaskCompleted },
+      { webhookSecret: SECRET },
+    );
+
+    // Act
+    const response = await action({} as never, await createWebhookRequest(payload));
+
+    // Assert
+    expect({
+      status: response.status,
+      calls: imageRemoveBackgroundTaskCompleted.mock.calls,
+    }).toEqual({
+      status: 200,
+      calls: [[payload, { context: {}, request: expect.any(Request) }]],
+    });
+  });
+
+  test("dispatches image remove background failure events", async () => {
+    // Arrange
+    const imageRemoveBackgroundTaskFailed = vi.fn();
+    const payload: MynthSDKTypes.WebhookTaskImageRemoveBackgroundFailedPayload = {
+      event: "task.image.remove_background.failed",
+      task: { id: "tsk_remove_background" },
+      request: { url: "https://cdn.example.com/image.jpg" },
+      errors: [{ code: "PROVIDER_ERROR" }],
+    };
+    const action = mynthWebhookAction(
+      { imageRemoveBackgroundTaskFailed },
+      { webhookSecret: SECRET },
+    );
+
+    // Act
+    const response = await action({} as never, await createWebhookRequest(payload));
+
+    // Assert
+    expect({
+      status: response.status,
+      calls: imageRemoveBackgroundTaskFailed.mock.calls,
+    }).toEqual({
+      status: 200,
+      calls: [[payload, { context: {}, request: expect.any(Request) }]],
+    });
+  });
 });

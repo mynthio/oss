@@ -3,11 +3,12 @@ name: mynth
 description: >
   Use when adding or migrating AI image generation with Mynth, the unified image
   generation API and SDK. Covers @mynthio/sdk, the REST API, Public Access
-  Tokens for browser polling, webhooks, image content rating, image alt text, Destinations
+  Tokens for browser polling, webhooks, image content rating, image alt text,
+  image background removal, Destinations
   (deliver to S3/R2/Bunny), Next.js, Convex, and the @mynthio/tanstack-ai-adapter.
   Trigger for Mynth-specific setup, provider replacement, multi-model image
   generation, image task polling, content moderation of images, image alt text,
-  or webhook sync.
+  background removal, or webhook sync.
 ---
 
 # Mynth Image Generation
@@ -37,19 +38,20 @@ Pass `{ apiKey, baseUrl }` only when the project already centralizes secrets or 
 
 ## Pick the Reference
 
-| Task                               | Reference                                                     |
-| ---------------------------------- | ------------------------------------------------------------- |
-| Analyze a repo for Mynth migration | [analyze-repo.md](references/analyze-repo.md)                 |
-| Use the SDK (JS/TS with server)    | [sdk-usage.md](references/sdk-usage.md)                       |
-| Use the REST API (non-JS, mobile)  | [rest-api.md](references/rest-api.md)                         |
-| Use with TanStack AI               | [tanstack-ai.md](references/tanstack-ai.md)                   |
-| Use with Next.js webhooks          | [webhooks.md](references/webhooks.md)                         |
-| Use with Convex                    | [convex.md](references/convex.md)                             |
-| Client-side polling with PATs      | [public-access-tokens.md](references/public-access-tokens.md) |
-| Set up webhooks                    | [webhooks.md](references/webhooks.md)                         |
-| Rate/moderate image content        | [image-rating.md](references/image-rating.md)                 |
-| Generate image alt text            | [image-alt.md](references/image-alt.md)                       |
-| Deliver images to user storage     | [destinations.md](references/destinations.md)                 |
+| Task                               | Reference                                                           |
+| ---------------------------------- | ------------------------------------------------------------------- |
+| Analyze a repo for Mynth migration | [analyze-repo.md](references/analyze-repo.md)                       |
+| Use the SDK (JS/TS with server)    | [sdk-usage.md](references/sdk-usage.md)                             |
+| Use the REST API (non-JS, mobile)  | [rest-api.md](references/rest-api.md)                               |
+| Use with TanStack AI               | [tanstack-ai.md](references/tanstack-ai.md)                         |
+| Use with Next.js webhooks          | [webhooks.md](references/webhooks.md)                               |
+| Use with Convex                    | [convex.md](references/convex.md)                                   |
+| Client-side polling with PATs      | [public-access-tokens.md](references/public-access-tokens.md)       |
+| Set up webhooks                    | [webhooks.md](references/webhooks.md)                               |
+| Rate/moderate image content        | [image-rating.md](references/image-rating.md)                       |
+| Generate image alt text            | [image-alt.md](references/image-alt.md)                             |
+| Remove an image background         | [image-remove-background.md](references/image-remove-background.md) |
+| Deliver images to user storage     | [destinations.md](references/destinations.md)                       |
 
 ## Integration Choice
 

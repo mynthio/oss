@@ -153,6 +153,10 @@ Response (200):
 
 `POST /image/alt` — generate alt text for a single existing image by URL. Async only; returns `201` with `taskId` and `estimatedCost`. Request and response shapes: see [image-alt.md](image-alt.md).
 
+## Remove Background
+
+`POST /image/remove-background` — remove the background from a single existing image by URL. Async only; returns `201` with `taskId`, `estimatedCost`, and a PAT. Request and response shapes: see [image-remove-background.md](image-remove-background.md).
+
 ## Webhook Management
 
 `POST /webhook`, `PUT /webhook/:id`, `DELETE /webhook/:id` — manage registered (signed) webhooks. See [webhooks.md](webhooks.md).

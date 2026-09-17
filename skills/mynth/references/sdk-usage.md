@@ -68,7 +68,7 @@ Inputs accept URL strings or structured objects:
 inputs: [{ type: "image", source: { type: "url", url: "https://..." } }];
 ```
 
-Each input can declare a role with `as` to guide the model. Valid values are `auto` (default), `person`, `garment`, `pose`, `source`, and `reference`. Most models auto-detect the input kind for you; the kind is inferrable from the image for visual kinds (`person`, `garment`, `pose`, …). Unified models such as Luma UNI-1 instead split inputs by **caller-declared role**:
+Each input can declare a role with `as` to guide the model. Valid values are `auto` (default), `source`, and `reference`. Most models treat every input the same way. Unified models such as Luma UNI-1 instead split inputs by **caller-declared role**:
 
 - `as: "source"` — the image to transform or edit.
 - `as: "reference"` — guidance only (style, character, composition).
@@ -133,6 +133,18 @@ const taskAsync = await mynth.image.altAsync({
 
 const result = await taskAsync.wait();
 console.log(result.alt);
+```
+
+## Remove Background
+
+Use `mynth.image.removeBackground()` to get a transparent version of an existing image. Mynth picks the model. See [image-remove-background.md](image-remove-background.md) for output formats, destinations, and the async variant.
+
+```ts
+const result = await mynth.image.removeBackground({
+  url: "https://example.com/product.jpg",
+});
+
+result.image.url;
 ```
 
 ## Error Handling

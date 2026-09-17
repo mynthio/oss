@@ -40,6 +40,8 @@ await fetch("https://api.mynth.io/webhook", {
 - `task.image.rate.failed` — rating task failed
 - `task.image.alt.completed` — alt text task succeeded
 - `task.image.alt.failed` — alt text task failed
+- `task.image.remove_background.completed` — background removal task succeeded
+- `task.image.remove_background.failed` — background removal task failed
 - `task.completed` — any task completed
 - `task.failed` — any task failed
 - `all` — all events

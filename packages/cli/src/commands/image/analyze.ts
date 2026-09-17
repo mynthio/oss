@@ -10,7 +10,7 @@ import {
   MIN_RATE_LEVELS,
   resolveImage,
   resolveLevels,
-  runAnalysis,
+  runImageTask,
   type LevelOptions,
 } from "./shared.ts";
 
@@ -41,7 +41,7 @@ const rateCommand = (app: App): Command => {
     const levels = await resolveLevels(options);
     const { url, uploads } = await resolveImage(app, input);
 
-    const { taskId, cost, result } = await runAnalysis(app, {
+    const { taskId, cost, result } = await runImageTask(app, {
       endpoint: "rate",
       body: levels !== undefined ? { url, mode: "custom", levels } : { url },
       schema: imageRateResult,
@@ -69,7 +69,7 @@ const altCommand = (app: App): Command =>
     .action(async (input: string, options: JsonFlag) => {
       const { url, uploads } = await resolveImage(app, input);
 
-      const { taskId, cost, result } = await runAnalysis(app, {
+      const { taskId, cost, result } = await runImageTask(app, {
         endpoint: "alt",
         body: { url },
         schema: imageAltResult,
@@ -101,7 +101,7 @@ const reviewCommand = (app: App): Command =>
     .action(async (input: string, options: JsonFlag & { readonly effort?: string }) => {
       const { url, uploads } = await resolveImage(app, input);
 
-      const { taskId, cost, result } = await runAnalysis(app, {
+      const { taskId, cost, result } = await runImageTask(app, {
         endpoint: "review",
         body: { url, ...(options.effort !== undefined ? { effort: options.effort } : {}) },
         schema: imageReviewResult,

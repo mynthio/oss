@@ -24,6 +24,8 @@ const SUBSCRIBABLE_EVENTS = [
   "task.image.alt.failed",
   "task.image.review.completed",
   "task.image.review.failed",
+  "task.image.remove_background.completed",
+  "task.image.remove_background.failed",
   "task.video.generate.completed",
   "task.video.generate.failed",
 ] as const;

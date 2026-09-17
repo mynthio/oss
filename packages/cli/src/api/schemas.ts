@@ -278,6 +278,11 @@ export type ImageReviewResult = z.infer<typeof imageReviewResult>;
 
 const imageError = z.object({ code: z.string(), message: z.string().optional() });
 
+const imageDestination = z.union([
+  z.object({ status: z.literal("success"), name: z.string() }),
+  z.object({ status: z.literal("failed"), name: z.string(), error: imageError }),
+]);
+
 export const generatedImage = z.union([
   z.object({
     status: z.literal("success"),
@@ -292,12 +297,7 @@ export const generatedImage = z.union([
         z.object({ status: z.literal("failed"), error: imageError }),
       ])
       .optional(),
-    destination: z
-      .union([
-        z.object({ status: z.literal("success"), name: z.string() }),
-        z.object({ status: z.literal("failed"), name: z.string(), error: imageError }),
-      ])
-      .optional(),
+    destination: imageDestination.optional(),
   }),
   z.object({ status: z.literal("failed"), error: imageError }),
 ]);
@@ -309,6 +309,19 @@ export const imageGenerateResult = z.object({
   magic_prompt: z.object({ positive: z.string(), negative: z.string().optional() }).optional(),
 });
 export type ImageGenerateResult = z.infer<typeof imageGenerateResult>;
+
+export const imageRemoveBackgroundResult = z.object({
+  url: z.string(),
+  image: z.object({
+    id: z.string(),
+    url: z.string().nullable(),
+    mynth_url: z.string(),
+    size: z.string(),
+    format: z.string(),
+    destination: imageDestination.optional(),
+  }),
+});
+export type ImageRemoveBackgroundResult = z.infer<typeof imageRemoveBackgroundResult>;
 
 //
 // Destinations

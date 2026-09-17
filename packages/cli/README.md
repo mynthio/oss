@@ -62,22 +62,22 @@ mynth image generate -p "A watercolor city skyline" --size 16:9 --count 2 -o ./o
 mynth image generate -p "A neon koi pond" --magic-prompt --format png
 ```
 
-| Flag                      | Purpose                                                                                                             |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `-p, --prompt`            | Prompt. Optional: some models (virtual try-on) work best from inputs alone.                                         |
-| `-n, --negative`          | Negative prompt.                                                                                                    |
-| `--magic-prompt`          | Let Mynth expand the prompt before generating. Off by default.                                                      |
-| `-m, --model`             | Model ID. Defaults to `auto`. See `mynth models list`.                                                              |
-| `-s, --size`              | Preset or aspect ratio: `square`, `landscape`, `16:9`, `16:9_4k`, `auto`, …                                         |
-| `-c, --count`             | Images per request.                                                                                                 |
-| `-f, --format`            | `png`, `jpg`, or `webp`.                                                                                            |
-| `-i, --input`             | Input image as `[role:]path-or-url`, repeatable. Roles: `auto`, `person`, `garment`, `pose`, `source`, `reference`. |
-| `-o, --output-dir`        | Download the results into this directory.                                                                           |
-| `--destination`           | Deliver to a configured storage destination. Defaults to `MYNTH_DESTINATION`.                                       |
-| `--content-rating`        | Classify each image `sfw`/`nsfw`. Use `--level` for custom levels.                                                  |
-| `--webhook-url`           | Deliver this task's events to a URL (repeatable).                                                                   |
-| `--no-dashboard-webhooks` | Skip dashboard-configured webhooks for this task.                                                                   |
-| `--metadata`              | Inline JSON attached to the task.                                                                                   |
+| Flag                      | Purpose                                                                                |
+| ------------------------- | -------------------------------------------------------------------------------------- |
+| `-p, --prompt`            | Prompt.                                                                                |
+| `-n, --negative`          | Negative prompt.                                                                       |
+| `--magic-prompt`          | Let Mynth expand the prompt before generating. Off by default.                         |
+| `-m, --model`             | Model ID. Defaults to `auto`. See `mynth models list`.                                 |
+| `-s, --size`              | Preset or aspect ratio: `square`, `landscape`, `16:9`, `16:9_4k`, `auto`, …            |
+| `-c, --count`             | Images per request.                                                                    |
+| `-f, --format`            | `png`, `jpg`, or `webp`.                                                               |
+| `-i, --input`             | Input image as `[role:]path-or-url`, repeatable. Roles: `auto`, `source`, `reference`. |
+| `-o, --output-dir`        | Download the results into this directory.                                              |
+| `--destination`           | Deliver to a configured storage destination. Defaults to `MYNTH_DESTINATION`.          |
+| `--content-rating`        | Classify each image `sfw`/`nsfw`. Use `--level` for custom levels.                     |
+| `--webhook-url`           | Deliver this task's events to a URL (repeatable).                                      |
+| `--no-dashboard-webhooks` | Skip dashboard-configured webhooks for this task.                                      |
+| `--metadata`              | Inline JSON attached to the task.                                                      |
 
 Local paths passed to `-i` are uploaded first; `https://` inputs are used as-is.
 
@@ -122,6 +122,26 @@ is why they are most useful alongside `--type`.
 
 `--capability` matches the modes a model actually serves, so a model that both takes a prompt and
 accepts images matches `txt2img` and `img2img` alike.
+
+## Removing backgrounds
+
+Takes one URL or one local file. Mynth picks the model:
+
+```bash
+mynth image remove-background https://cdn.example.com/product.jpg
+mynth image remove-background ./shot.jpg --format webp -o ./out
+mynth image remove-background ./shot.jpg --destination bunny-prod --async --json
+```
+
+| Flag                      | Purpose                                                                       |
+| ------------------------- | ----------------------------------------------------------------------------- |
+| `-f, --format`            | `png` or `webp`. Defaults to whatever the provider returns.                   |
+| `-o, --output-dir`        | Download the result into this directory.                                      |
+| `--destination`           | Deliver to a configured storage destination. Defaults to `MYNTH_DESTINATION`. |
+| `--webhook-url`           | Deliver this task's events to a URL (repeatable).                             |
+| `--no-dashboard-webhooks` | Skip dashboard-configured webhooks for this task.                             |
+| `--metadata`              | Inline JSON attached to the task.                                             |
+| `--async`                 | Print the task ID and a public access token instead of waiting.               |
 
 ## Analyzing images
 
@@ -253,7 +273,7 @@ failure exits 1.
 | Variable              | Effect                                                     |
 | --------------------- | ---------------------------------------------------------- |
 | `MYNTH_API_KEY`       | API key; takes precedence over stored credentials          |
-| `MYNTH_DESTINATION`   | Default `--destination` for image generation               |
+| `MYNTH_DESTINATION`   | Default `--destination` for image commands                 |
 | `MYNTH_DEBUG=1`       | Print stack traces and error causes to stderr              |
 | `MYNTH_NO_KEYCHAIN=1` | Store credentials in a file instead of the system keychain |
 | `MYNTH_API_URL`       | Override the API base URL                                  |

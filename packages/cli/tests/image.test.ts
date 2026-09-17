@@ -346,6 +346,139 @@ describe("image analysis", () => {
   });
 });
 
+const completedRemoval = {
+  type: "image.remove_background",
+  status: "completed",
+  cost: "0.02",
+  result: {
+    url: "https://cdn.test/product.jpg",
+    image: {
+      id: "img_1",
+      url: "https://cdn.test/cutout.png",
+      mynth_url: "https://mynth.test/cutout.png",
+      size: "1024x768",
+      format: "png",
+    },
+  },
+};
+
+describe("image remove-background", () => {
+  it("sends only the flags the caller set", async () => {
+    await withApi(
+      (request, response) => json(response, 201, { data: { taskId: "tsk_1" } }),
+      async (env, requests) => {
+        const result = await runCli(
+          [
+            "image",
+            "remove-background",
+            "https://cdn.test/product.jpg",
+            "--format",
+            "webp",
+            "--metadata",
+            '{"sku":"1"}',
+            "--webhook-url",
+            "https://hooks.test/a",
+            "--async",
+          ],
+          { ...env, MYNTH_DESTINATION: "bunny-prod" },
+        );
+
+        expect(result.status).toBe(0);
+        expect(requests[0]?.url).toBe("/image/remove-background");
+        expect(requests[0]?.body).toEqual({
+          url: "https://cdn.test/product.jpg",
+          output: { format: "webp" },
+          destination: "bunny-prod",
+          webhook: { custom: [{ url: "https://hooks.test/a" }] },
+          metadata: { sku: "1" },
+          access: { pat: { enabled: true } },
+        });
+      },
+    );
+  });
+
+  it("prints the task id and public access token with --async", async () => {
+    await withApi(
+      (request, response) =>
+        json(response, 201, {
+          data: {
+            taskId: "tsk_async",
+            estimatedCost: "0.02",
+            access: { publicAccessToken: "pat_test" },
+          },
+        }),
+      async (env) => {
+        const result = await runCli(
+          ["image", "remove-background", "https://cdn.test/a.jpg", "--async", "--json"],
+          env,
+        );
+
+        expect(JSON.parse(result.stdout)).toEqual({
+          taskId: "tsk_async",
+          estimatedCost: "0.02",
+          access: { publicAccessToken: "pat_test" },
+        });
+      },
+    );
+  });
+
+  it("waits for the task and returns the image as JSON", async () => {
+    await withApi(
+      taskRoutes({
+        taskId: "tsk_rb",
+        createPath: "/image/remove-background",
+        task: completedRemoval,
+      }),
+      async (env) => {
+        const result = await runCli(
+          ["image", "remove-background", "https://cdn.test/product.jpg", "--json"],
+          env,
+        );
+
+        expect(result.status).toBe(0);
+        expect(JSON.parse(result.stdout)).toEqual({
+          taskId: "tsk_rb",
+          cost: "0.02",
+          ...completedRemoval.result,
+        });
+      },
+    );
+  });
+
+  it("prints a human summary", async () => {
+    await withApi(
+      taskRoutes({
+        taskId: "tsk_rb",
+        createPath: "/image/remove-background",
+        task: completedRemoval,
+      }),
+      async (env) => {
+        const result = await runCli(
+          ["image", "remove-background", "https://cdn.test/product.jpg"],
+          env,
+        );
+
+        expect(result.status).toBe(0);
+        expect(result.stdout).toContain("Removed background (task tsk_rb)");
+        expect(result.stdout).toContain("1024x768 png");
+        expect(result.stdout).toContain("https://cdn.test/cutout.png");
+      },
+    );
+  });
+
+  it("rejects a format without transparency", async () => {
+    const result = await runCli([
+      "image",
+      "remove-background",
+      "https://cdn.test/a.jpg",
+      "--format",
+      "jpg",
+    ]);
+
+    expect(result.status).toBe(2);
+  });
+});
+
 describe("image upload", () => {
   it("posts the files as multipart and maps URLs back to paths", async () => {
     await withApi(

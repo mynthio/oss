@@ -1,12 +1,19 @@
+import type { Command } from "commander";
 import { z } from "zod";
-import { createImageTask, uploadImages, type UploadedImage } from "../../api/images.ts";
+import {
+  createImageTask,
+  uploadImages,
+  type ImageTaskEndpoint,
+  type UploadedImage,
+} from "../../api/images.ts";
 import { waitForTask } from "../../api/tasks.ts";
 import type { Task } from "../../api/schemas.ts";
 import type { App } from "../../app.ts";
 import { ApiError, UsageError, taskFailureCode } from "../../errors.ts";
+import { glyph, print, printJson } from "../../output/print.ts";
 import { withSpinner } from "../../output/spinner.ts";
 import { readTextInput } from "../../utils/files.ts";
-import { isHttpUrl } from "../../utils/parse.ts";
+import { collect, isHttpUrl } from "../../utils/parse.ts";
 
 export const MIN_RATE_LEVELS = 2;
 export const MAX_RATE_LEVELS = 7;
@@ -34,6 +41,82 @@ export const resolveImage = async (
 
   const uploads = await uploadImages(app.api, [input]);
   return { url: uploads[0]!.url, uploads };
+};
+
+export type DeliveryOptions = {
+  readonly destination?: string;
+  readonly webhookUrl?: ReadonlyArray<string>;
+  readonly dashboardWebhooks?: boolean;
+};
+
+/** Destination and webhook flags shared by commands that create a deliverable image. */
+export const addDeliveryOptions = (command: Command): Command =>
+  command
+    .option(
+      "--destination <name>",
+      "Slug of a configured storage destination to deliver results to. Defaults to MYNTH_DESTINATION.",
+    )
+    .option(
+      "--webhook-url <url>",
+      "Deliver this task's events to this URL (repeatable, max 5)",
+      collect,
+    )
+    .option("--no-dashboard-webhooks", "Skip dashboard-configured webhooks for this task");
+
+/** Builds the `destination` and `webhook` request fields from the delivery flags. */
+export const buildDelivery = (
+  app: App,
+  options: DeliveryOptions,
+): { readonly destination?: string; readonly webhook?: Record<string, unknown> } => {
+  const destination = options.destination ?? app.config.envDestination;
+  const custom = options.webhookUrl ?? [];
+  // `--no-dashboard-webhooks` flips Commander's default of `true`.
+  const disableDashboard = options.dashboardWebhooks === false;
+
+  const webhook =
+    custom.length === 0 && !disableDashboard
+      ? undefined
+      : {
+          ...(disableDashboard ? { dashboard: false } : {}),
+          ...(custom.length > 0 ? { custom: custom.map((url) => ({ url })) } : {}),
+        };
+
+  return {
+    ...(destination !== undefined ? { destination } : {}),
+    ...(webhook !== undefined ? { webhook } : {}),
+  };
+};
+
+/**
+ * Creates a task without waiting and prints its ID. A public access token lets
+ * browser or CI code poll the task without the API key, so it is requested here.
+ */
+export const createTaskAsync = async (
+  app: App,
+  args: {
+    readonly endpoint: ImageTaskEndpoint;
+    readonly body: Record<string, unknown>;
+    readonly json: boolean;
+  },
+): Promise<void> => {
+  const created = await createImageTask(app.api, args.endpoint, {
+    ...args.body,
+    access: { pat: { enabled: true } },
+  });
+  const token = created.access?.publicAccessToken;
+
+  if (args.json) {
+    printJson({
+      taskId: created.taskId,
+      ...(created.estimatedCost !== undefined ? { estimatedCost: created.estimatedCost } : {}),
+      ...(token !== undefined ? { access: { publicAccessToken: token } } : {}),
+    });
+    return;
+  }
+
+  print(`${glyph.ok} Task created: ${created.taskId}`);
+  if (token !== undefined) print(`  Public access token: ${token}`);
+  print(`  Await it with: mynth task wait ${created.taskId}`);
 };
 
 const levelArray = z.array(z.object({ value: z.string(), description: z.string() }));
@@ -120,13 +203,13 @@ const failedTaskError = (task: Task, label: string): ApiError => {
 };
 
 /**
- * Creates an analysis task, waits for it, and validates its result. Rate, alt,
- * and review only differ by endpoint and result shape.
+ * Creates a single-image task, waits for it, and validates its result. The
+ * commands only differ by endpoint and result shape.
  */
-export const runAnalysis = async <T>(
+export const runImageTask = async <T>(
   app: App,
   args: {
-    readonly endpoint: "rate" | "alt" | "review";
+    readonly endpoint: Exclude<ImageTaskEndpoint, "generate">;
     readonly body: Record<string, unknown>;
     readonly schema: z.ZodType<T>;
     readonly quiet: boolean;

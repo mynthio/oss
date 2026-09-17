@@ -10,10 +10,11 @@ import { waitForTask } from "../../api/tasks.ts";
 import type { Task } from "../../api/schemas.ts";
 import type { App } from "../../app.ts";
 import { UsageError } from "../../errors.ts";
-import { glyph, plural, print, printJson } from "../../output/print.ts";
+import { glyph, print, printJson } from "../../output/print.ts";
 import {
   imageUrl,
   readImageGenerateResult,
+  renderDownloads,
   renderTaskResult,
   renderUploads,
   summarizeTask,
@@ -22,11 +23,18 @@ import { withSpinner } from "../../output/spinner.ts";
 import { downloadAll } from "../../utils/download.ts";
 import { collect, isHttpUrl, parseInteger, parseJsonObject } from "../../utils/parse.ts";
 import { jsonOption, type JsonFlag } from "../options.ts";
-import { resolveLevels, type LevelOptions } from "./shared.ts";
+import {
+  addDeliveryOptions,
+  buildDelivery,
+  createTaskAsync,
+  resolveLevels,
+  type DeliveryOptions,
+  type LevelOptions,
+} from "./shared.ts";
 
 const MAX_INPUTS = 20;
 const OUTPUT_FORMATS = ["png", "jpg", "webp"] as const;
-const INPUT_ROLES = ["auto", "person", "garment", "pose", "source", "reference"] as const;
+const INPUT_ROLES = ["auto", "source", "reference"] as const;
 
 /**
  * Stands in for local files during `--dry-run`: the estimate only depends on
@@ -43,7 +51,8 @@ type ParsedInput = {
 };
 
 type GenerateOptions = JsonFlag &
-  LevelOptions & {
+  LevelOptions &
+  DeliveryOptions & {
     readonly prompt?: string;
     readonly negative?: string;
     readonly magicPrompt?: boolean;
@@ -53,11 +62,8 @@ type GenerateOptions = JsonFlag &
     readonly format?: string;
     readonly input?: ReadonlyArray<string>;
     readonly outputDir?: string;
-    readonly destination?: string;
     readonly metadata?: string;
     readonly contentRating?: boolean;
-    readonly webhookUrl?: ReadonlyArray<string>;
-    readonly dashboardWebhooks?: boolean;
     readonly async?: boolean;
     readonly detailed?: boolean;
     readonly dryRun?: boolean;
@@ -84,18 +90,6 @@ const parseInput = (raw: string): ParsedInput => {
   return { ...(role !== undefined ? { role } : {}), value, isLocalFile: !isHttpUrl(value) };
 };
 
-const buildWebhook = (options: GenerateOptions): Record<string, unknown> | undefined => {
-  const custom = options.webhookUrl ?? [];
-  // `--no-dashboard-webhooks` flips Commander's default of `true`.
-  const disableDashboard = options.dashboardWebhooks === false;
-
-  if (custom.length === 0 && !disableDashboard) return undefined;
-  return {
-    ...(disableDashboard ? { dashboard: false } : {}),
-    ...(custom.length > 0 ? { custom: custom.map((url) => ({ url })) } : {}),
-  };
-};
-
 const buildRequest = async (
   app: App,
   options: GenerateOptions,
@@ -110,9 +104,6 @@ const buildRequest = async (
         ? true
         : undefined;
 
-  const destination = options.destination ?? app.config.envDestination;
-  const webhook = buildWebhook(options);
-
   const resolvedInputs = inputs.map((input) => ({
     type: "image" as const,
     ...(input.role !== undefined ? { as: input.role } : {}),
@@ -123,8 +114,6 @@ const buildRequest = async (
   }));
 
   return {
-    // Always sent, and legitimately empty for models (e.g. virtual try-on) that
-    // work best with inputs alone.
     prompt: options.prompt ?? "",
     ...(options.model !== undefined ? { model: options.model } : {}),
     ...(options.negative !== undefined ? { negative_prompt: options.negative } : {}),
@@ -133,9 +122,8 @@ const buildRequest = async (
     ...(options.count !== undefined ? { count: options.count } : {}),
     ...(options.format !== undefined ? { output: { format: options.format } } : {}),
     ...(resolvedInputs.length > 0 ? { inputs: resolvedInputs } : {}),
-    ...(destination !== undefined ? { destination } : {}),
+    ...buildDelivery(app, options),
     ...(rating !== undefined ? { rating } : {}),
-    ...(webhook !== undefined ? { webhook } : {}),
     ...(options.metadata !== undefined
       ? { metadata: parseJsonObject(options.metadata, "--metadata") }
       : {}),
@@ -181,10 +169,6 @@ export const generateCommand = (app: App): Command => {
       "-o, --output-dir <dir>",
       "Directory to save generated images into. Created if missing. Ignored with --async.",
     )
-    .option(
-      "--destination <name>",
-      "Slug of a configured storage destination to deliver results to. Defaults to MYNTH_DESTINATION.",
-    )
     .option("--metadata <json>", "Inline JSON object attached to the task (max 2KB)")
     .option(
       "--content-rating",
@@ -196,13 +180,9 @@ export const generateCommand = (app: App): Command => {
       collect,
     )
     .option("--levels-file <path>", "JSON file of custom rating levels, or `-` for stdin")
-    .option("--levels-json <json>", "Inline JSON array of custom rating levels")
-    .option(
-      "--webhook-url <url>",
-      "Deliver this task's events to this URL (repeatable, max 5)",
-      collect,
-    )
-    .option("--no-dashboard-webhooks", "Skip dashboard-configured webhooks for this task")
+    .option("--levels-json <json>", "Inline JSON array of custom rating levels");
+
+  addDeliveryOptions(generate)
     .option("--dry-run", "Validate the request and print the estimated cost without generating")
     .option("--async", "Print the task ID immediately instead of waiting for the result")
     .option("--detailed", "Include the full task record in --json output")
@@ -242,26 +222,11 @@ export const generateCommand = (app: App): Command => {
     }
 
     if (options.async === true) {
-      // A public access token lets browser or CI code poll this task without
-      // the API key, so it is only worth requesting when we are not waiting.
-      const created = await createImageTask(app.api, "generate", {
-        ...request,
-        access: { pat: { enabled: true } },
+      await createTaskAsync(app, {
+        endpoint: "generate",
+        body: request,
+        json: options.json === true,
       });
-      const token = created.access?.publicAccessToken;
-
-      if (options.json) {
-        printJson({
-          taskId: created.taskId,
-          ...(created.estimatedCost !== undefined ? { estimatedCost: created.estimatedCost } : {}),
-          ...(token !== undefined ? { access: { publicAccessToken: token } } : {}),
-        });
-        return;
-      }
-
-      print(`${glyph.ok} Task created: ${created.taskId}`);
-      if (token !== undefined) print(`  Public access token: ${token}`);
-      print(`  Await it with: mynth task wait ${created.taskId}`);
       return;
     }
 
@@ -280,12 +245,7 @@ export const generateCommand = (app: App): Command => {
 
     renderUploads(uploads);
     renderTaskResult(task);
-
-    if (downloaded.length > 0) {
-      print("");
-      print(`${glyph.ok} Saved ${plural(downloaded.length, "image")} to ${outputDir}`);
-      for (const file of downloaded) print(`  ${file}`);
-    }
+    if (outputDir !== undefined) renderDownloads(downloaded, outputDir);
   });
 
   return generate;

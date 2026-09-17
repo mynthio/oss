@@ -1,4 +1,4 @@
-import type { Task } from "../api/schemas.ts";
+import type { ImageRemoveBackgroundResult, Task } from "../api/schemas.ts";
 import { imageGenerateResult, type GeneratedImage } from "../api/schemas.ts";
 import { glyph, glyphForStatus, indent, plural, print } from "./print.ts";
 
@@ -45,6 +45,33 @@ export const renderUploads = (
   if (uploads.length === 0) return;
   print(`${glyph.ok} Uploaded ${plural(uploads.length, "image")}`);
   for (const upload of uploads) print(`  ${upload.path} -> ${upload.url}`);
+};
+
+export const renderDownloads = (files: ReadonlyArray<string>, directory: string): void => {
+  if (files.length === 0) return;
+  print("");
+  print(`${glyph.ok} Saved ${plural(files.length, "image")} to ${directory}`);
+  for (const file of files) print(`  ${file}`);
+};
+
+export const renderRemoveBackground = (
+  removal: ImageRemoveBackgroundResult & {
+    readonly taskId: string;
+    readonly cost: string | null;
+  },
+): void => {
+  const { image } = removal;
+
+  print(`${glyph.ok} Removed background (task ${removal.taskId})`);
+  if (removal.cost !== null) print(`  Cost:  ${removal.cost}`);
+  print(`  Size:  ${image.size} ${image.format}`);
+  print("");
+  print(`  ${glyph.ok} ${image.url ?? image.mynth_url}`);
+  if (image.destination?.status === "failed") {
+    print(
+      `      ${glyph.fail} destination ${image.destination.name}: ${formatError(image.destination.error)}`,
+    );
+  }
 };
 
 export const renderImageGenerateTask = (task: Task): void => {

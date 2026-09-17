@@ -31,10 +31,12 @@ export const uploadImages = async (
   return paths.map((path, index) => ({ path, url: urls[index]! }));
 };
 
+export type ImageTaskEndpoint = "generate" | "rate" | "alt" | "review" | "remove-background";
+
 /** POSTs a request body to an async image endpoint and returns the created task. */
 export const createImageTask = (
   client: ApiClient,
-  endpoint: "generate" | "rate" | "alt" | "review",
+  endpoint: ImageTaskEndpoint,
   body: Record<string, unknown>,
 ): Promise<CreatedTask> =>
   client.fetch(`image ${endpoint}`, `/image/${endpoint}`, createdTask, { body });

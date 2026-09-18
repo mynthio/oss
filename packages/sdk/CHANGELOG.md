@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.0.40](https://github.com/mynthio/oss/compare/sdk-v0.0.39...sdk-v0.0.40) (2026-09-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* **sdk:** drop url from single-image task results
+
+### Features
+
+* **sdk:** add image.removeBackground ([a55b7a4](https://github.com/mynthio/oss/commit/a55b7a44c293e7dc984078f9d60a105d6b83e10b))
+* **sdk:** drop url from single-image task results ([3ee6e1f](https://github.com/mynthio/oss/commit/3ee6e1fbb118230db051b98fd3d74d1c988cabf8))
+
 ## [0.0.39](https://github.com/mynthio/oss/compare/sdk-v0.0.38...sdk-v0.0.39) (2026-09-14)
 
 

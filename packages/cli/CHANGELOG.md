@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.0.22](https://github.com/mynthio/oss/compare/cli-v0.0.21...cli-v0.0.22) (2026-09-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* **cli:** drop url from single-image task results
+
+### Features
+
+* **cli:** add image remove-background command ([bcc5855](https://github.com/mynthio/oss/commit/bcc5855803647d81c8f8ddf9e881c83d05c372c6))
+* **cli:** drop url from single-image task results ([25baf27](https://github.com/mynthio/oss/commit/25baf2748dc62aea1474ce2cdae6c86f02bc1fc3))
+
 ## [0.0.21](https://github.com/mynthio/oss/compare/cli-v0.0.20...cli-v0.0.21) (2026-09-09)
 
 

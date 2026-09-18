@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.28](https://github.com/mynthio/oss/compare/tan-ai-v0.0.27...tan-ai-v0.0.28) (2026-09-18)
+
+
+### Bug Fixes
+
+* **tan-ai:** bump @mynthio/sdk dependency to 0.0.40 ([80a4adb](https://github.com/mynthio/oss/commit/80a4adba2ec905b0ad3dcd3497198477b552c126))
+* **tan-ai:** drop try-on and background removal models ([0b7df68](https://github.com/mynthio/oss/commit/0b7df682244b13de7bc688d8a314c110d094956f))
+
 ## [0.0.27](https://github.com/mynthio/oss/compare/tan-ai-v0.0.26...tan-ai-v0.0.27) (2026-09-14)
 
 

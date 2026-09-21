@@ -143,6 +143,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["inputs"],
   },
   {
+    id: "goofy-ai/prefect-pony-xl-lora",
+    label: "Prefect Pony XL LoRA",
+    capabilities: [],
+  },
+  {
     id: "john6666/bismuth-illustrious-mix",
     label: "Bismuth Illustrious Mix",
     capabilities: ["negative_prompt"],

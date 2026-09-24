@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.29](https://github.com/mynthio/oss/compare/tan-ai-v0.0.28...tan-ai-v0.0.29) (2026-09-24)
+
+
+### Bug Fixes
+
+* **tan-ai:** bump @mynthio/sdk dependency to 0.0.41 ([1c8ac2a](https://github.com/mynthio/oss/commit/1c8ac2ac1f8f744968047c7a01940a1f8f5e6c4f))
+* **tan-ai:** publish a single ESM build with bundled types ([688b0cf](https://github.com/mynthio/oss/commit/688b0cf97895065cb23d5113d72b95781f5822df))
+
 ## [0.0.28](https://github.com/mynthio/oss/compare/tan-ai-v0.0.27...tan-ai-v0.0.28) (2026-09-18)
 
 

@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { loadConfig } from "./config.ts";
 import { exitCodeForError } from "./errors.ts";
 import { printErr } from "./output/print.ts";

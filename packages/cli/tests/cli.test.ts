@@ -150,6 +150,24 @@ describe("docs", () => {
     );
   });
 
+  it("reads pages under the docs path and the index from the site root", async () => {
+    const requested: string[] = [];
+
+    await withDocs(
+      (url) => {
+        requested.push(url);
+        return { status: 200, body: "ok\n" };
+      },
+      async (env) => {
+        const docsEnv = { MYNTH_DOCS_URL: `${env.MYNTH_DOCS_URL}/docs` };
+        await runCli(["docs", "get", "concepts/tasks"], docsEnv);
+        await runCli(["docs", "list"], docsEnv);
+      },
+    );
+
+    expect(requested).toEqual(["/docs/concepts/tasks.md", "/llms.txt"]);
+  });
+
   it("rejects traversal paths before making a request", async () => {
     const result = await runCli(["docs", "get", "../secrets"]);
 

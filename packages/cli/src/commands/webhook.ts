@@ -93,7 +93,7 @@ const addSharedOptions = (command: Command) =>
     )
     .option(
       "--oauth-events",
-      "Also deliver tasks created by OAuth sessions (this CLI, the playground). Off by default.",
+      "Also deliver tasks that have no API key, such as playground runs. Off by default.",
     )
     .addOption(jsonOption());
 

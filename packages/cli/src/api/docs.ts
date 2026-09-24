@@ -58,7 +58,11 @@ const fetchText = async (url: string, label: string): Promise<string> => {
 
 /** The docs site is public and served from its own host, so it bypasses ApiClient. */
 export class DocsClient {
-  constructor(private readonly docsUrl: string) {}
+  private readonly docsUrl: string;
+
+  constructor(docsUrl: string) {
+    this.docsUrl = docsUrl;
+  }
 
   async get(path: string): Promise<DocsPage> {
     const normalized = normalizePath(path);
@@ -69,7 +73,8 @@ export class DocsClient {
     };
   }
 
+  /** llms.txt lives at the site root by convention, whatever path the pages sit under. */
   list(): Promise<string> {
-    return fetchText(`${this.docsUrl}/llms.txt`, "docs index fetch");
+    return fetchText(new URL("/llms.txt", this.docsUrl).href, "docs index fetch");
   }
 }

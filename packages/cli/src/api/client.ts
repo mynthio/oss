@@ -70,12 +70,11 @@ const toApiError = async (response: Response, label: string): Promise<ApiError> 
 
 export class ApiClient {
   readonly baseUrl: string;
+  private readonly tokens: TokenSource;
 
-  constructor(
-    config: Config,
-    private readonly tokens: TokenSource,
-  ) {
+  constructor(config: Config, tokens: TokenSource) {
     this.baseUrl = config.apiUrl;
+    this.tokens = tokens;
   }
 
   /** Performs a request and throws `ApiError` on transport failure or non-2xx. */

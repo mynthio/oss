@@ -577,6 +577,7 @@ Current model IDs include:
 - `openai/gpt-image-2`
 - `purplesmartai/pony-diffusion-v6-xl`
 - `recraft/recraft-v4`
+- `recraft/recraft-v4.1-flash`
 - `recraft/recraft-v4-pro`
 - `sourceful/riverflow-2.0-pro`
 - `tongyi-mai/z-image`

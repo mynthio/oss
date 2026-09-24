@@ -181,6 +181,7 @@ export namespace MynthSDKTypes {
     | "maxfeifei8/one-obsession"
     | "purplesmartai/pony-diffusion-v6-xl"
     | "recraft/recraft-v4"
+    | "recraft/recraft-v4.1-flash"
     | "recraft/recraft-v4-pro"
     | "reve/reve"
     | "reve/reve-remix"

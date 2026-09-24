@@ -217,6 +217,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: [],
   },
   {
+    id: "recraft/recraft-v4.1-flash",
+    label: "Recraft V4.1 Flash",
+    capabilities: [],
+  },
+  {
     id: "recraft/recraft-v4-pro",
     label: "Recraft V4 Pro",
     capabilities: [],

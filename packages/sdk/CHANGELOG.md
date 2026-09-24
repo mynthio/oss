@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.41](https://github.com/mynthio/oss/compare/sdk-v0.0.40...sdk-v0.0.41) (2026-09-24)
+
+
+### Features
+
+* **sdk:** pass the delivery ID to webhook handlers ([f606ffd](https://github.com/mynthio/oss/commit/f606ffdebfe4f564ac00db3318d3361e53752cd0))
+
 ## [0.0.40](https://github.com/mynthio/oss/compare/sdk-v0.0.39...sdk-v0.0.40) (2026-09-18)
 
 

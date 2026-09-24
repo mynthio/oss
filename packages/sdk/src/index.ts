@@ -1,6 +1,6 @@
-import { MynthAPIError, MynthClient } from "./client";
-import type { AvailableModel, ModelCapability } from "./constants";
-import type { AvailableVideoModel, VideoInputRole, VideoResolutionTier } from "./constants";
+import { MynthAPIError, MynthClient } from "./client.ts";
+import type { AvailableModel, ModelCapability } from "./constants.ts";
+import type { AvailableVideoModel, VideoInputRole, VideoResolutionTier } from "./constants.ts";
 import {
   ALT_IMAGE_PATH,
   API_KEY_ENV_VAR,
@@ -15,13 +15,13 @@ import {
   REMOVE_BACKGROUND_IMAGE_PATH,
   REVIEW_IMAGE_PATH,
   VIDEO_POLLING,
-} from "./constants";
-import { ImageAltResult } from "./image-alt-result";
-import { ImageGenerationResult } from "./image-generation-result";
-import { ImageRateResult } from "./image-rate-result";
-import { ImageRemoveBackgroundResult } from "./image-remove-background-result";
-import { ImageReviewResult } from "./image-review-result";
-import type { TaskAsyncAccess } from "./task-async";
+} from "./constants.ts";
+import { ImageAltResult } from "./image-alt-result.ts";
+import { ImageGenerationResult } from "./image-generation-result.ts";
+import { ImageRateResult } from "./image-rate-result.ts";
+import { ImageRemoveBackgroundResult } from "./image-remove-background-result.ts";
+import { ImageReviewResult } from "./image-review-result.ts";
+import type { TaskAsyncAccess } from "./task-async.ts";
 import {
   TaskAsync,
   TaskAsyncFetchError,
@@ -29,10 +29,10 @@ import {
   TaskAsyncTaskFetchError,
   TaskAsyncTimeoutError,
   TaskAsyncUnauthorizedError,
-} from "./task-async";
-import type { MynthSDKTypes } from "./types";
-import { resolveInputs, uploadImages } from "./uploads";
-import { VideoGenerationResult } from "./video-generation-result";
+} from "./task-async.ts";
+import type { MynthSDKTypes } from "./types.ts";
+import { resolveInputs, uploadImages } from "./uploads.ts";
+import { VideoGenerationResult } from "./video-generation-result.ts";
 
 /**
  * Configuration options for the Mynth client.
@@ -41,17 +41,17 @@ type MynthOptions = {
   /**
    * Your Mynth API key. If not provided, reads from MYNTH_API_KEY environment variable.
    */
-  apiKey?: string;
+  apiKey?: string | undefined;
   /**
    * Custom base URL for the API. Useful for proxies or testing.
    */
-  baseUrl?: string;
+  baseUrl?: string | undefined;
   /**
    * Default destination name (slug) to deliver generated images to.
    * If not provided, reads from MYNTH_DESTINATION environment variable.
    * Can be overridden on a per-request basis via `request.destination`.
    */
-  destination?: string;
+  destination?: string | undefined;
 };
 
 type MynthModel = MynthSDKTypes.Model;
@@ -152,7 +152,7 @@ function getDestinationFromEnv(): string | undefined {
  */
 class MynthImage {
   private readonly client: MynthClient;
-  private readonly defaultDestination?: string;
+  private readonly defaultDestination: string | undefined;
 
   /**
    * Creates a new MynthImage client instance.
@@ -706,12 +706,13 @@ class MynthVideo {
   private async toRequestBody(
     request: MynthSDKTypes.VideoGenerationClientRequest,
   ): Promise<MynthSDKTypes.VideoGenerationRequest> {
+    const { inputs: clientInputs, ...rest } = request;
     const inputs = await resolveInputs<MynthSDKTypes.VideoGenerationRequestInputAs>(
       this.client,
-      request.inputs,
+      clientInputs,
     );
 
-    return { ...request, inputs };
+    return inputs ? { ...rest, inputs } : rest;
   }
 
   private async createGenerationTask<const T extends MynthSDKTypes.VideoGenerationClientRequest>(

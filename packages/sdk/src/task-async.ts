@@ -1,6 +1,6 @@
-import type { MynthClient } from "./client";
-import { TASK_DETAILS_PATH, TASK_STATUS_PATH } from "./constants";
-import type { MynthSDKTypes } from "./types";
+import type { MynthClient } from "./client.ts";
+import { TASK_DETAILS_PATH, TASK_STATUS_PATH } from "./constants.ts";
+import type { MynthSDKTypes } from "./types.ts";
 
 const POLLING_TIMEOUT_MS = 30 * 60 * 1000;
 const FAST_POLLING_DURATION_MS = 12_000; // 12 seconds of fast polling
@@ -92,7 +92,7 @@ type FetchTaskResult =
  */
 export type TaskAsyncAccess = {
   /** Public access token for client-side status polling */
-  publicAccessToken?: string;
+  publicAccessToken?: string | undefined;
 };
 
 /**
@@ -119,7 +119,7 @@ export class TaskAsync<ResultT> {
     id: string,
     options: {
       client: MynthClient;
-      pat?: string;
+      pat?: string | undefined;
       resultFactory: (data: MynthSDKTypes.TaskData) => ResultT;
       polling?: TaskAsyncPolling;
     },

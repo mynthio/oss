@@ -1,4 +1,4 @@
-import type { VideoResolutionTier } from "./constants";
+import type { VideoResolutionTier } from "./constants.ts";
 
 /**
  * Type definitions for the Mynth SDK.

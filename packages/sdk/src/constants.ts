@@ -317,7 +317,7 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
  * wait budget is an hour instead of the 30 minutes image tasks get.
  */
 export const VIDEO_POLLING = {
-  timeoutMs: 60 * 60 * 1000,
+  timeoutMs: 3_600_000, // 1 hour
   fastDurationMs: 0,
   intervalMs: 10_000,
 } as const;

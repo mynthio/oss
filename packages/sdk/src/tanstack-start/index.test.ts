@@ -1,8 +1,9 @@
 import { expect, test, vi } from "vitest";
 
-import { mynthWebhookHandler } from "./index";
+import { mynthWebhookHandler } from "./index.ts";
 
 const SECRET = "wbs_test";
+const DELIVERY_ID = "tsk_test:dashboard:wbh_test:task.image.generate.completed";
 
 async function createRequest(body: string) {
   const timestamp = Math.floor(Date.now() / 1000);
@@ -23,6 +24,7 @@ async function createRequest(body: string) {
     method: "POST",
     headers: {
       "X-Mynth-Event": "task.image.generate.completed",
+      "X-Mynth-Delivery": DELIVERY_ID,
       "X-Mynth-Signature": `t=${timestamp},v1=${hex}`,
     },
     body,
@@ -51,7 +53,7 @@ test("dispatches events with the TanStack Start route context", async () => {
     requestBodyUsed: request.bodyUsed,
   }).toEqual({
     status: 200,
-    calls: [[payload, routeContext]],
+    calls: [[payload, { ...routeContext, deliveryId: DELIVERY_ID }]],
     requestBodyUsed: false,
   });
 });

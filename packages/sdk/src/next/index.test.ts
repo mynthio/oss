@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { mynthWebhookHandler } from "./index";
+import { mynthWebhookHandler } from "./index.ts";
 
 const SECRET = "wbs_test";
+const DELIVERY_ID = "tsk_test:dashboard:wbh_test:task.image.generate.completed";
 const originalWebhookSecret = process.env.MYNTH_WEBHOOK_SECRET;
 
 async function createSignature(body: string, secret = SECRET, timestamp = currentTimestamp()) {
@@ -31,6 +32,7 @@ async function createWebhookRequest(
     method: "POST",
     headers: {
       "X-Mynth-Event": event,
+      "X-Mynth-Delivery": DELIVERY_ID,
       "X-Mynth-Signature":
         options.signature ??
         (await createSignature(body, options.secret, options.timestamp ?? currentTimestamp())),
@@ -73,7 +75,7 @@ describe("mynthWebhookHandler", () => {
     // Assert
     expect({ status: response.status, calls: imageTaskCompleted.mock.calls }).toEqual({
       status: 200,
-      calls: [[eventPayload, { request }]],
+      calls: [[eventPayload, { request, deliveryId: DELIVERY_ID }]],
     });
   });
 
@@ -90,7 +92,7 @@ describe("mynthWebhookHandler", () => {
     // Assert
     expect({ status: response.status, calls: imageTaskFailed.mock.calls }).toEqual({
       status: 200,
-      calls: [[eventPayload, { request }]],
+      calls: [[eventPayload, { request, deliveryId: DELIVERY_ID }]],
     });
   });
 
@@ -107,7 +109,7 @@ describe("mynthWebhookHandler", () => {
     // Assert
     expect({ status: response.status, calls: imageRateTaskCompleted.mock.calls }).toEqual({
       status: 200,
-      calls: [[eventPayload, { request }]],
+      calls: [[eventPayload, { request, deliveryId: DELIVERY_ID }]],
     });
   });
 
@@ -124,7 +126,7 @@ describe("mynthWebhookHandler", () => {
     // Assert
     expect({ status: response.status, calls: imageRateTaskFailed.mock.calls }).toEqual({
       status: 200,
-      calls: [[eventPayload, { request }]],
+      calls: [[eventPayload, { request, deliveryId: DELIVERY_ID }]],
     });
   });
 
@@ -141,7 +143,7 @@ describe("mynthWebhookHandler", () => {
     // Assert
     expect({ status: response.status, calls: imageAltTaskCompleted.mock.calls }).toEqual({
       status: 200,
-      calls: [[eventPayload, { request }]],
+      calls: [[eventPayload, { request, deliveryId: DELIVERY_ID }]],
     });
   });
 
@@ -158,7 +160,7 @@ describe("mynthWebhookHandler", () => {
     // Assert
     expect({ status: response.status, calls: imageAltTaskFailed.mock.calls }).toEqual({
       status: 200,
-      calls: [[eventPayload, { request }]],
+      calls: [[eventPayload, { request, deliveryId: DELIVERY_ID }]],
     });
   });
 
@@ -175,7 +177,7 @@ describe("mynthWebhookHandler", () => {
     // Assert
     expect({ status: response.status, calls: imageReviewTaskCompleted.mock.calls }).toEqual({
       status: 200,
-      calls: [[eventPayload, { request }]],
+      calls: [[eventPayload, { request, deliveryId: DELIVERY_ID }]],
     });
   });
 
@@ -192,7 +194,7 @@ describe("mynthWebhookHandler", () => {
     // Assert
     expect({ status: response.status, calls: imageReviewTaskFailed.mock.calls }).toEqual({
       status: 200,
-      calls: [[eventPayload, { request }]],
+      calls: [[eventPayload, { request, deliveryId: DELIVERY_ID }]],
     });
   });
 
@@ -215,7 +217,7 @@ describe("mynthWebhookHandler", () => {
       calls: imageRemoveBackgroundTaskCompleted.mock.calls,
     }).toEqual({
       status: 200,
-      calls: [[eventPayload, { request }]],
+      calls: [[eventPayload, { request, deliveryId: DELIVERY_ID }]],
     });
   });
 
@@ -238,7 +240,7 @@ describe("mynthWebhookHandler", () => {
       calls: imageRemoveBackgroundTaskFailed.mock.calls,
     }).toEqual({
       status: 200,
-      calls: [[eventPayload, { request }]],
+      calls: [[eventPayload, { request, deliveryId: DELIVERY_ID }]],
     });
   });
 

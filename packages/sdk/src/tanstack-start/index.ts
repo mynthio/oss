@@ -1,8 +1,8 @@
-import type { MynthSDKTypes } from "../types";
 import {
-  mynthWebhookHandler as createRequestHandler,
-  type MynthWebhookHandlerOptions,
-} from "../next";
+  handleWebhookRequest,
+  type WebhookEventHandlers,
+  type WebhookHandlerOptions,
+} from "../webhooks/handler.ts";
 
 export type MynthTanStackStartHandlerContext<
   TContext = unknown,
@@ -16,61 +16,24 @@ export type MynthTanStackStartHandlerContext<
   context: TContext;
 };
 
+/** What event callbacks receive: the route context plus the delivery ID. */
+export type MynthTanStackStartEventContext<
+  TContext = unknown,
+  TParams extends Record<string, string> = Record<string, string>,
+> = MynthTanStackStartHandlerContext<TContext, TParams> & {
+  /**
+   * The `X-Mynth-Delivery` ID. Every retry of a delivery repeats it, so store
+   * it and skip IDs you have already handled.
+   */
+  deliveryId: string;
+};
+
 export type MynthTanStackStartEventHandlers<
   TContext = unknown,
   TParams extends Record<string, string> = Record<string, string>,
-> = {
-  imageTaskCompleted?: (
-    payload: MynthSDKTypes.WebhookTaskImageCompletedPayload,
-    context: MynthTanStackStartHandlerContext<TContext, TParams>,
-  ) => void | Promise<void>;
-  imageTaskFailed?: (
-    payload: MynthSDKTypes.WebhookTaskImageFailedPayload,
-    context: MynthTanStackStartHandlerContext<TContext, TParams>,
-  ) => void | Promise<void>;
-  imageRateTaskCompleted?: (
-    payload: MynthSDKTypes.WebhookTaskImageRateCompletedPayload,
-    context: MynthTanStackStartHandlerContext<TContext, TParams>,
-  ) => void | Promise<void>;
-  imageRateTaskFailed?: (
-    payload: MynthSDKTypes.WebhookTaskImageRateFailedPayload,
-    context: MynthTanStackStartHandlerContext<TContext, TParams>,
-  ) => void | Promise<void>;
-  imageAltTaskCompleted?: (
-    payload: MynthSDKTypes.WebhookTaskImageAltCompletedPayload,
-    context: MynthTanStackStartHandlerContext<TContext, TParams>,
-  ) => void | Promise<void>;
-  imageAltTaskFailed?: (
-    payload: MynthSDKTypes.WebhookTaskImageAltFailedPayload,
-    context: MynthTanStackStartHandlerContext<TContext, TParams>,
-  ) => void | Promise<void>;
-  imageReviewTaskCompleted?: (
-    payload: MynthSDKTypes.WebhookTaskImageReviewCompletedPayload,
-    context: MynthTanStackStartHandlerContext<TContext, TParams>,
-  ) => void | Promise<void>;
-  imageReviewTaskFailed?: (
-    payload: MynthSDKTypes.WebhookTaskImageReviewFailedPayload,
-    context: MynthTanStackStartHandlerContext<TContext, TParams>,
-  ) => void | Promise<void>;
-  imageRemoveBackgroundTaskCompleted?: (
-    payload: MynthSDKTypes.WebhookTaskImageRemoveBackgroundCompletedPayload,
-    context: MynthTanStackStartHandlerContext<TContext, TParams>,
-  ) => void | Promise<void>;
-  imageRemoveBackgroundTaskFailed?: (
-    payload: MynthSDKTypes.WebhookTaskImageRemoveBackgroundFailedPayload,
-    context: MynthTanStackStartHandlerContext<TContext, TParams>,
-  ) => void | Promise<void>;
-  videoTaskCompleted?: (
-    payload: MynthSDKTypes.WebhookTaskVideoCompletedPayload,
-    context: MynthTanStackStartHandlerContext<TContext, TParams>,
-  ) => void | Promise<void>;
-  videoTaskFailed?: (
-    payload: MynthSDKTypes.WebhookTaskVideoFailedPayload,
-    context: MynthTanStackStartHandlerContext<TContext, TParams>,
-  ) => void | Promise<void>;
-};
+> = WebhookEventHandlers<MynthTanStackStartEventContext<TContext, TParams>>;
 
-export type MynthTanStackStartHandlerOptions = MynthWebhookHandlerOptions;
+export type MynthTanStackStartHandlerOptions = WebhookHandlerOptions;
 
 /** Create a TanStack Start server route handler for signed Mynth webhooks. */
 export function mynthWebhookHandler<
@@ -80,29 +43,12 @@ export function mynthWebhookHandler<
   eventHandlers: MynthTanStackStartEventHandlers<TContext, TParams>,
   options: MynthTanStackStartHandlerOptions = {},
 ): (context: MynthTanStackStartHandlerContext<TContext, TParams>) => Promise<Response> {
-  return async (context) => {
-    const handler = createRequestHandler(
-      {
-        imageTaskCompleted: (payload) => eventHandlers.imageTaskCompleted?.(payload, context),
-        imageTaskFailed: (payload) => eventHandlers.imageTaskFailed?.(payload, context),
-        imageRateTaskCompleted: (payload) =>
-          eventHandlers.imageRateTaskCompleted?.(payload, context),
-        imageRateTaskFailed: (payload) => eventHandlers.imageRateTaskFailed?.(payload, context),
-        imageAltTaskCompleted: (payload) => eventHandlers.imageAltTaskCompleted?.(payload, context),
-        imageAltTaskFailed: (payload) => eventHandlers.imageAltTaskFailed?.(payload, context),
-        imageReviewTaskCompleted: (payload) =>
-          eventHandlers.imageReviewTaskCompleted?.(payload, context),
-        imageReviewTaskFailed: (payload) => eventHandlers.imageReviewTaskFailed?.(payload, context),
-        imageRemoveBackgroundTaskCompleted: (payload) =>
-          eventHandlers.imageRemoveBackgroundTaskCompleted?.(payload, context),
-        imageRemoveBackgroundTaskFailed: (payload) =>
-          eventHandlers.imageRemoveBackgroundTaskFailed?.(payload, context),
-        videoTaskCompleted: (payload) => eventHandlers.videoTaskCompleted?.(payload, context),
-        videoTaskFailed: (payload) => eventHandlers.videoTaskFailed?.(payload, context),
-      },
+  // Verify a clone so callbacks still receive the original, unread request.
+  return (context) =>
+    handleWebhookRequest(
+      context.request.clone(),
+      eventHandlers,
+      (deliveryId) => ({ ...context, deliveryId }),
       options,
     );
-
-    return handler(context.request.clone());
-  };
 }

@@ -742,9 +742,9 @@ export const POST = mynthWebhookHandler({
 });
 ```
 
-The helper reads the raw body, verifies `X-Mynth-Signature`, rejects signatures older than five minutes, and checks `X-Mynth-Event` before calling a typed handler. The last handler argument contains the original `request`.
+The helper reads the raw body, verifies `X-Mynth-Signature`, rejects signatures older than five minutes, and checks `X-Mynth-Event` before calling a typed handler. The last handler argument contains the original `request` and `deliveryId`, the `X-Mynth-Delivery` value that every retry repeats.
 
-The route must be publicly reachable, so exclude it from authentication middleware. Make callback side effects idempotent using the event name and task ID, and enqueue slow work before returning. Callback errors are propagated so Mynth can retry the delivery.
+The route must be publicly reachable, so exclude it from authentication middleware. Make callback side effects idempotent by storing `deliveryId` and skipping IDs you have already handled, and enqueue slow work before returning. Callback errors are propagated so Mynth can retry the delivery.
 
 Pass `{ webhookSecret: "wbs_..." }` as the second argument only when the application does not use `MYNTH_WEBHOOK_SECRET`. This helper accepts signed, registered webhooks; per-request custom webhooks are not signed.
 
@@ -775,7 +775,7 @@ export const Route = createFileRoute("/api/webhooks/mynth")({
 });
 ```
 
-Set `MYNTH_WEBHOOK_SECRET` in the server environment, or pass `webhookSecret` as the second argument. Event callbacks receive the original request, route params, and TanStack Start middleware context.
+Set `MYNTH_WEBHOOK_SECRET` in the server environment, or pass `webhookSecret` as the second argument. Event callbacks receive the original request, route params, TanStack Start middleware context, and `deliveryId`.
 
 ## Convex Integration
 

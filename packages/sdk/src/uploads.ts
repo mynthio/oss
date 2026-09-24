@@ -1,6 +1,6 @@
-import type { MynthClient } from "./client";
-import { UPLOAD_IMAGE_PATH } from "./constants";
-import type { MynthSDKTypes } from "./types";
+import type { MynthClient } from "./client.ts";
+import { UPLOAD_IMAGE_PATH } from "./constants.ts";
+import type { MynthSDKTypes } from "./types.ts";
 
 const UPLOAD_FIELD_NAME = "images";
 const UPLOAD_FILENAME = "image";
@@ -78,16 +78,13 @@ export async function resolveInputs<AsT extends string>(
   const urls = files.length ? (await uploadImages(client, files)).urls : [];
   let i = 0;
 
-  return inputs.map((input) => {
+  return inputs.map((input): WireInput<AsT> => {
     if (typeof input === "string") return input;
     if (isUploadInput(input)) return urls[i++]!;
-    if (input.source.type === "file") {
-      return {
-        type: "image" as const,
-        as: input.as,
-        source: { type: "url" as const, url: urls[i++]! },
-      };
-    }
-    return { type: "image" as const, as: input.as, source: input.source };
+    const source =
+      input.source.type === "file" ? { type: "url" as const, url: urls[i++]! } : input.source;
+    return input.as === undefined
+      ? { type: "image", source }
+      : { type: "image", as: input.as, source };
   });
 }

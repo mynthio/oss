@@ -1,4 +1,4 @@
-import { API_URL } from "./constants";
+import { API_URL } from "./constants.ts";
 
 /**
  * Error thrown when an API request fails.
@@ -7,7 +7,7 @@ export class MynthAPIError extends Error {
   /** HTTP status code of the failed request */
   public readonly status: number;
   /** Error code from the API response, if available */
-  public readonly code?: string;
+  public readonly code?: string | undefined;
 
   constructor(message: string, status: number, code?: string) {
     super(message);
@@ -25,8 +25,8 @@ type APIErrorResponse = {
 
 type MynthClientRequestOptions = {
   headers?: Record<string, string>;
-  accessToken?: string;
-  auth?: boolean;
+  accessToken?: string | undefined;
+  auth?: boolean | undefined;
 };
 
 function createApiError(data: unknown, status: number) {
@@ -42,10 +42,10 @@ function createApiError(data: unknown, status: number) {
  * @internal
  */
 class MynthClient {
-  private readonly apiKey?: string;
+  private readonly apiKey: string | undefined;
   private readonly baseUrl: string;
 
-  constructor(options: { apiKey?: string; baseUrl?: string }) {
+  constructor(options: { apiKey?: string | undefined; baseUrl?: string | undefined }) {
     this.apiKey = options.apiKey;
     this.baseUrl = options.baseUrl
       ? options.baseUrl.endsWith("/")
@@ -54,7 +54,7 @@ class MynthClient {
       : API_URL;
   }
 
-  getAuthHeaders(override?: { accessToken?: string; auth?: boolean }): Record<string, string> {
+  getAuthHeaders(override?: Omit<MynthClientRequestOptions, "headers">): Record<string, string> {
     if (override?.auth === false) {
       return {};
     }

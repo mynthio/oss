@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { Mynth, MynthImage, MynthVideo, TaskAsync } from "./index";
-import type { MynthSDKTypes } from "./types";
+import { Mynth, MynthImage, MynthVideo, TaskAsync } from "./index.ts";
+import type { MynthSDKTypes } from "./types.ts";
 
 function jsonResponse(data: unknown, init: ResponseInit = {}) {
   return new Response(JSON.stringify(data), {

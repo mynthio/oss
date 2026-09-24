@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-import type { MynthClient } from "./client";
-import { ImageGenerationResult } from "./image-generation-result";
-import type { TaskAsyncPolling } from "./task-async";
+import type { MynthClient } from "./client.ts";
+import { ImageGenerationResult } from "./image-generation-result.ts";
+import type { TaskAsyncPolling } from "./task-async.ts";
 import {
   TaskAsync,
   TaskAsyncFetchError,
@@ -10,8 +10,8 @@ import {
   TaskAsyncTaskFetchError,
   TaskAsyncTimeoutError,
   TaskAsyncUnauthorizedError,
-} from "./task-async";
-import type { MynthSDKTypes } from "./types";
+} from "./task-async.ts";
+import type { MynthSDKTypes } from "./types.ts";
 
 // ============================================================================
 // Test Helpers

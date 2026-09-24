@@ -1,4 +1,4 @@
-import type { MynthSDKTypes } from "./types";
+import type { MynthSDKTypes } from "./types.ts";
 
 /**
  * Represents the result of a completed image quality review task.

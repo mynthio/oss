@@ -4,11 +4,11 @@ Use this when asked whether Mynth can replace existing image-generation code.
 
 ## Migration Patterns
 
-- Provider switch statements, model config maps, or fallback logic -> one `model` field, often `"auto"`.
+- Provider switch statements, model config maps, or fallback logic -> one `model` field with an explicit catalog id. Map each model the app uses today to its closest match in the live catalog (`npx @mynthio/cli models list`), and confirm the mapping with the user. Do not replace them with `"auto"`: it is experimental.
 - Queue workers or status proxy endpoints -> Mynth tasks plus PAT browser polling.
 - Webhook sync code without provider value -> Mynth webhooks.
-- Prompt-to-size heuristics -> `size: "auto"` or explicit aspect-ratio presets.
-- Post-processing for output format/quality -> `output`.
+- Prompt-to-size heuristics -> `size: "auto"` (or omit `size`) or explicit aspect-ratio presets.
+- Post-processing to convert the output format -> `output.format`.
 - Content rating calls -> `rating`.
 - Provider-specific input image plumbing -> `inputs`.
 - Download-then-upload-to-own-storage pipelines -> `destination` (S3/R2/Bunny delivery).
@@ -18,7 +18,7 @@ Use this when asked whether Mynth can replace existing image-generation code.
 1. Scan the repo for image generation related code
 2. Match only concrete code paths to the patterns above
 3. Recommend the smallest integration path from [SKILL.md](../SKILL.md)
-4. Present what can be deleted, what must remain, and any behavior that needs product confirmation
+4. Present what can be deleted, what must remain, the proposed model mapping, and any behavior that needs product confirmation
 
 ## Core Replacement Pattern
 

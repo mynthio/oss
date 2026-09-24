@@ -16,6 +16,7 @@ Constructor options: `{ apiKey?, baseUrl?, destination? }`.
 
 ```ts
 const task = await mynth.image.generate({
+  model: "black-forest-labs/flux.2-pro", // example id; choose from the catalog (SKILL.md)
   prompt: "A sunset over mountains",
 });
 
@@ -29,7 +30,10 @@ console.log(task.getImages());
 `generateAsync()` returns a task ID immediately. Use it for browser polling, background UI states, or webhook-driven persistence.
 
 ```ts
-const taskAsync = await mynth.image.generateAsync({ prompt: "A sunset over mountains" });
+const taskAsync = await mynth.image.generateAsync({
+  model: "black-forest-labs/flux.2-pro",
+  prompt: "A sunset over mountains",
+});
 
 console.log(taskAsync.id);
 console.log(taskAsync.access.publicAccessToken); // safe to send to browser
@@ -41,14 +45,14 @@ const task = await taskAsync.wait(); // optional: still wait server-side
 
 ```ts
 await mynth.image.generate({
+  model: "black-forest-labs/flux.2-pro", // always pass a catalog id; omitted means experimental "auto"
   prompt: "A neon cityscape at night", // required, max 8192 chars
-  model: "black-forest-labs/flux.2-dev", // default "auto" (picked from prompt)
   size: { type: "aspect_ratio", aspectRatio: "16:9" },
   count: 2, // 1-20, default 1
-  output: { format: "webp", quality: 80 }, // png | jpg | webp; default webp/80
+  output: { format: "webp" }, // png | jpg | webp; default: the provider's format
   negative_prompt: "text, watermark",
   magic_prompt: true, // Mynth-side prompt enhancement
-  inputs: ["https://example.com/reference.jpg"], // source/reference images, max 20
+  inputs: ["https://example.com/reference.jpg"], // needs a model with img->img; max 20
   rating: true, // rate generated images; see image-rating.md
   destination: "my-bucket", // deliver to user storage; see destinations.md
   metadata: { userId: "u_123" },
@@ -93,22 +97,46 @@ inputs: [
 ## Working With Results
 
 ```ts
-const task = await mynth.image.generate({ prompt: "A cat astronaut" });
+const task = await mynth.image.generate({
+  model: "black-forest-labs/flux.2-pro",
+  prompt: "A cat astronaut",
+});
 
 task.id;
 task.status; // "pending" | "completed" | "failed"
 task.isCompleted;
 task.isFailed;
 task.urls; // string[] — successful image URLs only
-task.getImages(); // successful images: { url, mynth_url, cost, size, rating?, destination? }
+task.getImages(); // successful images: { id, url, mynth_url, size, format, rating? }
 task.getImages({ includeFailed: true }); // include failed images with error codes
 task.result?.model; // resolved model ID
 task.getMetadata(); // your metadata object
 ```
 
-Each image has `url` (may be `null` when delivered only to a user destination) and `mynth_url` (always the Mynth CDN URL). `task.urls` skips `null` entries; use `getImages()` and read `mynth_url` when destinations are involved.
+Each image has `url` (your storage when a destination was named, `null` if that upload failed) and `mynth_url` (always the Mynth CDN URL, served for 7 days). `task.urls` skips `null` entries; use `getImages()` and read `mynth_url` when destinations are involved.
 
-The SDK also exports `AVAILABLE_MODELS` (model IDs with capability flags like `inputs`, `negative_prompt`, `4k`, `mynth_magic_prompt`) and `MynthSDKTypes` for typed model selection and request objects.
+A completed task can hold failed images: `urls` and `getImages()` skip them. Compare `getImages().length` with `count`, or read `getImages({ includeFailed: true })` for each `error.code`.
+
+## Models
+
+Read the live catalog with `mynth.models.list()` (no API key needed) to find ids, modes, input rules, and prices. See "Choose a Model" in [SKILL.md](../SKILL.md).
+
+The SDK also exports `AVAILABLE_MODELS` and `AVAILABLE_VIDEO_MODELS`, but they are fixed at the package's build time and `AVAILABLE_MODELS` includes `auto`. Use them for types or a picker's defaults, not as the source of which models exist. `MynthSDKTypes` holds the request and result types.
+
+## Video
+
+```ts
+const video = await mynth.video.generate({
+  model: "bytedance/seedance-2.0-mini", // example id; required, video has no auto
+  prompt: "A lighthouse beam sweeping over waves",
+  duration: 5,
+  resolution: "720p",
+});
+
+video.urls;
+```
+
+`video.generate()` waits up to an hour. In request handlers use `video.generateAsync()` and finish in a webhook. `video.estimate()` prices a body. Video takes no `destination`. Details: https://mynth.io/docs/guides/generate-video.md
 
 ## Alt Text
 
@@ -152,7 +180,7 @@ result.image.url;
 import { MynthAPIError, TaskAsyncTimeoutError, TaskAsyncTaskFailedError } from "@mynthio/sdk";
 
 try {
-  const task = await mynth.image.generate({ prompt: "..." });
+  const task = await mynth.image.generate({ model: "black-forest-labs/flux.2-pro", prompt: "..." });
 } catch (error) {
   if (error instanceof MynthAPIError) {
     console.error(error.status, error.code, error.message);

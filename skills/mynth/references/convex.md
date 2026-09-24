@@ -9,7 +9,12 @@ bun add @mynthio/sdk
 Define in your `convex/http.ts`:
 
 ```ts
+import { httpRouter } from "convex/server";
 import { mynthWebhookAction } from "@mynthio/sdk/convex";
+
+import { internal } from "./_generated/api";
+
+const http = httpRouter();
 
 export const mynthWebhook = mynthWebhookAction({
   imageTaskCompleted: async (payload, { context }) => {
@@ -22,19 +27,25 @@ export const mynthWebhook = mynthWebhookAction({
     console.error("Task failed:", payload.task.id);
   },
   imageRateTaskCompleted: async (payload, { context }) => {
-    await context.runMutation(internal.images.saveRatings, {
+    await context.runMutation(internal.images.saveRating, {
       taskId: payload.task.id,
-      results: payload.result.results,
+      level: payload.result.level,
     });
   },
   imageAltTaskCompleted: async (payload, { context }) => {
-    await context.runMutation(internal.images.saveAltTexts, {
+    await context.runMutation(internal.images.saveAltText, {
       taskId: payload.task.id,
-      results: payload.result.results,
+      alt: payload.result.alt,
     });
   },
 });
+
+http.route({ path: "/mynth-webhook", method: "POST", handler: mynthWebhook });
+
+export default http;
 ```
+
+Register `https://<deployment>.convex.site/mynth-webhook` as the webhook URL. Generate from a Convex **action** (queries and mutations cannot make network calls), usually with `generateAsync()` and an explicit `model`, and save the result in the webhook.
 
 Set `MYNTH_WEBHOOK_SECRET` in Convex, or pass it explicitly:
 
@@ -59,3 +70,7 @@ The helper verifies `X-Mynth-Signature` and routes:
 - `task.image.alt.failed` to `imageAltTaskFailed`
 - `task.image.remove_background.completed` to `imageRemoveBackgroundTaskCompleted`
 - `task.image.remove_background.failed` to `imageRemoveBackgroundTaskFailed`
+- `task.image.review.completed` / `.failed` to `imageReviewTaskCompleted` / `imageReviewTaskFailed`
+- `task.video.generate.completed` / `.failed` to `videoTaskCompleted` / `videoTaskFailed`
+
+`mynthWebhookAction` returns a Convex HTTP action; pass it to `http.route` directly, without `httpAction`. It answers `400` for a missing or bad signature, a timestamp more than five minutes off, or an `X-Mynth-Event` header that does not match the body, and `200` for a signed event without a handler. A handler that throws fails the request, so Mynth retries. The secret is read when each request arrives, and a missing one throws.

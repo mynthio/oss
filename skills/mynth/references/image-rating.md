@@ -26,6 +26,7 @@ Pass `rating` in the generate request. `true` is shorthand for the default mode.
 
 ```ts
 const task = await mynth.image.generate({
+  model: "black-forest-labs/flux.2-pro",
   prompt: "A sunset",
   rating: true, // or { mode: "nsfw_sfw" } or { mode: "custom", levels: [...] }
 });
@@ -68,4 +69,4 @@ Response (201):
 }
 ```
 
-Poll `/tasks/:id` for `{ "result": { "level": "sfw" } }` or use the `task.image.rate.completed` webhook. On failure the task is `failed`.
+Rating during generation costs $0; a standalone rating costs $0.0002. Poll `/tasks/:id` for `{ "result": { "level": "sfw" } }` or use the `task.image.rate.completed` webhook. On failure the task is `failed`.

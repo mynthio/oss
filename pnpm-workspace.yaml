@@ -9,3 +9,8 @@ linkWorkspacePackages: false
 # pnpm does not run a dependency's install scripts unless it is allowed here.
 allowBuilds:
   esbuild: false # Pulled in by convex and the example app; its postinstall only checks the platform binary
+
+# The adapter pins the SDK we publish ourselves, so it must install a release
+# minutes after it lands instead of waiting out the release-age window.
+minimumReleaseAgeExclude:
+  - "@mynthio/sdk"

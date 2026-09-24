@@ -1,5 +1,5 @@
 import type { MynthSDKTypes } from "@mynthio/sdk";
-import type { MynthImageInputModel, MynthImageModel } from "./model-meta";
+import type { MynthImageInputModel, MynthImageModel } from "./model-meta.ts";
 
 // ============================================================================
 // Size Types

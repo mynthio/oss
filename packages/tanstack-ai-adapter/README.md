@@ -270,18 +270,18 @@ Type union of the model IDs that accept image inputs.
 From [`public/oss`](../../):
 
 ```bash
-bun install
-bun run build
-bun run test
-bun run typecheck
+pnpm install
+pnpm build
+pnpm test
+pnpm typecheck
 ```
 
 Package-local commands also work from this directory:
 
 ```bash
-bun run build
-bun run test
-bun run typecheck
+pnpm build
+pnpm test
+pnpm typecheck
 ```
 
 ## Contributing

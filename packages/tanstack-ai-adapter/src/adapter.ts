@@ -10,15 +10,15 @@ import type {
 import { resolveMediaPrompt } from "@tanstack/ai";
 import { BaseImageAdapter } from "@tanstack/ai/adapters";
 
-import type { MynthImageModel } from "./model-meta";
+import type { MynthImageModel } from "./model-meta.ts";
 import type {
   MynthImageModelInputModalitiesByName,
   MynthImageModelProviderOptionsByName,
   MynthImageModelSizeByName,
   MynthImageProviderOptions,
   MynthImageShorthandSize,
-} from "./provider-options";
-import type { MynthImageConfig } from "./types";
+} from "./provider-options.ts";
+import type { MynthImageConfig } from "./types.ts";
 
 /**
  * Map a TanStack media-input role onto a Mynth image input role (`as`).

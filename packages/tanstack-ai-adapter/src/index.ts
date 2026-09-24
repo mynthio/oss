@@ -2,15 +2,15 @@
 // Image Adapter
 // ============================================================================
 
-export { createMynthImage, mynthImage, MynthImageAdapter } from "./adapter";
-export type { MynthImageProvider } from "./adapter";
+export { createMynthImage, mynthImage, MynthImageAdapter } from "./adapter.ts";
+export type { MynthImageProvider } from "./adapter.ts";
 
 // ============================================================================
 // Model Metadata
 // ============================================================================
 
-export { MYNTH_IMAGE_INPUT_MODELS, MYNTH_IMAGE_MODELS } from "./model-meta";
-export type { MynthImageInputModel, MynthImageModel } from "./model-meta";
+export { MYNTH_IMAGE_INPUT_MODELS, MYNTH_IMAGE_MODELS } from "./model-meta.ts";
+export type { MynthImageInputModel, MynthImageModel } from "./model-meta.ts";
 
 // ============================================================================
 // Provider Types
@@ -23,10 +23,10 @@ export type {
   MynthImagePromptStructured,
   MynthImageShorthandSize,
   MynthImageProviderOptions,
-} from "./provider-options";
+} from "./provider-options.ts";
 
 // ============================================================================
 // Configuration
 // ============================================================================
 
-export type { MynthImageConfig } from "./types";
+export type { MynthImageConfig } from "./types.ts";

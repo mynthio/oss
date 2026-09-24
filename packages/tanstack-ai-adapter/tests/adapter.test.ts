@@ -1,7 +1,11 @@
 import type { ImageGenerationOptions } from "@tanstack/ai";
+import { resolveDebugOption } from "@tanstack/ai/adapter-internals";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { MynthImageProviderOptions, MynthImageShorthandSize } from "../src/provider-options";
+import type {
+  MynthImageProviderOptions,
+  MynthImageShorthandSize,
+} from "../src/provider-options.ts";
 
 const { generateMock, MockMynth, MockMynthImage } = vi.hoisted(() => {
   const generate = vi.fn();
@@ -35,7 +39,7 @@ vi.mock("@mynthio/sdk", () => {
 
 const DEFAULT_MODEL = "krea/krea-2-large" as const;
 
-const { MynthImageAdapter, createMynthImage, mynthImage } = await import("../src/adapter");
+const { MynthImageAdapter, createMynthImage, mynthImage } = await import("../src/adapter.ts");
 
 function createMockTask(
   overrides: {
@@ -63,6 +67,9 @@ function createMockTask(
   };
 }
 
+/** TanStack AI always hands adapters a logger; this one has every category off. */
+const silentLogger = resolveDebugOption(false);
+
 function createOptions(
   overrides: Partial<
     ImageGenerationOptions<MynthImageProviderOptions, MynthImageShorthandSize>
@@ -71,6 +78,7 @@ function createOptions(
   return {
     model: DEFAULT_MODEL,
     prompt: "A beautiful sunset",
+    logger: silentLogger,
     ...overrides,
   };
 }
@@ -88,6 +96,7 @@ describe("MynthImageAdapter", () => {
       const options: ImageGenerationOptions<MynthImageProviderOptions, "auto"> = {
         model: "auto",
         prompt: "test",
+        logger: silentLogger,
       };
 
       // Act

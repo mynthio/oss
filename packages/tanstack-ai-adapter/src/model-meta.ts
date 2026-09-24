@@ -1,10 +1,9 @@
-import type { MynthSDKTypes } from "@mynthio/sdk";
+// tests/model-meta.test.ts checks that every ID below remains valid for the SDK.
 
 /**
  * All Mynth image model IDs as a const array.
  *
- * Keeping this as a runtime array makes it easy for apps to build selectors
- * while `satisfies` ensures every exported model ID remains valid for the SDK.
+ * Keeping this as a runtime array makes it easy for apps to build selectors.
  */
 export const MYNTH_IMAGE_MODELS = [
   "auto",
@@ -59,7 +58,7 @@ export const MYNTH_IMAGE_MODELS = [
   "xai/grok-imagine-image",
   "xai/grok-imagine-image-2.0",
   "xai/grok-imagine-image-quality",
-] as const satisfies ReadonlyArray<MynthSDKTypes.ImageGenerationModel>;
+] as const;
 
 /**
  * Union of all Mynth image model IDs.
@@ -114,7 +113,7 @@ export const MYNTH_IMAGE_INPUT_MODELS = [
   "xai/grok-imagine-image",
   "xai/grok-imagine-image-2.0",
   "xai/grok-imagine-image-quality",
-] as const satisfies ReadonlyArray<MynthImageModel>;
+] as const;
 
 /**
  * Union of Mynth image model IDs that accept image inputs.

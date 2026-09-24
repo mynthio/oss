@@ -1,0 +1,11 @@
+packages:
+  - "packages/*"
+  - "examples/*"
+
+# A local package is only linked when a dependency asks for it with
+# `workspace:`, never by a coincidental version match.
+linkWorkspacePackages: false
+
+# pnpm does not run a dependency's install scripts unless it is allowed here.
+allowBuilds:
+  esbuild: false # Pulled in by convex and the example app; its postinstall only checks the platform binary

@@ -1,25 +1,29 @@
 # Contributing
 
-This is a Turborepo monorepo. CI, automated release PRs, GitHub Releases, and npm publishing are handled via GitHub Actions.
+This is a pnpm + Turborepo monorepo on Node 24. `pnpm` reads the Node version from `devEngines` in the root `package.json` and downloads it if needed. CI, automated release PRs, GitHub Releases, and npm publishing are handled via GitHub Actions.
+
+Published packages are bundled with [tsdown](https://tsdown.dev). Each build also runs [publint](https://publint.dev) and [Are the Types Wrong?](https://arethetypeswrong.github.io), and fails on any warning they report.
 
 ## Development
 
 ```bash
-bun install
-bun run lint        # turbo run lint (all packages)
-bun run format:check
-bun run typecheck
-bun run test
-bun run build
+pnpm install
+pnpm lint
+pnpm format:check
+pnpm typecheck
+pnpm test
+pnpm build
 ```
 
 To work on a specific package:
 
 ```bash
 cd packages/sdk
-bun run test
-bun run build
+pnpm test
+pnpm build
 ```
+
+Source files import each other with explicit `.ts` extensions (enforced by lint), so they also run directly under Node.
 
 Open a pull request against `main`.
 

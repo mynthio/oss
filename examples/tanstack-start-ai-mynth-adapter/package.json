@@ -13,11 +13,11 @@
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.8",
-    "@mynthio/tanstack-ai-adapter": "^0.0.15",
+    "@mynthio/tanstack-ai-adapter": "workspace:*",
     "@tabler/icons-react": "^3.41.1",
     "@tailwindcss/vite": "^4.2.2",
-    "@tanstack/ai": "^0.34.1",
-    "@tanstack/ai-react": "^0.15.12",
+    "@tanstack/ai": "^0.58.0",
+    "@tanstack/ai-react": "^0.27.3",
     "@tanstack/react-devtools": "latest",
     "@tanstack/react-router": "latest",
     "@tanstack/react-router-devtools": "latest",
@@ -28,7 +28,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.7.0",
-    "nitro": "^3.0.260311-beta",
+    "nitro": "^3.0.260903-beta",
     "radix-ui": "^1.4.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
@@ -45,8 +45,7 @@
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^6.0.1",
     "typescript": "^6.0.2",
-    "vite": "^8.0.3",
-    "vite-tsconfig-paths": "^6.1.1"
+    "vite": "^8.0.3"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

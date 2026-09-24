@@ -2,7 +2,7 @@
   "projectName": "tanstack-start-ai-mynth-adapter",
   "mode": "file-router",
   "typescript": true,
-  "packageManager": "bun",
+  "packageManager": "pnpm",
   "includeExamples": false,
   "tailwind": true,
   "addOnOptions": {},

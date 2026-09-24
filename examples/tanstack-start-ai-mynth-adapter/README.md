@@ -33,20 +33,14 @@ export MYNTH_API_KEY=mak_your_key_here
 ## Run
 
 ```bash
-bun install
-bun --bun run dev
+pnpm install
+pnpm dev
 ```
 
 ## Build
 
 ```bash
-bun --bun run build
-```
-
-## Test
-
-```bash
-bun --bun run test
+pnpm build
 ```
 
 ## Files to look at

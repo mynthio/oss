@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.0.31](https://github.com/mynthio/oss/compare/tan-ai-v0.0.30...tan-ai-v0.0.31) (2026-09-25)
+
+
+### Features
+
+* **sdk:** add Seedream 5.0 Flash ([#117](https://github.com/mynthio/oss/issues/117)) ([1bb67f0](https://github.com/mynthio/oss/commit/1bb67f00ab4d4e326b964da2e8d69f56024d5c6d))
+
+
+### Bug Fixes
+
+* **cli:** map 402 to the insufficient-credits exit code ([#118](https://github.com/mynthio/oss/issues/118)) ([876ea1a](https://github.com/mynthio/oss/commit/876ea1a5be16823dab88cafef671085298e98858))
+* **tan-ai:** keep the image model list in sync with the SDK ([80cae8e](https://github.com/mynthio/oss/commit/80cae8e457aa539669535b2bb6691bd6edbbabd8))
+* **tan-ai:** omit Seedream 5.0 Flash until SDK release ([981f19c](https://github.com/mynthio/oss/commit/981f19c10e067d3b6c06349c7130c6557b9c406d))
+* **tan-ai:** sync models and types with SDK 0.0.43 ([9c37d85](https://github.com/mynthio/oss/commit/9c37d857e0b7efbdcc6be0a373b3a3b76d4cbf49))
+
 ## [0.0.30](https://github.com/mynthio/oss/compare/tan-ai-v0.0.29...tan-ai-v0.0.30) (2026-09-25)
 
 

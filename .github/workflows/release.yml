@@ -23,28 +23,29 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+      # Installs pnpm from packageManager, Node from devEngines.runtime,
+      # and runs `pnpm install` itself.
+      - name: Setup pnpm and Node
+        uses: pnpm/setup@v2
+        with:
+          cache: true
 
       - name: Lint
-        run: bun run lint
+        run: pnpm run lint
 
       - name: Format check
-        run: bun run format:check
+        run: pnpm run format:check
 
       - name: Type check
-        run: bun run typecheck
+        run: pnpm run typecheck
 
       - name: Run tests
-        run: bun run test
+        run: pnpm run test
 
       - name: Build
-        run: bun run build
+        run: pnpm run build
 
   release:
     name: Release
@@ -90,29 +91,30 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.ref }}
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      # Release Please only bumps each package's own version, which pnpm-lock.yaml
+      # does not record, so the frozen install still matches on release commits.
+      - name: Setup pnpm and Node
+        uses: pnpm/setup@v2
+        with:
+          cache: true
 
+      # Trusted publishing (OIDC) needs npm >= 11.5.1, which ships with Node 24.
       - name: Setup Node.js for npm publish
         uses: actions/setup-node@v6
         with:
           node-version: "24"
 
-      - name: Install dependencies
-        # Release Please bumps workspace package versions without syncing bun.lock.
-        # Use a non-frozen install here so publish can proceed from the release commit.
-        run: bun install
-
-      - name: Build SDK dependency
-        if: matrix.path == 'packages/tanstack-ai-adapter'
-        run: cd packages/sdk && bun run build
-
+      # Turbo builds workspace dependencies first (the adapter needs the SDK).
       - name: Build
-        run: cd ${{ matrix.path }} && bun run build
+        run: pnpm exec turbo run build --filter=./${{ matrix.path }}
 
+      # `pnpm pack` replaces `workspace:` ranges with real versions; npm then
+      # publishes that tarball with provenance through trusted publishing.
       - name: Publish package to npm
-        run: cd ${{ matrix.path }} && npm publish --provenance --access public
+        run: |
+          pnpm --dir ${{ matrix.path }} pack --pack-destination "$RUNNER_TEMP/pack"
+          npm publish "$RUNNER_TEMP"/pack/*.tgz --provenance --access public

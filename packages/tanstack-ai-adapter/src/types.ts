@@ -6,13 +6,18 @@
  */
 export interface MynthImageConfig {
   /** Mynth API key. If not provided, reads from MYNTH_API_KEY env var. */
-  apiKey?: string;
+  apiKey?: string | undefined;
   /** Custom base URL for the Mynth API. */
-  baseUrl?: string;
+  baseUrl?: string | undefined;
   /**
    * Default destination name (slug) for generated images.
    * If not provided, reads from MYNTH_DESTINATION env var.
    * Can be overridden per-request via provider options.
    */
-  destination?: string;
+  destination?: string | undefined;
 }
+
+/**
+ * Configuration for the Mynth files adapter.
+ */
+export type MynthFilesConfig = Pick<MynthImageConfig, "apiKey" | "baseUrl">;

@@ -26,7 +26,7 @@ export const runCli = (
   env: NodeJS.ProcessEnv = {},
 ): Promise<CliResult> =>
   new Promise((resolvePromise, reject) => {
-    const child = spawn("bun", ["run", "./src/bin.ts", ...args], {
+    const child = spawn(process.execPath, ["./src/bin.ts", ...args], {
       cwd: packageRoot,
       env: {
         ...process.env,

@@ -1,10 +1,9 @@
-import type { MynthSDKTypes } from "@mynthio/sdk";
+// tests/model-meta.test.ts checks every list below against the SDK's AVAILABLE_MODELS.
 
 /**
  * All Mynth image model IDs as a const array.
  *
- * Keeping this as a runtime array makes it easy for apps to build selectors
- * while `satisfies` ensures every exported model ID remains valid for the SDK.
+ * Keeping this as a runtime array makes it easy for apps to build selectors.
  */
 export const MYNTH_IMAGE_MODELS = [
   "auto",
@@ -59,7 +58,7 @@ export const MYNTH_IMAGE_MODELS = [
   "xai/grok-imagine-image",
   "xai/grok-imagine-image-2.0",
   "xai/grok-imagine-image-quality",
-] as const satisfies ReadonlyArray<MynthSDKTypes.ImageGenerationModel>;
+] as const;
 
 /**
  * Union of all Mynth image model IDs.
@@ -114,9 +113,43 @@ export const MYNTH_IMAGE_INPUT_MODELS = [
   "xai/grok-imagine-image",
   "xai/grok-imagine-image-2.0",
   "xai/grok-imagine-image-quality",
-] as const satisfies ReadonlyArray<MynthImageModel>;
+] as const;
 
 /**
  * Union of Mynth image model IDs that accept image inputs.
  */
 export type MynthImageInputModel = (typeof MYNTH_IMAGE_INPUT_MODELS)[number];
+
+/**
+ * Mynth image models that take a native negative prompt. Other models only use
+ * a negative prompt to steer magic prompt. Mirrors the `negative_prompt`
+ * capability in the SDK's `AVAILABLE_MODELS`.
+ */
+export const MYNTH_IMAGE_NEGATIVE_PROMPT_MODELS = [
+  "john6666/bismuth-illustrious-mix",
+  "maxfeifei8/one-obsession",
+  "purplesmartai/pony-diffusion-v6-xl",
+] as const;
+
+/**
+ * Union of Mynth image model IDs that take a native negative prompt.
+ */
+export type MynthImageNegativePromptModel = (typeof MYNTH_IMAGE_NEGATIVE_PROMPT_MODELS)[number];
+
+/**
+ * Mynth image models that can output at 4k scale (`_4k` size presets and
+ * `scale: "4k"`). Mirrors the `4k` capability in the SDK's `AVAILABLE_MODELS`.
+ */
+export const MYNTH_IMAGE_4K_MODELS = [
+  "klingai/kling-image-o3",
+  "sourceful/riverflow-2.0-pro",
+  "google/gemini-3.1-flash-image",
+  "google/gemini-3-pro-image-preview",
+  "imagineart/imagineart-1.5-pro",
+  "wan/wan2.7-image-pro",
+] as const;
+
+/**
+ * Union of Mynth image model IDs that can output at 4k scale.
+ */
+export type MynthImage4kModel = (typeof MYNTH_IMAGE_4K_MODELS)[number];

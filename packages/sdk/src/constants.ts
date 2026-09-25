@@ -26,9 +26,8 @@ export const TASK_STATUS_PATH = (id: string) => `${TASK_PATH}/${id}/status`;
  * - `negative_prompt`: Supports structured negative prompts
  * - `inputs`: Supports input images
  * - `4k`: Supports 4k resolution output
- * - `native_enhance_prompt`: Supports provider-native prompt enhancement
  */
-export type ModelCapability = "inputs" | "negative_prompt" | "4k" | "native_enhance_prompt";
+export type ModelCapability = "inputs" | "negative_prompt" | "4k";
 
 /**
  * Information about an available image generation model.
@@ -55,22 +54,22 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
   {
     id: "alibaba/qwen-image-2.0",
     label: "Qwen Image 2.0",
-    capabilities: ["inputs", "native_enhance_prompt"],
+    capabilities: ["inputs"],
   },
   {
     id: "alibaba/qwen-image-2.0-pro",
     label: "Qwen Image 2.0 Pro",
-    capabilities: ["inputs", "native_enhance_prompt"],
+    capabilities: ["inputs"],
   },
   {
     id: "alibaba/qwen-image-3.0",
     label: "Qwen Image 3.0",
-    capabilities: ["inputs", "native_enhance_prompt"],
+    capabilities: ["inputs"],
   },
   {
     id: "alibaba/qwen-image-3.0-pro",
     label: "Qwen Image 3.0 Pro",
-    capabilities: ["inputs", "native_enhance_prompt"],
+    capabilities: ["inputs"],
   },
   {
     id: "bytedance/seedream-5.0-lite",
@@ -223,6 +222,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: [],
   },
   {
+    id: "recraft/recraft-v4.1-flash",
+    label: "Recraft V4.1 Flash",
+    capabilities: [],
+  },
+  {
     id: "recraft/recraft-v4-pro",
     label: "Recraft V4 Pro",
     capabilities: [],
@@ -240,22 +244,22 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
   {
     id: "sourceful/riverflow-2.0-pro",
     label: "Riverflow 2.0 Pro",
-    capabilities: ["inputs", "4k", "native_enhance_prompt"],
+    capabilities: ["inputs", "4k"],
   },
   {
     id: "google/gemini-3.1-flash-lite-image",
     label: "Nano Banana 2 Lite",
-    capabilities: ["inputs", "native_enhance_prompt"],
+    capabilities: ["inputs"],
   },
   {
     id: "google/gemini-3.1-flash-image",
     label: "Nano Banana 2",
-    capabilities: ["inputs", "4k", "native_enhance_prompt"],
+    capabilities: ["inputs", "4k"],
   },
   {
     id: "google/gemini-3-pro-image-preview",
     label: "Nano Banana Pro",
-    capabilities: ["inputs", "4k", "native_enhance_prompt"],
+    capabilities: ["inputs", "4k"],
   },
   {
     id: "imagineart/imagineart-1.5-pro",
@@ -322,7 +326,7 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
  * wait budget is an hour instead of the 30 minutes image tasks get.
  */
 export const VIDEO_POLLING = {
-  timeoutMs: 60 * 60 * 1000,
+  timeoutMs: 3_600_000, // 1 hour
   fastDurationMs: 0,
   intervalMs: 10_000,
 } as const;

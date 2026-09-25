@@ -53,7 +53,7 @@ type ParsedInput = {
 type GenerateOptions = JsonFlag &
   LevelOptions &
   DeliveryOptions & {
-    readonly prompt?: string;
+    readonly prompt: string;
     readonly negative?: string;
     readonly magicPrompt?: boolean;
     readonly model?: string;
@@ -114,7 +114,7 @@ const buildRequest = async (
   }));
 
   return {
-    prompt: options.prompt ?? "",
+    prompt: options.prompt,
     ...(options.model !== undefined ? { model: options.model } : {}),
     ...(options.negative !== undefined ? { negative_prompt: options.negative } : {}),
     ...(options.magicPrompt === true ? { magic_prompt: true } : {}),
@@ -144,7 +144,7 @@ export const generateCommand = (app: App): Command => {
   const generate = new Command("generate")
     .description("Generate images with Mynth")
     .addHelpText("after", "\nBrowse models with: mynth models list")
-    .option("-p, --prompt <text>", "Text prompt describing the image to generate")
+    .requiredOption("-p, --prompt <text>", "Text prompt describing the image to generate")
     .option("-n, --negative <text>", "Negative prompt: elements to exclude")
     .option("--magic-prompt", "Let Mynth expand the prompt before generating")
     .option("-m, --model <id>", 'Model ID (e.g. "black-forest-labs/flux.2-pro"). Default: auto')

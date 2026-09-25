@@ -9,10 +9,7 @@ export const docsCommand = (app: App): Command => {
   docs
     .command("get")
     .description("Fetch a documentation page as Markdown")
-    .argument(
-      "<path>",
-      "Documentation path, without the .md suffix (e.g. guides/async-and-polling)",
-    )
+    .argument("<path>", "Documentation path, without the .md suffix (e.g. concepts/tasks)")
     .addOption(jsonOption())
     .action(async (path: string, options: JsonFlag) => {
       const page = await app.docs.get(path);

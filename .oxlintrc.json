@@ -8,5 +8,18 @@
     "@typescript-eslint/no-explicit-any": "warn",
     "@typescript-eslint/no-unused-vars": "warn",
     "import/no-cycle": "error"
-  }
+  },
+  "overrides": [
+    {
+      // Relative imports name the real file, so sources run directly under Node.
+      "files": ["packages/*/**/*.ts"],
+      "rules": {
+        "import/extensions": [
+          "error",
+          "always",
+          { "ignorePackages": true, "checkTypeImports": true }
+        ]
+      }
+    }
+  ]
 }

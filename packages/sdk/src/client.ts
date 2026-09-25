@@ -1,4 +1,4 @@
-import { API_URL } from "./constants";
+import { API_URL } from "./constants.ts";
 
 /**
  * Error thrown when an API request fails.
@@ -7,7 +7,7 @@ export class MynthAPIError extends Error {
   /** HTTP status code of the failed request */
   public readonly status: number;
   /** Error code from the API response, if available */
-  public readonly code?: string;
+  public readonly code?: string | undefined;
 
   constructor(message: string, status: number, code?: string) {
     super(message);
@@ -25,8 +25,9 @@ type APIErrorResponse = {
 
 type MynthClientRequestOptions = {
   headers?: Record<string, string>;
-  accessToken?: string;
-  auth?: boolean;
+  accessToken?: string | undefined;
+  auth?: boolean | undefined;
+  signal?: AbortSignal | undefined;
 };
 
 function createApiError(data: unknown, status: number) {
@@ -42,10 +43,10 @@ function createApiError(data: unknown, status: number) {
  * @internal
  */
 class MynthClient {
-  private readonly apiKey?: string;
+  private readonly apiKey: string | undefined;
   private readonly baseUrl: string;
 
-  constructor(options: { apiKey?: string; baseUrl?: string }) {
+  constructor(options: { apiKey?: string | undefined; baseUrl?: string | undefined }) {
     this.apiKey = options.apiKey;
     this.baseUrl = options.baseUrl
       ? options.baseUrl.endsWith("/")
@@ -54,7 +55,9 @@ class MynthClient {
       : API_URL;
   }
 
-  getAuthHeaders(override?: { accessToken?: string; auth?: boolean }): Record<string, string> {
+  getAuthHeaders(
+    override?: Pick<MynthClientRequestOptions, "accessToken" | "auth">,
+  ): Record<string, string> {
     if (override?.auth === false) {
       return {};
     }
@@ -68,7 +71,11 @@ class MynthClient {
     return `${this.baseUrl}${path}`;
   }
 
-  public async post<DataType>(path: string, data: unknown): Promise<DataType> {
+  public async post<DataType>(
+    path: string,
+    data: unknown,
+    { signal }: Pick<MynthClientRequestOptions, "signal"> = {},
+  ): Promise<DataType> {
     const isFormData = typeof FormData !== "undefined" && data instanceof FormData;
     const response = await fetch(this.getUrl(path), {
       method: "POST",
@@ -77,6 +84,7 @@ class MynthClient {
         ...this.getAuthHeaders(),
       },
       body: isFormData ? data : JSON.stringify(data),
+      ...(signal ? { signal } : {}),
     });
 
     const json = await response.json();
@@ -90,13 +98,14 @@ class MynthClient {
 
   public async get<DataType>(
     path: string,
-    { headers, accessToken, auth }: MynthClientRequestOptions = {},
+    { headers, accessToken, auth, signal }: MynthClientRequestOptions = {},
   ): Promise<{ data: DataType; status: number; ok: boolean }> {
     const response = await fetch(this.getUrl(path), {
       headers: {
         ...this.getAuthHeaders({ accessToken, auth }),
         ...headers,
       },
+      ...(signal ? { signal } : {}),
     });
 
     const data = (await response.json()) as DataType;

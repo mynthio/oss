@@ -1,6 +1,15 @@
 /** Environment variable used when no webhook secret is passed explicitly. */
 const WEBHOOK_SECRET_ENV_VAR = "MYNTH_WEBHOOK_SECRET";
 
+/** Maximum allowed distance between the signature timestamp and the local clock. */
+export const SIGNATURE_TOLERANCE_SECONDS: number = 5 * 60;
+
+/** Hex-encoded HMAC-SHA256 digests are always 32 bytes. */
+const SIGNATURE_PATTERN = /^[0-9a-f]{64}$/i;
+const TIMESTAMP_PATTERN = /^\d{1,15}$/;
+
+const encoder = new TextEncoder();
+
 /** Read the webhook secret without assuming a Node.js runtime. */
 export function getWebhookSecretFromEnv(): string | undefined {
   if (typeof process !== "undefined" && process.env) {
@@ -10,21 +19,27 @@ export function getWebhookSecretFromEnv(): string | undefined {
   return undefined;
 }
 
-function parseSignatureHeader(signatureHeader: string): {
-  timestamp: number;
-  signatures: string[];
-} | null {
-  let timestamp: number | undefined;
-  const signatures: string[] = [];
+type ParsedSignatureHeader = {
+  /** The timestamp exactly as sent, because the signed message uses its original digits. */
+  timestamp: string;
+  signatures: Uint8Array<ArrayBuffer>[];
+};
+
+function parseSignatureHeader(signatureHeader: string): ParsedSignatureHeader | null {
+  let timestamp: string | undefined;
+  const signatures: Uint8Array<ArrayBuffer>[] = [];
 
   for (const part of signatureHeader.split(",")) {
-    const [key, value] = part.trim().split("=", 2);
+    const separator = part.indexOf("=");
+    if (separator === -1) continue;
 
-    if (key === "t" && value !== undefined) {
-      const parsed = Number(value);
-      if (Number.isSafeInteger(parsed)) timestamp = parsed;
-    } else if (key === "v1" && value) {
-      signatures.push(value);
+    const key = part.slice(0, separator).trim();
+    const value = part.slice(separator + 1).trim();
+
+    if (key === "t" && TIMESTAMP_PATTERN.test(value)) {
+      timestamp = value;
+    } else if (key === "v1" && SIGNATURE_PATTERN.test(value)) {
+      signatures.push(hexToBytes(value));
     }
   }
 
@@ -33,58 +48,54 @@ function parseSignatureHeader(signatureHeader: string): {
   return { timestamp, signatures };
 }
 
-/** Verify a Mynth HMAC-SHA256 signature against the unmodified request body. */
+/**
+ * Verify a Mynth HMAC-SHA256 signature against the raw request body.
+ *
+ * Rejects timestamps more than five minutes from `now` to limit replays. The
+ * comparison runs inside Web Crypto, so it does not leak timing information.
+ */
 export async function verifySignature(
-  body: string,
+  body: Uint8Array<ArrayBuffer>,
   signatureHeader: string,
   secret: string,
-  toleranceSeconds?: number,
+  now: number = Date.now(),
 ): Promise<boolean> {
   const parsed = parseSignatureHeader(signatureHeader);
   if (!parsed) return false;
 
-  if (
-    toleranceSeconds !== undefined &&
-    Math.abs(Math.floor(Date.now() / 1000) - parsed.timestamp) > toleranceSeconds
-  ) {
-    return false;
-  }
+  const ageSeconds = Math.floor(now / 1000) - Number(parsed.timestamp);
+  if (Math.abs(ageSeconds) > SIGNATURE_TOLERANCE_SECONDS) return false;
 
-  const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
     "raw",
     encoder.encode(secret),
     { name: "HMAC", hash: "SHA-256" },
     false,
-    ["sign"],
+    ["verify"],
   );
-  const signed = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    encoder.encode(`${parsed.timestamp}.${body}`),
-  );
-  const expected = toHex(new Uint8Array(signed));
+  const message = concatBytes(encoder.encode(`${parsed.timestamp}.`), body);
 
-  return parsed.signatures.some((signature) => timingSafeEqual(expected, signature));
-}
-
-function toHex(bytes: Uint8Array): string {
-  let hex = "";
-
-  for (const byte of bytes) {
-    hex += byte.toString(16).padStart(2, "0");
+  for (const signature of parsed.signatures) {
+    if (await crypto.subtle.verify("HMAC", key, signature, message)) return true;
   }
 
-  return hex;
+  return false;
 }
 
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
+function hexToBytes(hex: string): Uint8Array<ArrayBuffer> {
+  const bytes = new Uint8Array(hex.length / 2);
 
-  let result = 0;
-  for (let i = 0; i < a.length; i++) {
-    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
   }
 
-  return result === 0;
+  return bytes;
+}
+
+function concatBytes(a: Uint8Array, b: Uint8Array): Uint8Array<ArrayBuffer> {
+  const bytes = new Uint8Array(a.length + b.length);
+  bytes.set(a);
+  bytes.set(b, a.length);
+
+  return bytes;
 }

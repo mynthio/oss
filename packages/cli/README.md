@@ -237,19 +237,22 @@ mynth webhook delete whk_... --yes
 The signing secret is printed once, on create, and cannot be retrieved again.
 
 By default a webhook only receives tasks created with an **API key** — that matches where webhooks
-are actually consumed, on a server. Pass `--oauth-events` to also receive tasks created by OAuth
-sessions (this CLI, the playground).
+are actually consumed, on a server. Tasks from this CLI carry the key from `auth login`, so they
+deliver on the default. Pass `--oauth-events` to also receive tasks that have no API key, such as
+playground runs.
 
 ## Documentation
 
 ```bash
-mynth docs get guides/async-and-polling
+mynth docs get concepts/tasks
 mynth docs list
-mynth docs get reference/webhooks --json
+mynth docs get api-reference/webhook-payloads --json
 ```
 
-Paths take an optional leading slash and must not include the `.md` suffix. Documentation commands
-need no authentication.
+Pages come from `https://mynth.io/docs/<path>.md` and the index from `https://mynth.io/llms.txt`.
+Set `MYNTH_DOCS_URL` to read another host. Paths take an optional leading slash and must not
+include the `.md` suffix. `index` is the introduction. Documentation commands need no
+authentication.
 
 ## Exit codes
 
@@ -283,11 +286,11 @@ failure exits 1.
 
 ```bash
 cd packages/cli
-bun install
-bun run dev -- --help   # run from source
-bun run build           # bundle to dist/bin.js
-bun run test
-bun run typecheck
+pnpm install
+pnpm dev --help   # run from source (Node 24 strips the types)
+pnpm build        # bundle to dist/bin.js
+pnpm test
+pnpm typecheck
 ```
 
 ### Layout

@@ -1,6 +1,6 @@
-import { MynthAPIError, MynthClient } from "./client";
-import type { AvailableModel, ModelCapability } from "./constants";
-import type { AvailableVideoModel, VideoInputRole, VideoResolutionTier } from "./constants";
+import { MynthAPIError, MynthClient } from "./client.ts";
+import type { AvailableModel, ModelCapability } from "./constants.ts";
+import type { AvailableVideoModel, VideoInputRole, VideoResolutionTier } from "./constants.ts";
 import {
   ALT_IMAGE_PATH,
   API_KEY_ENV_VAR,
@@ -15,13 +15,13 @@ import {
   REMOVE_BACKGROUND_IMAGE_PATH,
   REVIEW_IMAGE_PATH,
   VIDEO_POLLING,
-} from "./constants";
-import { ImageAltResult } from "./image-alt-result";
-import { ImageGenerationResult } from "./image-generation-result";
-import { ImageRateResult } from "./image-rate-result";
-import { ImageRemoveBackgroundResult } from "./image-remove-background-result";
-import { ImageReviewResult } from "./image-review-result";
-import type { TaskAsyncAccess } from "./task-async";
+} from "./constants.ts";
+import { ImageAltResult } from "./image-alt-result.ts";
+import { ImageGenerationResult } from "./image-generation-result.ts";
+import { ImageRateResult } from "./image-rate-result.ts";
+import { ImageRemoveBackgroundResult } from "./image-remove-background-result.ts";
+import { ImageReviewResult } from "./image-review-result.ts";
+import type { TaskAsyncAccess, TaskAsyncWaitOptions } from "./task-async.ts";
 import {
   TaskAsync,
   TaskAsyncFetchError,
@@ -29,10 +29,10 @@ import {
   TaskAsyncTaskFetchError,
   TaskAsyncTimeoutError,
   TaskAsyncUnauthorizedError,
-} from "./task-async";
-import type { MynthSDKTypes } from "./types";
-import { resolveInputs, uploadImages } from "./uploads";
-import { VideoGenerationResult } from "./video-generation-result";
+} from "./task-async.ts";
+import type { MynthSDKTypes } from "./types.ts";
+import { resolveInputs, uploadImages } from "./uploads.ts";
+import { VideoGenerationResult } from "./video-generation-result.ts";
 
 /**
  * Configuration options for the Mynth client.
@@ -41,17 +41,29 @@ type MynthOptions = {
   /**
    * Your Mynth API key. If not provided, reads from MYNTH_API_KEY environment variable.
    */
-  apiKey?: string;
+  apiKey?: string | undefined;
   /**
    * Custom base URL for the API. Useful for proxies or testing.
    */
-  baseUrl?: string;
+  baseUrl?: string | undefined;
   /**
    * Default destination name (slug) to deliver generated images to.
    * If not provided, reads from MYNTH_DESTINATION environment variable.
    * Can be overridden on a per-request basis via `request.destination`.
    */
-  destination?: string;
+  destination?: string | undefined;
+};
+
+/**
+ * Per-call options for SDK methods that talk to the API.
+ */
+type MynthRequestOptions = {
+  /**
+   * Aborts the call: pending uploads and API requests are cancelled, and a
+   * method that waits for completion stops polling. A task that was already
+   * created keeps running on Mynth.
+   */
+  signal?: AbortSignal | undefined;
 };
 
 type MynthModel = MynthSDKTypes.Model;
@@ -152,7 +164,7 @@ function getDestinationFromEnv(): string | undefined {
  */
 class MynthImage {
   private readonly client: MynthClient;
-  private readonly defaultDestination?: string;
+  private readonly defaultDestination: string | undefined;
 
   /**
    * Creates a new MynthImage client instance.
@@ -184,6 +196,7 @@ class MynthImage {
    * Generate images from a text prompt.
    *
    * @param request - Image generation request parameters
+   * @param options.signal - Aborts the upload, the create request, or the wait for completion
    * @returns A completed ImageGenerationResult with the generation results
    *
    * @example
@@ -197,10 +210,11 @@ class MynthImage {
    */
   public async generate<const T extends MynthSDKTypes.ImageGenerationClientRequest>(
     request: T,
+    options: MynthRequestOptions = {},
   ): Promise<ImageGenerationResult<ExtractMetadata<T>, ExtractRatingResponse<T>>> {
-    const taskAsync = await this.createGenerationTask(request);
+    const taskAsync = await this.createGenerationTask(request, options);
 
-    return taskAsync.wait();
+    return taskAsync.wait(options);
   }
 
   /**
@@ -227,6 +241,7 @@ class MynthImage {
    * Start image generation without waiting for completion.
    *
    * @param request - Image generation request parameters
+   * @param options.signal - Aborts the upload or the create request. Pass a signal to `.wait()` to abort the wait.
    * @returns A TaskAsync that can be polled for completion via `.wait()`
    *
    * @example
@@ -240,16 +255,19 @@ class MynthImage {
    */
   public async generateAsync<const T extends MynthSDKTypes.ImageGenerationClientRequest>(
     request: T,
+    options: MynthRequestOptions = {},
   ): Promise<TaskAsync<ImageGenerationResult<ExtractMetadata<T>, ExtractRatingResponse<T>>>> {
-    return this.createGenerationTask(request);
+    return this.createGenerationTask(request, options);
   }
 
   private async createGenerationTask<const T extends MynthSDKTypes.ImageGenerationClientRequest>(
     request: T,
+    { signal }: MynthRequestOptions,
   ): Promise<TaskAsync<ImageGenerationResult<ExtractMetadata<T>, ExtractRatingResponse<T>>>> {
     const inputs = await resolveInputs<MynthSDKTypes.ImageGenerationRequestInputAs>(
       this.client,
       request.inputs,
+      { signal },
     );
 
     const json = await this.client.post<
@@ -259,11 +277,15 @@ class MynthImage {
           publicAccessToken: string;
         };
       }>
-    >(GENERATE_IMAGE_PATH, {
-      ...request,
-      inputs,
-      destination: request.destination ?? this.defaultDestination,
-    });
+    >(
+      GENERATE_IMAGE_PATH,
+      {
+        ...request,
+        inputs,
+        destination: request.destination ?? this.defaultDestination,
+      },
+      { signal },
+    );
 
     const data = json.data;
     type Result = ImageGenerationResult<ExtractMetadata<T>, ExtractRatingResponse<T>>;
@@ -706,12 +728,13 @@ class MynthVideo {
   private async toRequestBody(
     request: MynthSDKTypes.VideoGenerationClientRequest,
   ): Promise<MynthSDKTypes.VideoGenerationRequest> {
+    const { inputs: clientInputs, ...rest } = request;
     const inputs = await resolveInputs<MynthSDKTypes.VideoGenerationRequestInputAs>(
       this.client,
-      request.inputs,
+      clientInputs,
     );
 
-    return { ...request, inputs };
+    return inputs ? { ...rest, inputs } : rest;
   }
 
   private async createGenerationTask<const T extends MynthSDKTypes.VideoGenerationClientRequest>(
@@ -851,8 +874,10 @@ export type {
   MynthModel,
   MynthModelPricing,
   MynthOptions,
+  MynthRequestOptions,
   MynthSDKTypes,
   TaskAsyncAccess,
+  TaskAsyncWaitOptions,
   VideoInputRole,
   VideoResolutionTier,
 };

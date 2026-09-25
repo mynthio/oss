@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { Mynth, MynthImage, MynthVideo, TaskAsync } from "./index";
-import type { MynthSDKTypes } from "./types";
+import { Mynth, MynthImage, MynthVideo, TaskAsync } from "./index.ts";
+import type { MynthSDKTypes } from "./types.ts";
 
 function jsonResponse(data: unknown, init: ResponseInit = {}) {
   return new Response(JSON.stringify(data), {
@@ -198,6 +198,28 @@ describe("MynthImage", () => {
       3,
       "https://api.test/tasks/task-123",
       expect.any(Object),
+    );
+  });
+
+  test("generate forwards the abort signal to the create request", async () => {
+    // Arrange
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ data: { taskId: "task-123" } }))
+      .mockResolvedValueOnce(jsonResponse({ data: { status: "completed" } }))
+      .mockResolvedValueOnce(jsonResponse({ data: createTaskData() }));
+    vi.stubGlobal("fetch", fetchMock);
+    const image = new MynthImage({ apiKey: "mak_test", baseUrl: "https://api.test" });
+    const controller = new AbortController();
+
+    // Act
+    await image.generate({ prompt: "test prompt" }, { signal: controller.signal });
+
+    // Assert
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "https://api.test/image/generate",
+      expect.objectContaining({ method: "POST", signal: controller.signal }),
     );
   });
 

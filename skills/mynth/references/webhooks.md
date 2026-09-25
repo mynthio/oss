@@ -4,10 +4,11 @@ Use webhooks when generated results must be persisted, billed, moderated, or att
 
 ## Per-Request Custom Webhooks
 
-Pass directly in the generate request. These are not signed.
+Pass directly in the generate request (`image.generate`, `image.removeBackground`, `video.generate`; not rate/alt/review). Up to 5 URLs. These are not signed, so the SDK helpers reject them.
 
 ```ts
 await mynth.image.generate({
+  model: "black-forest-labs/flux.2-pro",
   prompt: "A sunset",
   webhook: { custom: [{ url: "https://your-app.com/api/mynth-webhook" }] },
 });
@@ -15,7 +16,7 @@ await mynth.image.generate({
 
 ## Registered Webhooks
 
-Create in the dashboard or API. Registered webhooks are signed with HMAC-SHA256.
+Create in the dashboard, the API, or the CLI. Registered webhooks are signed with HMAC-SHA256. The API needs a key with the `manage` scope.
 
 ```ts
 await fetch("https://api.mynth.io/webhook", {
@@ -42,6 +43,8 @@ await fetch("https://api.mynth.io/webhook", {
 - `task.image.alt.failed` — alt text task failed
 - `task.image.remove_background.completed` — background removal task succeeded
 - `task.image.remove_background.failed` — background removal task failed
+- `task.image.review.completed` / `task.image.review.failed` — review task settled
+- `task.video.generate.completed` / `task.video.generate.failed` — video task settled
 - `task.completed` — any task completed
 - `task.failed` — any task failed
 - `all` — all events
@@ -54,11 +57,20 @@ On completion:
 {
   "event": "task.image.generate.completed",
   "task": { "id": "tsk_..." },
+  "request": { "model": "black-forest-labs/flux.2-pro", "prompt": "A sunset", "count": 1 },
   "result": {
-    "images": [{ "url": "https://cdn.mynth.io/..." }],
-    "model": "black-forest-labs/flux.2-dev"
-  },
-  "request": { "prompt": "A sunset", "model": "auto" }
+    "model": "black-forest-labs/flux.2-pro",
+    "images": [
+      {
+        "status": "success",
+        "id": "img_...",
+        "url": "https://cdn.mynth.io/images/img_....webp",
+        "mynth_url": "https://cdn.mynth.io/images/img_....webp",
+        "size": "1536x1024",
+        "format": "webp"
+      }
+    ]
+  }
 }
 ```
 
@@ -68,30 +80,37 @@ On failure:
 {
   "event": "task.image.generate.failed",
   "task": { "id": "tsk_..." },
-  "request": { "prompt": "A sunset" },
+  "request": { "model": "black-forest-labs/flux.2-pro", "prompt": "A sunset", "size": "16:9_4k" },
   "errors": [
-    { "code": "RESTRICTED_CONTENT", "message": "The request was blocked by content moderation." }
+    {
+      "code": "CAPABILITY_NOT_SUPPORTED",
+      "message": "The request uses options that are not supported for this model."
+    }
   ]
 }
 ```
 
+A `.completed` generation can still hold failed images (for example `RESTRICTED_CONTENT` on one image). Check `status` on every item in `result.images` or `result.videos`.
+
 ## CLI
 
-Webhook commands require OAuth login (`mynth auth login`); API keys are rejected by these routes.
+Run `mynth auth login` first. The key it stores has the `manage` scope these commands need.
 
 ```bash
-mynth webhook create --url <url> --event <name...> [--disabled] [--json]
+mynth webhook create --url <url> --event <name...> [--api-key-id <id...>] [--oauth-events] [--disabled] [--json]
 mynth webhook update <id> --url <url> --event <name...> [--enabled|--disabled] [--json]
 mynth webhook delete <id> --yes [--json]
 ```
 
-`--event` is repeatable (`--event task.completed --event task.failed`) or `--event all` for every event. The signing `secret` is shown only once, in the `create` output — save it then; there is no list/get command and `update` cannot rotate it. `update` is a full replace (all fields required).
+`--event` is repeatable (`--event task.completed --event task.failed`) or `--event all` for every event. By default an endpoint receives tasks from every API key, including CLI tasks. `--api-key-id` limits it to specific keys; `--oauth-events` adds tasks with no API key, such as playground runs. The signing `secret` is printed once by `create` (the dashboard keeps showing it); there is no list/get command and `update` cannot rotate it. `update` is a full replace: omitted sources reset to the defaults.
 
 ## Signature Verification (Registered Webhooks)
 
-Headers: `X-Mynth-Event` and `X-Mynth-Signature: t=<timestamp>,v1=<hex>`
+Headers: `X-Mynth-Event`, `X-Mynth-Delivery`, and `X-Mynth-Signature: t=<timestamp>,v1=<hex>`
 
-Verify: `HMAC-SHA256("{timestamp}.{rawBody}", webhookSecret)`
+Verify: `v1 == hex(HMAC-SHA256(key = full wbs_ secret, message = "{t}.{rawBody}"))`, compared in constant time, with `t` within 5 minutes. Use the raw body bytes; re-serialized JSON breaks the signature.
+
+Deliveries retry for about 2.5 hours on any non-2xx (answer within 30 s) and can arrive more than once. Deduplicate on `X-Mynth-Delivery`; the SDK helpers pass it to every handler as `deliveryId` in the last argument.
 
 For Next.js App Router, use the SDK helper:
 
@@ -109,7 +128,7 @@ export const POST = mynthWebhookHandler({
 
 Set `MYNTH_WEBHOOK_SECRET`. Keep the route public, make side effects idempotent, and enqueue slow work. The helper only accepts signed, registered webhooks.
 
-For Convex, use `@mynthio/sdk/convex`; see [convex.md](convex.md).
+For TanStack Start, use `mynthWebhookHandler` from `@mynthio/sdk/tanstack-start` in a server route. For Convex, use `@mynthio/sdk/convex`; see [convex.md](convex.md). All helpers also take `imageReviewTask*` and `videoTask*` handlers.
 
 ## Request-Level Overrides
 
@@ -117,6 +136,7 @@ Disable registered webhooks for one request while still sending a custom webhook
 
 ```ts
 await mynth.image.generate({
+  model: "black-forest-labs/flux.2-pro",
   prompt: "A sunset",
   webhook: {
     dashboard: false,

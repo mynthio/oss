@@ -1,4 +1,4 @@
-import type { MynthSDKTypes } from "./types";
+import type { MynthSDKTypes } from "./types.ts";
 
 /**
  * Represents a completed video generation task.

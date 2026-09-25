@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-import type { MynthClient } from "./client";
-import { ImageGenerationResult } from "./image-generation-result";
-import type { TaskAsyncPolling } from "./task-async";
+import type { MynthClient } from "./client.ts";
+import { ImageGenerationResult } from "./image-generation-result.ts";
+import type { TaskAsyncPolling } from "./task-async.ts";
 import {
   TaskAsync,
   TaskAsyncFetchError,
@@ -10,8 +10,8 @@ import {
   TaskAsyncTaskFetchError,
   TaskAsyncTimeoutError,
   TaskAsyncUnauthorizedError,
-} from "./task-async";
-import type { MynthSDKTypes } from "./types";
+} from "./task-async.ts";
+import type { MynthSDKTypes } from "./types.ts";
 
 // ============================================================================
 // Test Helpers
@@ -1004,6 +1004,155 @@ describe("TaskAsync", () => {
       // after 7 consecutive errors and thrown TaskAsyncFetchError
       expect(result.id).toBe("retry-reset-task");
       expect(mockGet).toHaveBeenCalledTimes(13); // 12 polls + 1 fetch
+    });
+  });
+
+  // ==========================================================================
+  // Cancellation - wait({ signal })
+  // ==========================================================================
+
+  describe("wait() cancellation", () => {
+    const pending = { ok: true, status: 200, data: { data: { status: "pending" } } };
+    const completed = { ok: true, status: 200, data: { data: { status: "completed" } } };
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    test("rejects without polling when the signal is already aborted", async () => {
+      // Arrange
+      const mockGet = vi.fn();
+      const taskAsync = createTaskAsync("pre-aborted-task", {
+        client: createMockClient({ get: mockGet }),
+      });
+      const reason = new Error("already aborted");
+
+      // Act
+      const result = taskAsync.wait({ signal: AbortSignal.abort(reason) });
+
+      // Assert
+      await expect(result).rejects.toBe(reason);
+      expect(mockGet).not.toHaveBeenCalled();
+    });
+
+    test("rejects with the abort reason and stops polling", async () => {
+      // Arrange
+      const mockGet = vi.fn().mockResolvedValue(pending);
+      const taskAsync = createTaskAsync("aborted-task", {
+        client: createMockClient({ get: mockGet }),
+      });
+      const controller = new AbortController();
+      const reason = new Error("caller aborted");
+      const resultPromise = taskAsync.wait({ signal: controller.signal });
+      const settled = expect(resultPromise).rejects.toBe(reason);
+      await vi.advanceTimersByTimeAsync(3000);
+      const pollsBeforeAbort = mockGet.mock.calls.length;
+
+      // Act
+      controller.abort(reason);
+      await vi.advanceTimersByTimeAsync(30_000);
+
+      // Assert
+      await settled;
+      expect(mockGet).toHaveBeenCalledTimes(pollsBeforeAbort);
+    });
+
+    test("forwards the poll's signal to status requests", async () => {
+      // Arrange
+      const mockGet = vi.fn().mockResolvedValue(pending);
+      const taskAsync = createTaskAsync("signal-forwarding-task", {
+        client: createMockClient({ get: mockGet }),
+      });
+      const controller = new AbortController();
+      const resultPromise = taskAsync.wait({ signal: controller.signal });
+      const settled = expect(resultPromise).rejects.toThrow();
+
+      // Act
+      controller.abort();
+
+      // Assert
+      await settled;
+      const forwardedSignal = mockGet.mock.calls[0]?.[1]?.signal as AbortSignal;
+      expect(forwardedSignal.aborted).toBe(true);
+    });
+
+    test("keeps polling for a waiter without a signal", async () => {
+      // Arrange
+      const taskData = createMockTaskData({ id: "shared-task" });
+      const mockGet = vi
+        .fn()
+        .mockResolvedValueOnce(pending)
+        .mockResolvedValueOnce(completed)
+        .mockResolvedValueOnce({ ok: true, status: 200, data: { data: taskData } });
+      const taskAsync = createTaskAsync("shared-task", {
+        client: createMockClient({ get: mockGet }),
+      });
+      const controller = new AbortController();
+      const abortable = taskAsync.wait({ signal: controller.signal });
+      const abortableSettled = expect(abortable).rejects.toThrow();
+      const unabortable = taskAsync.wait();
+
+      // Act
+      controller.abort();
+      await vi.advanceTimersByTimeAsync(3000);
+
+      // Assert
+      await abortableSettled;
+      expect((await unabortable).id).toBe("shared-task");
+    });
+
+    test("keeps polling while another signalled waiter has not aborted", async () => {
+      // Arrange
+      const taskData = createMockTaskData({ id: "two-waiters-task" });
+      const mockGet = vi
+        .fn()
+        .mockResolvedValueOnce(pending)
+        .mockResolvedValueOnce(completed)
+        .mockResolvedValueOnce({ ok: true, status: 200, data: { data: taskData } });
+      const taskAsync = createTaskAsync("two-waiters-task", {
+        client: createMockClient({ get: mockGet }),
+      });
+      const first = new AbortController();
+      const second = new AbortController();
+      const firstWait = taskAsync.wait({ signal: first.signal });
+      const firstSettled = expect(firstWait).rejects.toThrow();
+      const secondWait = taskAsync.wait({ signal: second.signal });
+
+      // Act
+      first.abort();
+      await vi.advanceTimersByTimeAsync(3000);
+
+      // Assert
+      await firstSettled;
+      expect((await secondWait).id).toBe("two-waiters-task");
+    });
+
+    test("starts a fresh poll when waited on again after every waiter aborted", async () => {
+      // Arrange
+      const taskData = createMockTaskData({ id: "restarted-task" });
+      const mockGet = vi.fn().mockResolvedValue(pending);
+      const taskAsync = createTaskAsync("restarted-task", {
+        client: createMockClient({ get: mockGet }),
+      });
+      const controller = new AbortController();
+      const aborted = taskAsync.wait({ signal: controller.signal });
+      const abortedSettled = expect(aborted).rejects.toThrow();
+      controller.abort();
+      await abortedSettled;
+      mockGet
+        .mockReset()
+        .mockResolvedValueOnce(completed)
+        .mockResolvedValueOnce({ ok: true, status: 200, data: { data: taskData } });
+
+      // Act
+      const result = await taskAsync.wait();
+
+      // Assert
+      expect(result.id).toBe("restarted-task");
     });
   });
 });

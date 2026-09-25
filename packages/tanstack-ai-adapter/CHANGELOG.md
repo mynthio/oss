@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.0.30](https://github.com/mynthio/oss/compare/tan-ai-v0.0.29...tan-ai-v0.0.30) (2026-09-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* **tan-ai:** promptStructured and contentRating are removed. Options a model cannot use are now type errors. The peer dependency is @tanstack/ai >=0.61.0.
+
+### Features
+
+* **tan-ai:** add files and BYOK adapters and type options per model ([d373edd](https://github.com/mynthio/oss/commit/d373edd9ef91a0eab8f3132f3a916779a44f5682))
+
+## [0.0.29](https://github.com/mynthio/oss/compare/tan-ai-v0.0.28...tan-ai-v0.0.29) (2026-09-24)
+
+
+### Bug Fixes
+
+* **tan-ai:** bump @mynthio/sdk dependency to 0.0.41 ([1c8ac2a](https://github.com/mynthio/oss/commit/1c8ac2ac1f8f744968047c7a01940a1f8f5e6c4f))
+* **tan-ai:** publish a single ESM build with bundled types ([688b0cf](https://github.com/mynthio/oss/commit/688b0cf97895065cb23d5113d72b95781f5822df))
+
 ## [0.0.28](https://github.com/mynthio/oss/compare/tan-ai-v0.0.27...tan-ai-v0.0.28) (2026-09-18)
 
 

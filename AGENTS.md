@@ -1,1 +1,3 @@
 - Never edit Tanstack Adapter package automatically, without explicit user instructions to edit it
+- Use `pnpm` as package manager; the runtime is Node 24 (pinned via `devEngines` in the root `package.json`)
+- Relative imports use explicit `.ts` extensions (enforced by oxlint for everything under `packages/`)

@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.0.23](https://github.com/mynthio/oss/compare/cli-v0.0.22...cli-v0.0.23) (2026-09-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* **cli:** `mynth image generate` requires `--prompt`, and the CLI now requires Node.js 22 or newer.
+
+### Features
+
+* **cli:** require --prompt for image generate ([23d0177](https://github.com/mynthio/oss/commit/23d0177b60254d6810cd67a1c8921575515fd031))
+
+
+### Bug Fixes
+
+* **cli:** read documentation from mynth.io/docs ([23d0177](https://github.com/mynthio/oss/commit/23d0177b60254d6810cd67a1c8921575515fd031))
+
 ## [0.0.22](https://github.com/mynthio/oss/compare/cli-v0.0.21...cli-v0.0.22) (2026-09-18)
 
 

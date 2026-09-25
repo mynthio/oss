@@ -1,0 +1,22 @@
+packages:
+  - "packages/*"
+  - "examples/*"
+
+# A local package is only linked when a dependency asks for it with
+# `workspace:`, never by a coincidental version match.
+linkWorkspacePackages: false
+
+# pnpm does not run a dependency's install scripts unless it is allowed here.
+allowBuilds:
+  esbuild: false # Pulled in by convex and the example app; its postinstall only checks the platform binary
+
+# The adapter pins the SDK we publish ourselves, so it must install a release
+# minutes after it lands instead of waiting out the release-age window.
+minimumReleaseAgeExclude:
+  - "@mynthio/sdk"
+  # The adapter and example adopted these TanStack AI releases on release day.
+  # Pinned to exact versions, so they stop mattering once they age past the window.
+  - "@tanstack/ai-client@0.35.1"
+  - "@tanstack/ai-event-client@0.13.0"
+  - "@tanstack/ai-react@0.29.1"
+  - "@tanstack/ai@0.61.0"

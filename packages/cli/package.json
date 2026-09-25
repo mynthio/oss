@@ -1,6 +1,6 @@
 {
   "name": "@mynthio/cli",
-  "version": "0.0.22",
+  "version": "0.0.23",
   "description": "Official Mynth CLI",
   "keywords": [
     "ai",
@@ -13,7 +13,7 @@
   "author": "mynth.io",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mynthio/oss",
+    "url": "git+https://github.com/mynthio/oss.git",
     "directory": "packages/cli"
   },
   "bin": {
@@ -25,12 +25,11 @@
   ],
   "type": "module",
   "scripts": {
-    "build": "bun run build:clean && tsup",
-    "build:clean": "rm -rf dist",
-    "dev": "bun run ./src/bin.ts",
+    "build": "tsdown",
+    "dev": "node --env-file-if-exists=.env src/bin.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc"
   },
   "dependencies": {
     "chalk": "^5.6.2",
@@ -40,12 +39,13 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@types/node": "^25.5.0",
-    "tsup": "^8.5.0",
-    "typescript": "6.0.2",
-    "vitest": "^4.1.2"
+    "@types/node": "^22.20.4",
+    "publint": "^0.3.24",
+    "tsdown": "^0.23.0",
+    "typescript": "7.0.2",
+    "vitest": "^5.0.1"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   }
 }

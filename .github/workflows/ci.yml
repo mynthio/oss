@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -53,23 +53,24 @@ jobs:
             exit 1
           fi
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+      # Installs pnpm from packageManager, Node from devEngines.runtime,
+      # and runs `pnpm install` itself.
+      - name: Setup pnpm and Node
+        uses: pnpm/setup@v2
+        with:
+          cache: true
 
       - name: Lint
-        run: bun run lint
+        run: pnpm run lint
 
       - name: Format check
-        run: bun run format:check
+        run: pnpm run format:check
 
       - name: Type check
-        run: bun run typecheck
+        run: pnpm run typecheck
 
       - name: Run tests
-        run: bun run test
+        run: pnpm run test
 
       - name: Build
-        run: bun run build
+        run: pnpm run build

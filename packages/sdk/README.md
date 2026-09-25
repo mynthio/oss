@@ -136,6 +136,22 @@ if (status.status === "completed") {
 }
 ```
 
+### Cancelling
+
+Pass an `AbortSignal` to stop waiting, for example when the incoming request disconnects:
+
+```ts
+const task = await mynth.image.generate(
+  { prompt: "A lighthouse in a storm" },
+  { signal: AbortSignal.timeout(60_000) },
+);
+
+// Or on an async task:
+const completedTask = await taskAsync.wait({ signal: request.signal });
+```
+
+An abort cancels pending uploads and API requests and stops polling, and the call rejects with the signal's reason. A task that was already created keeps running on Mynth. For `generateAsync()`, the signal covers the upload and the create request; pass one to `wait()` to abort the wait. When several `wait()` calls share a task, polling stops only after every one of them has aborted.
+
 ## Request Shape
 
 `generate()` accepts a typed `ImageGenerationRequest`. The simplest request is just a prompt:
@@ -525,7 +541,7 @@ console.log(model);
 // {
 //   id: "google/gemini-3.1-flash-image",
 //   label: "Nano Banana 2",
-//   capabilities: ["inputs", "4k", "native_enhance_prompt"]
+//   capabilities: ["inputs", "4k"]
 // }
 ```
 
@@ -562,6 +578,7 @@ Current model IDs include:
 - `openai/gpt-image-2`
 - `purplesmartai/pony-diffusion-v6-xl`
 - `recraft/recraft-v4`
+- `recraft/recraft-v4.1-flash`
 - `recraft/recraft-v4-pro`
 - `sourceful/riverflow-2.0-pro`
 - `tongyi-mai/z-image`
@@ -743,9 +760,9 @@ export const POST = mynthWebhookHandler({
 });
 ```
 
-The helper reads the raw body, verifies `X-Mynth-Signature`, rejects signatures older than five minutes, and checks `X-Mynth-Event` before calling a typed handler. The last handler argument contains the original `request`.
+The helper reads the raw body, verifies `X-Mynth-Signature`, rejects signatures older than five minutes, and checks `X-Mynth-Event` before calling a typed handler. The last handler argument contains the original `request` and `deliveryId`, the `X-Mynth-Delivery` value that every retry repeats.
 
-The route must be publicly reachable, so exclude it from authentication middleware. Make callback side effects idempotent using the event name and task ID, and enqueue slow work before returning. Callback errors are propagated so Mynth can retry the delivery.
+The route must be publicly reachable, so exclude it from authentication middleware. Make callback side effects idempotent by storing `deliveryId` and skipping IDs you have already handled, and enqueue slow work before returning. Callback errors are propagated so Mynth can retry the delivery.
 
 Pass `{ webhookSecret: "wbs_..." }` as the second argument only when the application does not use `MYNTH_WEBHOOK_SECRET`. This helper accepts signed, registered webhooks; per-request custom webhooks are not signed.
 
@@ -776,7 +793,7 @@ export const Route = createFileRoute("/api/webhooks/mynth")({
 });
 ```
 
-Set `MYNTH_WEBHOOK_SECRET` in the server environment, or pass `webhookSecret` as the second argument. Event callbacks receive the original request, route params, and TanStack Start middleware context.
+Set `MYNTH_WEBHOOK_SECRET` in the server environment, or pass `webhookSecret` as the second argument. Event callbacks receive the original request, route params, TanStack Start middleware context, and `deliveryId`.
 
 ## Convex Integration
 

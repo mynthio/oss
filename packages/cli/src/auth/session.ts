@@ -18,8 +18,10 @@ export class Session implements TokenSource {
   readonly store: CredentialsStore;
   readonly envApiKeySet: boolean;
   private cached: string | undefined;
+  private readonly config: Config;
 
-  constructor(private readonly config: Config) {
+  constructor(config: Config) {
+    this.config = config;
     this.store = new CredentialsStore();
     this.envApiKeySet = config.envApiKey !== undefined;
   }

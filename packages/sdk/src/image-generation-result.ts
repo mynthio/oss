@@ -1,4 +1,4 @@
-import type { MynthSDKTypes } from "./types";
+import type { MynthSDKTypes } from "./types.ts";
 
 type TypedImageResultImageSuccess<RatingT> = Omit<
   MynthSDKTypes.ImageResultImageSuccess,

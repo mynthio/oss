@@ -2,8 +2,8 @@
  * Build-time and environment configuration.
  *
  * `MYNTH_WORKOS_CLIENT_ID` and `MYNTH_CLI_VERSION` are replaced with string
- * literals by tsup (see `tsup.config.ts`), so the `process.env` lookups do not
- * exist in the published bundle and users cannot override them.
+ * literals by tsdown (see `tsdown.config.ts`), so the `process.env` lookups do
+ * not exist in the published bundle and users cannot override them.
  */
 export const WORKOS_CLIENT_ID = process.env.MYNTH_WORKOS_CLIENT_ID!;
 
@@ -28,7 +28,7 @@ const nonEmpty = (value: string | undefined) =>
 
 export const loadConfig = (): Config => ({
   apiUrl: trimTrailingSlash(process.env["MYNTH_API_URL"] ?? "https://api.mynth.io"),
-  docsUrl: trimTrailingSlash(process.env["MYNTH_DOCS_URL"] ?? "https://docs.mynth.io"),
+  docsUrl: trimTrailingSlash(process.env["MYNTH_DOCS_URL"] ?? "https://mynth.io/docs"),
   envApiKey: nonEmpty(process.env["MYNTH_API_KEY"]),
   envDestination: nonEmpty(process.env["MYNTH_DESTINATION"]),
   debug: process.env["MYNTH_DEBUG"] === "1" || process.env["MYNTH_DEBUG"] === "true",

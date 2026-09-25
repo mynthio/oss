@@ -24,7 +24,7 @@ const JITTER_MS = 500;
 
 // A created task is owed an answer, so a poll that errors is a hiccup on the way
 // to it rather than a verdict: a cold or replicating cache (404), a throttle, a
-// 5xx, a dropped connection. Statuses that never self-heal (401, 403, 422, ...)
+// 5xx, a dropped connection. Statuses that never self-heal (401, 402, 403, ...)
 // still fail on the first hit.
 const RETRYABLE_STATUSES: ReadonlySet<number> = new Set([0, 404, 408, 429]);
 

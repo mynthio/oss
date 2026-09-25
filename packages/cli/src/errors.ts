@@ -58,7 +58,6 @@ const EXIT_BY_API_CODE: Record<string, number> = {
   INSUFFICIENT_SCOPE: EXIT_CODES.auth,
   VALIDATION_ERROR: EXIT_CODES.usage,
   INSUFFICIENT_BALANCE: EXIT_CODES.insufficientCredits,
-  // 429, but a budget problem rather than a throughput one.
   SPENDING_LIMIT_EXCEEDED: EXIT_CODES.insufficientCredits,
   RESTRICTED_CONTENT: EXIT_CODES.moderation,
 };
@@ -71,6 +70,7 @@ export const exitCodeForError = (error: unknown): number => {
     const byCode = error.code !== undefined ? EXIT_BY_API_CODE[error.code] : undefined;
     if (byCode !== undefined) return byCode;
     if (error.status === 401 || error.status === 403) return EXIT_CODES.auth;
+    if (error.status === 402) return EXIT_CODES.insufficientCredits;
     if (error.status === 429) return EXIT_CODES.rateLimited;
     return EXIT_CODES.error;
   }

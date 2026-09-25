@@ -82,6 +82,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["inputs"],
   },
   {
+    id: "bytedance/seedream-v5-flash",
+    label: "Seedream 5.0 Flash",
+    capabilities: ["inputs"],
+  },
+  {
     id: "black-forest-labs/flux.1-dev",
     label: "FLUX.1 Dev",
     capabilities: [],
@@ -219,6 +224,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
   {
     id: "recraft/recraft-v4",
     label: "Recraft V4",
+    capabilities: [],
+  },
+  {
+    id: "recraft/recraft-v4.1-flash",
+    label: "Recraft V4.1 Flash",
     capabilities: [],
   },
   {

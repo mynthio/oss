@@ -553,6 +553,7 @@ Current model IDs include:
 - `alibaba/qwen-image-3.0-pro`
 - `bytedance/seedream-5.0-lite`
 - `bytedance/seedream-pro`
+- `bytedance/seedream-v5-flash`
 - `black-forest-labs/flux.1-dev`
 - `black-forest-labs/flux-1-schnell`
 - `black-forest-labs/flux.2-dev`
@@ -577,6 +578,7 @@ Current model IDs include:
 - `openai/gpt-image-2`
 - `purplesmartai/pony-diffusion-v6-xl`
 - `recraft/recraft-v4`
+- `recraft/recraft-v4.1-flash`
 - `recraft/recraft-v4-pro`
 - `sourceful/riverflow-2.0-pro`
 - `tongyi-mai/z-image`

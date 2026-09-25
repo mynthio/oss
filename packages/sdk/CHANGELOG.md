@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.43](https://github.com/mynthio/oss/compare/sdk-v0.0.42...sdk-v0.0.43) (2026-09-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* **sdk:** `output.quality` is removed, and `ImageResultImageSuccess.cost` is replaced by a required `format`.
+
+### Features
+
+* **sdk:** add goofy-ai/prefect-pony-xl-lora ([#109](https://github.com/mynthio/oss/issues/109)) ([148af76](https://github.com/mynthio/oss/commit/148af76c9af931d3c62ccbd0330b206e5a047946))
+* **sdk:** add Recraft V4.1 Flash ([7e0dda9](https://github.com/mynthio/oss/commit/7e0dda94678d5fa2b78249625ba771a9815118f0))
+* **sdk:** add Seedream 5.0 Flash ([#117](https://github.com/mynthio/oss/issues/117)) ([1bb67f0](https://github.com/mynthio/oss/commit/1bb67f00ab4d4e326b964da2e8d69f56024d5c6d))
+* **sdk:** align image and video types with the API ([cebaad0](https://github.com/mynthio/oss/commit/cebaad01ebd159978f90470c8c91722e12bee26d))
+
 ## [0.0.42](https://github.com/mynthio/oss/compare/sdk-v0.0.41...sdk-v0.0.42) (2026-09-25)
 
 

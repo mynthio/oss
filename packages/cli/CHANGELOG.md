@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.24](https://github.com/mynthio/oss/compare/cli-v0.0.23...cli-v0.0.24) (2026-09-25)
+
+
+### Bug Fixes
+
+* **cli:** map 402 to the insufficient-credits exit code ([#118](https://github.com/mynthio/oss/issues/118)) ([876ea1a](https://github.com/mynthio/oss/commit/876ea1a5be16823dab88cafef671085298e98858))
+
 ## [0.0.23](https://github.com/mynthio/oss/compare/cli-v0.0.22...cli-v0.0.23) (2026-09-24)
 
 

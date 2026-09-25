@@ -340,8 +340,8 @@ importers:
   packages/tanstack-ai-adapter:
     dependencies:
       '@mynthio/sdk':
-        specifier: 0.0.42
-        version: 0.0.42(convex@1.46.0)
+        specifier: 0.0.43
+        version: 0.0.43(convex@1.46.0)
     devDependencies:
       '@arethetypeswrong/core':
         specifier: ^0.18.5
@@ -736,8 +736,8 @@ packages:
       '@cfworker/json-schema':
         optional: true
 
-  '@mynthio/sdk@0.0.42':
-    resolution: {integrity: sha512-g40cI54zMcF1oGtltNJbxO+ImzR0FkLmiG298YzOJgbwLp+pJdEDbwg4N16G6Aj38ofo0pVvAeD05HXSbmzcmQ==}
+  '@mynthio/sdk@0.0.43':
+    resolution: {integrity: sha512-OxeMZFC4TI0ept0YYKQnqihXO4ykXi5+pDP4NtV6yn0iNykbQujQFlKOaAakH56HJMTEgAm1YVwb+wmIMnU5YQ==}
     peerDependencies:
       convex: ^1.27.3
     peerDependenciesMeta:
@@ -5259,7 +5259,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@mynthio/sdk@0.0.42(convex@1.46.0)':
+  '@mynthio/sdk@0.0.43(convex@1.46.0)':
     optionalDependencies:
       convex: 1.46.0(react@19.3.0)
 

@@ -43,7 +43,7 @@ export type MynthImageBaseSize =
 export interface MynthImageCommonOptions {
   /** Enable Mynth-side prompt enhancement. The enhanced prompt comes back as `revisedPrompt`. */
   magicPrompt?: boolean;
-  /** Output format and quality */
+  /** Output format */
   output?: MynthSDKTypes.ImageGenerationRequestOutput;
   /** Public Access Token response configuration */
   access?: MynthSDKTypes.ImageGenerationRequestAccess;

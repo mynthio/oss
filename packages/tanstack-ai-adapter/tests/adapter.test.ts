@@ -33,7 +33,7 @@ function successImage(
     url: "https://cdn.mynth.io/image1.webp",
     mynth_url: "https://cdn.mynth.io/image1.webp",
     size: "1024x1024",
-    cost: "0.01",
+    format: "webp",
     ...overrides,
   };
 }
@@ -177,7 +177,7 @@ describe("MynthImageAdapter", () => {
       const adapter = createAdapter();
       const modelOptions: MynthImageProviderOptions = {
         access: { pat: { enabled: false } },
-        output: { format: "png", quality: 90 },
+        output: { format: "png" },
         webhook: { dashboard: false },
         rating: true,
         metadata: { userId: "u123" },

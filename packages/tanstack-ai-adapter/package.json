@@ -41,7 +41,7 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@mynthio/sdk": "0.0.42"
+    "@mynthio/sdk": "0.0.43"
   },
   "devDependencies": {
     "@arethetypeswrong/core": "^0.18.5",

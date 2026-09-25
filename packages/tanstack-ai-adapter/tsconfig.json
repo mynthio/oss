@@ -1,6 +1,9 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    // Web-standard globals (Blob, AbortSignal) that every supported runtime provides.
+    "lib": ["ESNext", "DOM"],
+
     // Every export spells out its type, so tsdown generates declarations with
     // oxc instead of running the type checker.
     "declaration": true,

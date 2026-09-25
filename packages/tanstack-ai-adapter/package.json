@@ -28,6 +28,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./byok": {
+      "types": "./dist/byok.d.ts",
+      "default": "./dist/byok.js"
     }
   },
   "scripts": {
@@ -37,17 +41,17 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@mynthio/sdk": "0.0.41"
+    "@mynthio/sdk": "0.0.42"
   },
   "devDependencies": {
     "@arethetypeswrong/core": "^0.18.5",
-    "@tanstack/ai": "^0.58.0",
+    "@tanstack/ai": "^0.61.0",
     "publint": "^0.3.24",
     "tsdown": "^0.23.0",
     "typescript": "7.0.2",
     "vitest": "^5.0.1"
   },
   "peerDependencies": {
-    "@tanstack/ai": ">=0.34.0"
+    "@tanstack/ai": ">=0.61.0"
   }
 }

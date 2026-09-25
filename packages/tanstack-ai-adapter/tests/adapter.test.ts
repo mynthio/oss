@@ -1,3 +1,4 @@
+import type { MynthSDKTypes } from "@mynthio/sdk";
 import type { ImageGenerationOptions } from "@tanstack/ai";
 import { resolveDebugOption } from "@tanstack/ai/adapter-internals";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -7,63 +8,63 @@ import type {
   MynthImageShorthandSize,
 } from "../src/provider-options.ts";
 
-const { generateMock, MockMynth, MockMynthImage } = vi.hoisted(() => {
+const { generateMock, MockMynthImage } = vi.hoisted(() => {
   const generate = vi.fn();
   const MockMynthImageConstructor = vi.fn(function MockMynthImage() {
-    return {
-      generate,
-    };
-  });
-  const MockMynthConstructor = vi.fn(function MockMynth() {
-    return {
-      image: {
-        generate,
-      },
-    };
+    return { generate };
   });
 
-  return {
-    generateMock: generate,
-    MockMynth: MockMynthConstructor,
-    MockMynthImage: MockMynthImageConstructor,
-  };
+  return { generateMock: generate, MockMynthImage: MockMynthImageConstructor };
 });
 
-vi.mock("@mynthio/sdk", () => {
-  return {
-    default: MockMynth,
-    Mynth: MockMynth,
-    MynthImage: MockMynthImage,
-  };
-});
+vi.mock("@mynthio/sdk", () => ({ MynthImage: MockMynthImage }));
 
 const DEFAULT_MODEL = "krea/krea-2-large" as const;
 
 const { MynthImageAdapter, createMynthImage, mynthImage } = await import("../src/adapter.ts");
+const { MynthNoImagesError } = await import("../src/errors.ts");
 
+function successImage(
+  overrides: Partial<MynthSDKTypes.ImageResultImageSuccess> = {},
+): MynthSDKTypes.ImageResultImageSuccess {
+  return {
+    status: "success",
+    id: "img_1",
+    url: "https://cdn.mynth.io/image1.webp",
+    mynth_url: "https://cdn.mynth.io/image1.webp",
+    size: "1024x1024",
+    cost: "0.01",
+    ...overrides,
+  };
+}
+
+function failedImage(code: string): MynthSDKTypes.ImageResultImageFailure {
+  return { status: "failed", error: { code } };
+}
+
+/** Mirrors the parts of the SDK's ImageGenerationResult the adapter reads. */
 function createMockTask(
   overrides: {
     id?: string;
-    model?: string | undefined;
-    images?: Array<{ status: string; url: string }>;
-    promptEnhance?: { source: string; positive?: string } | undefined;
+    model?: string;
+    cost?: string | null;
+    images?: MynthSDKTypes.ImageResultImage[];
+    magicPrompt?: MynthSDKTypes.ImageResultMagicPrompt;
   } = {},
 ) {
-  const images = overrides.images ?? [
-    { status: "success", url: "https://cdn.mynth.io/image1.webp" },
-  ];
+  const images = overrides.images ?? [successImage()];
+  const result = {
+    model: overrides.model,
+    images,
+    ...(overrides.magicPrompt ? { magic_prompt: overrides.magicPrompt } : {}),
+  };
 
   return {
     id: overrides.id ?? "task-123",
-    status: "completed",
-    result: {
-      model: overrides.model,
-      images,
-      cost: { images: "0.01", total: "0.012" },
-      magic_prompt: overrides.promptEnhance,
-    },
-    getImages: () => images.filter((img) => img.status === "success"),
-    urls: images.filter((img) => img.status === "success").map((img) => img.url),
+    data: { cost: overrides.cost === undefined ? "0.01" : overrides.cost },
+    result,
+    getImages: ({ includeFailed = false }: { includeFailed?: boolean } = {}) =>
+      includeFailed ? images : images.filter((image) => image.status === "success"),
   };
 }
 
@@ -83,276 +84,136 @@ function createOptions(
   };
 }
 
+/** Adapters bound to any model, so tests can pass sizes of every model. */
+function createAdapter(model: string = DEFAULT_MODEL) {
+  return new MynthImageAdapter({ apiKey: "mak_test" }, model as "google/gemini-3.1-flash-image");
+}
+
+function sentRequest(): MynthSDKTypes.ImageGenerationClientRequest {
+  return generateMock.mock.calls[0]?.[0];
+}
+
 describe("MynthImageAdapter", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    generateMock.mockResolvedValue(createMockTask());
   });
 
-  describe("generateImages", () => {
-    it("uses the adapter-bound model in the SDK request", async () => {
+  it("declares that it consumes provider file sources", () => {
+    // Arrange & Act
+    const adapter = createAdapter();
+
+    // Assert
+    expect(adapter.supportsFileSources).toBe(true);
+  });
+
+  describe("request mapping", () => {
+    it("sends the prompt with the adapter-bound model", async () => {
       // Arrange
-      generateMock.mockResolvedValue(createMockTask({ model: "auto" }));
-      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, "auto");
-      const options: ImageGenerationOptions<MynthImageProviderOptions, "auto"> = {
-        model: "auto",
-        prompt: "test",
-        logger: silentLogger,
-      };
+      const adapter = createAdapter("auto");
 
       // Act
-      await adapter.generateImages(options);
+      await adapter.generateImages(createOptions({ model: "auto", prompt: "test" }));
 
       // Assert
-      expect(generateMock).toHaveBeenCalledWith(expect.objectContaining({ model: "auto" }));
+      expect(sentRequest()).toEqual({ prompt: "test", model: "auto" });
     });
 
     it("maps numberOfImages to count", async () => {
       // Arrange
-      generateMock.mockResolvedValue(createMockTask());
-      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
+      const adapter = createAdapter();
 
       // Act
-      await adapter.generateImages(
-        createOptions({
-          numberOfImages: 2,
-        }),
-      );
+      await adapter.generateImages(createOptions({ numberOfImages: 2 }));
 
       // Assert
-      expect(generateMock).toHaveBeenCalledWith(expect.objectContaining({ count: 2 }));
+      expect(sentRequest()).toMatchObject({ count: 2 });
     });
 
-    it("expands a structured prompt to the current SDK request shape", async () => {
+    it("forwards the top-level shorthand size", async () => {
       // Arrange
-      generateMock.mockResolvedValue(createMockTask());
-      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
-      const promptStructured = {
-        positive: "a cat",
-        negative: "blurry",
-        enhance: "prefer_magic" as const,
-      };
+      const adapter = createAdapter();
 
       // Act
-      await adapter.generateImages(
-        createOptions({
-          prompt: "ignored",
-          modelOptions: { promptStructured },
-        }),
-      );
+      await adapter.generateImages(createOptions({ size: "16:9_4k" }));
 
       // Assert
-      expect(generateMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          prompt: "a cat",
-          negative_prompt: "blurry",
-          magic_prompt: true,
-        }),
-      );
-    });
-
-    it("forwards native negative and magic prompt options", async () => {
-      // Arrange
-      generateMock.mockResolvedValue(createMockTask());
-      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
-
-      // Act
-      await adapter.generateImages(
-        createOptions({
-          modelOptions: {
-            negativePrompt: "watermark",
-            magicPrompt: true,
-          },
-        }),
-      );
-
-      // Assert
-      expect(generateMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          negative_prompt: "watermark",
-          magic_prompt: true,
-        }),
-      );
+      expect(sentRequest()).toMatchObject({ size: "16:9_4k" });
     });
 
     it("prefers provider size over top-level size", async () => {
       // Arrange
-      generateMock.mockResolvedValue(createMockTask());
-      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
+      const adapter = createAdapter();
 
       // Act
       await adapter.generateImages(
         createOptions({
           size: "portrait",
-          modelOptions: {
-            size: {
-              type: "aspect_ratio",
-              aspectRatio: "4:5",
-            },
-          },
+          modelOptions: { size: { type: "aspect_ratio", aspectRatio: "4:5", scale: "4k" } },
         }),
       );
 
       // Assert
-      expect(generateMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          size: {
-            type: "aspect_ratio",
-            aspectRatio: "4:5",
-          },
-        }),
-      );
-    });
-
-    it("forwards an optional 4k scale when provided", async () => {
-      // Arrange
-      generateMock.mockResolvedValue(createMockTask());
-      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
-
-      // Act
-      await adapter.generateImages(
-        createOptions({
-          modelOptions: {
-            size: {
-              type: "aspect_ratio",
-              aspectRatio: "16:9",
-              scale: "4k",
-            },
-          },
-        }),
-      );
-
-      // Assert
-      expect(generateMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          size: {
-            type: "aspect_ratio",
-            aspectRatio: "16:9",
-            scale: "4k",
-          },
-        }),
-      );
-    });
-
-    it("translates provider-only options to the SDK request shape", async () => {
-      // Arrange
-      generateMock.mockResolvedValue(createMockTask());
-      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
-
-      // Act
-      await adapter.generateImages(
-        createOptions({
-          modelOptions: {
-            access: { pat: { enabled: false } },
-            output: { format: "png", quality: 90 },
-            inputs: ["https://example.com/ref.jpg"],
-            webhook: { dashboard: false },
-            rating: true,
-            metadata: { userId: "u123" },
-          },
-        }),
-      );
-
-      // Assert
-      expect(generateMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          access: { pat: { enabled: false } },
-          output: { format: "png", quality: 90 },
-          inputs: ["https://example.com/ref.jpg"],
-          webhook: { dashboard: false },
-          rating: true,
-          metadata: { userId: "u123" },
-        }),
-      );
-    });
-
-    it("returns normalized images with the revised prompt when Mynth enhances it", async () => {
-      // Arrange
-      generateMock.mockResolvedValue(
-        createMockTask({
-          model: DEFAULT_MODEL,
-          promptEnhance: { source: "mynth", positive: "An enhanced prompt" },
-        }),
-      );
-      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
-
-      // Act
-      const result = await adapter.generateImages(createOptions());
-
-      // Assert
-      expect(result).toEqual({
-        id: "task-123",
-        model: DEFAULT_MODEL,
-        images: [
-          {
-            url: "https://cdn.mynth.io/image1.webp",
-            revisedPrompt: "An enhanced prompt",
-          },
-        ],
+      expect(sentRequest()).toMatchObject({
+        size: { type: "aspect_ratio", aspectRatio: "4:5", scale: "4k" },
       });
     });
 
-    it("falls back to the requested model when the SDK omits it", async () => {
+    it("maps negative and magic prompt options to their API fields", async () => {
       // Arrange
-      generateMock.mockResolvedValue(createMockTask({ model: undefined }));
-      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
+      const adapter = createAdapter();
 
       // Act
-      const result = await adapter.generateImages(createOptions());
-
-      // Assert
-      expect(result.model).toBe(DEFAULT_MODEL);
-    });
-
-    it("filters out unsuccessful images from the normalized response", async () => {
-      // Arrange
-      generateMock.mockResolvedValue(
-        createMockTask({
-          model: DEFAULT_MODEL,
-          images: [
-            { status: "success", url: "https://cdn.mynth.io/img1.webp" },
-            { status: "failed", url: "https://cdn.mynth.io/failed.webp" },
-          ],
-        }),
+      await adapter.generateImages(
+        createOptions({ modelOptions: { negativePrompt: "watermark", magicPrompt: false } }),
       );
-      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
-
-      // Act
-      const result = await adapter.generateImages(createOptions());
 
       // Assert
-      expect(result.images).toEqual([{ url: "https://cdn.mynth.io/img1.webp" }]);
+      expect(sentRequest()).toMatchObject({ negative_prompt: "watermark", magic_prompt: false });
     });
 
-    it("returns an empty image list when the task has no successful images", async () => {
+    it("forwards the remaining provider options unchanged", async () => {
       // Arrange
-      generateMock.mockResolvedValue(createMockTask({ model: DEFAULT_MODEL, images: [] }));
-      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
+      const adapter = createAdapter();
+      const modelOptions: MynthImageProviderOptions = {
+        access: { pat: { enabled: false } },
+        output: { format: "png", quality: 90 },
+        webhook: { dashboard: false },
+        rating: true,
+        metadata: { userId: "u123" },
+        destination: "my-bucket",
+      };
 
       // Act
-      const result = await adapter.generateImages(createOptions());
+      await adapter.generateImages(createOptions({ modelOptions }));
 
       // Assert
-      expect(result.images).toEqual([]);
+      expect(sentRequest()).toEqual({
+        prompt: "A beautiful sunset",
+        model: DEFAULT_MODEL,
+        ...modelOptions,
+      });
     });
 
-    it("propagates SDK failures", async () => {
+    it("forwards the abort signal to the SDK", async () => {
       // Arrange
-      generateMock.mockRejectedValue(new Error("generate failed"));
-      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
+      const adapter = createAdapter();
+      const controller = new AbortController();
 
       // Act
-      const result = adapter.generateImages(createOptions());
+      await adapter.generateImages(createOptions({ abortSignal: controller.signal }));
 
       // Assert
-      await expect(result).rejects.toThrow("generate failed");
+      expect(generateMock).toHaveBeenCalledWith(expect.any(Object), {
+        signal: controller.signal,
+      });
     });
   });
 
   describe("media prompts", () => {
     it("splits a content-part prompt into text and image inputs", async () => {
       // Arrange
-      generateMock.mockResolvedValue(createMockTask());
-      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
+      const adapter = createAdapter();
 
       // Act
       await adapter.generateImages(
@@ -364,74 +225,33 @@ describe("MynthImageAdapter", () => {
               source: { type: "url", value: "https://example.com/person.jpg" },
               metadata: { role: "reference" },
             },
-            {
-              type: "image",
-              source: { type: "url", value: "https://example.com/outfit.jpg" },
-            },
+            { type: "image", source: { type: "url", value: "https://example.com/outfit.jpg" } },
           ],
         }),
       );
 
       // Assert
-      expect(generateMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          prompt: "Put the person in this outfit",
-          inputs: [
-            {
-              type: "image",
-              source: { type: "url", url: "https://example.com/person.jpg" },
-              as: "reference",
-            },
-            {
-              type: "image",
-              source: { type: "url", url: "https://example.com/outfit.jpg" },
-            },
-          ],
-        }),
-      );
+      expect(sentRequest()).toMatchObject({
+        prompt: "Put the person in this outfit",
+        inputs: [
+          {
+            type: "image",
+            as: "reference",
+            source: { type: "url", url: "https://example.com/person.jpg" },
+          },
+          { type: "image", source: { type: "url", url: "https://example.com/outfit.jpg" } },
+        ],
+      });
     });
 
-    it("encodes inline data sources as data URIs", async () => {
+    it("maps the character role to a Mynth reference", async () => {
       // Arrange
-      generateMock.mockResolvedValue(createMockTask());
-      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
+      const adapter = createAdapter();
 
       // Act
       await adapter.generateImages(
         createOptions({
           prompt: [
-            { type: "text", content: "edit this" },
-            {
-              type: "image",
-              source: { type: "data", value: "QUJD", mimeType: "image/png" },
-            },
-          ],
-        }),
-      );
-
-      // Assert
-      expect(generateMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          inputs: [
-            {
-              type: "image",
-              source: { type: "url", url: "data:image/png;base64,QUJD" },
-            },
-          ],
-        }),
-      );
-    });
-
-    it("maps TanStack character media roles to Mynth references", async () => {
-      // Arrange
-      generateMock.mockResolvedValue(createMockTask());
-      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
-
-      // Act
-      await adapter.generateImages(
-        createOptions({
-          prompt: [
-            { type: "text", content: "Use this character as guidance" },
             {
               type: "image",
               source: { type: "url", value: "https://example.com/character.jpg" },
@@ -442,23 +262,119 @@ describe("MynthImageAdapter", () => {
       );
 
       // Assert
-      expect(generateMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          inputs: [
+      expect(sentRequest().inputs).toEqual([
+        {
+          type: "image",
+          as: "reference",
+          source: { type: "url", url: "https://example.com/character.jpg" },
+        },
+      ]);
+    });
+
+    it("sends inline data as a file for the SDK to upload", async () => {
+      // Arrange
+      const adapter = createAdapter();
+
+      // Act
+      await adapter.generateImages(
+        createOptions({
+          prompt: [
+            { type: "text", content: "edit this" },
+            { type: "image", source: { type: "data", value: "QUJD", mimeType: "image/png" } },
+          ],
+        }),
+      );
+
+      // Assert
+      const input = sentRequest().inputs?.[0] as MynthSDKTypes.ImageGenerationClientInput;
+      const source = input.source as { type: "file"; file: Blob };
+      expect(source.type).toBe("file");
+      expect(source.file.type).toBe("image/png");
+      expect(await source.file.text()).toBe("ABC");
+    });
+
+    it("sends a Mynth file handle as its URL", async () => {
+      // Arrange
+      const adapter = createAdapter();
+
+      // Act
+      await adapter.generateImages(
+        createOptions({
+          prompt: [
             {
               type: "image",
-              source: { type: "url", url: "https://example.com/character.jpg" },
-              as: "reference",
+              source: { type: "file", value: "https://cdn.mynth.io/input.png", provider: "mynth" },
             },
           ],
         }),
       );
+
+      // Assert
+      expect(sentRequest().inputs).toEqual([
+        { type: "image", source: { type: "url", url: "https://cdn.mynth.io/input.png" } },
+      ]);
+    });
+
+    it("rejects a file handle issued by another provider", async () => {
+      // Arrange
+      const adapter = createAdapter();
+
+      // Act
+      const result = adapter.generateImages(
+        createOptions({
+          prompt: [
+            { type: "image", source: { type: "file", value: "file-abc", provider: "openai" } },
+          ],
+        }),
+      );
+
+      // Assert
+      await expect(result).rejects.toThrow("issued by openai");
+      expect(generateMock).not.toHaveBeenCalled();
+    });
+
+    it.each(["mask", "control"] as const)("rejects the unsupported %s role", async (role) => {
+      // Arrange
+      const adapter = createAdapter();
+
+      // Act
+      const result = adapter.generateImages(
+        createOptions({
+          prompt: [
+            {
+              type: "image",
+              source: { type: "url", value: "https://example.com/input.png" },
+              metadata: { role },
+            },
+          ],
+        }),
+      );
+
+      // Assert
+      await expect(result).rejects.toThrow(`"${role}" image inputs`);
+      expect(generateMock).not.toHaveBeenCalled();
+    });
+
+    it("rejects video prompt parts", async () => {
+      // Arrange
+      const adapter = createAdapter();
+
+      // Act
+      const result = adapter.generateImages(
+        createOptions({
+          prompt: [{ type: "video", source: { type: "url", value: "https://example.com/v.mp4" } }],
+        }),
+      );
+
+      // Assert
+      await expect(result).rejects.toThrow("only text and image prompt parts");
+      expect(generateMock).not.toHaveBeenCalled();
     });
 
     it("appends provider modelOptions.inputs after prompt-derived inputs", async () => {
       // Arrange
-      generateMock.mockResolvedValue(createMockTask());
-      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
+      const adapter = createAdapter();
+      const upload = new Blob(["png"], { type: "image/png" });
 
       // Act
       await adapter.generateImages(
@@ -470,43 +386,151 @@ describe("MynthImageAdapter", () => {
               source: { type: "url", value: "https://example.com/from-prompt.jpg" },
             },
           ],
-          modelOptions: {
-            inputs: [
-              {
-                type: "image",
-                as: "reference",
-                source: { type: "url", url: "https://example.com/style.jpg" },
-              },
-            ],
-          },
+          modelOptions: { inputs: ["https://example.com/style.jpg", upload] },
         }),
       );
 
       // Assert
-      expect(generateMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          inputs: [
-            {
-              type: "image",
-              source: { type: "url", url: "https://example.com/from-prompt.jpg" },
-            },
-            {
-              type: "image",
-              as: "reference",
-              source: { type: "url", url: "https://example.com/style.jpg" },
-            },
+      expect(sentRequest().inputs).toEqual([
+        { type: "image", source: { type: "url", url: "https://example.com/from-prompt.jpg" } },
+        "https://example.com/style.jpg",
+        upload,
+      ]);
+    });
+  });
+
+  describe("result mapping", () => {
+    it("returns normalized images with the revised prompt and usage", async () => {
+      // Arrange
+      generateMock.mockResolvedValue(
+        createMockTask({
+          model: DEFAULT_MODEL,
+          cost: "0.024",
+          images: [
+            successImage({ url: "https://cdn.mynth.io/1.webp" }),
+            successImage({ url: "https://cdn.mynth.io/2.webp" }),
           ],
+          magicPrompt: { positive: "An enhanced prompt" },
         }),
       );
+      const adapter = createAdapter();
+
+      // Act
+      const result = await adapter.generateImages(createOptions());
+
+      // Assert
+      expect(result).toEqual({
+        id: "task-123",
+        model: DEFAULT_MODEL,
+        images: [
+          { url: "https://cdn.mynth.io/1.webp", revisedPrompt: "An enhanced prompt" },
+          { url: "https://cdn.mynth.io/2.webp", revisedPrompt: "An enhanced prompt" },
+        ],
+        usage: {
+          promptTokens: 0,
+          completionTokens: 0,
+          totalTokens: 0,
+          billed: { quantity: 2, unit: "images" },
+          cost: 0.024,
+        },
+      });
+    });
+
+    it("falls back to the Mynth CDN URL when an image has no destination URL", async () => {
+      // Arrange
+      generateMock.mockResolvedValue(
+        createMockTask({
+          images: [successImage({ url: null, mynth_url: "https://cdn.mynth.io/copy.webp" })],
+        }),
+      );
+      const adapter = createAdapter();
+
+      // Act
+      const result = await adapter.generateImages(createOptions());
+
+      // Assert
+      expect(result.images).toEqual([{ url: "https://cdn.mynth.io/copy.webp" }]);
+    });
+
+    it("falls back to the requested model when the result omits it", async () => {
+      // Arrange
+      const adapter = createAdapter();
+
+      // Act
+      const result = await adapter.generateImages(createOptions());
+
+      // Assert
+      expect(result.model).toBe(DEFAULT_MODEL);
+    });
+
+    it("omits the cost when the task reports none", async () => {
+      // Arrange
+      generateMock.mockResolvedValue(createMockTask({ cost: null }));
+      const adapter = createAdapter();
+
+      // Act
+      const result = await adapter.generateImages(createOptions());
+
+      // Assert
+      expect(result.usage).not.toHaveProperty("cost");
+    });
+
+    it("returns only the successful images when some fail", async () => {
+      // Arrange
+      generateMock.mockResolvedValue(
+        createMockTask({
+          images: [successImage({ url: "https://cdn.mynth.io/ok.webp" }), failedImage("NSFW")],
+        }),
+      );
+      const adapter = createAdapter();
+
+      // Act
+      const result = await adapter.generateImages(createOptions());
+
+      // Assert
+      expect(result.images).toEqual([{ url: "https://cdn.mynth.io/ok.webp" }]);
+      expect(result.usage?.billed).toEqual({ quantity: 1, unit: "images" });
+    });
+
+    it("throws MynthNoImagesError when every image fails", async () => {
+      // Arrange
+      generateMock.mockResolvedValue(
+        createMockTask({ images: [failedImage("NSFW"), failedImage("PROVIDER_ERROR")] }),
+      );
+      const adapter = createAdapter();
+
+      // Act
+      const result = adapter.generateImages(createOptions());
+
+      // Assert
+      await expect(result).rejects.toThrow(MynthNoImagesError);
+      await expect(result).rejects.toMatchObject({
+        taskId: "task-123",
+        code: "MYNTH_NO_IMAGES",
+        errors: [{ code: "NSFW" }, { code: "PROVIDER_ERROR" }],
+        message: "Mynth task task-123 completed without any images (NSFW, PROVIDER_ERROR)",
+      });
+    });
+
+    it("propagates SDK failures", async () => {
+      // Arrange
+      generateMock.mockRejectedValue(new Error("generate failed"));
+      const adapter = createAdapter();
+
+      // Act
+      const result = adapter.generateImages(createOptions());
+
+      // Assert
+      await expect(result).rejects.toThrow("generate failed");
     });
   });
 
   describe("logging", () => {
-    it("logs the request and rethrows with an error log on failure", async () => {
+    it("logs the request, then the error before rethrowing", async () => {
       // Arrange
       const logger = { request: vi.fn(), errors: vi.fn() };
       generateMock.mockRejectedValue(new Error("boom"));
-      const adapter = new MynthImageAdapter({ apiKey: "mak_test" }, DEFAULT_MODEL);
+      const adapter = createAdapter();
 
       // Act
       const result = adapter.generateImages(createOptions({ logger: logger as never }));
@@ -514,13 +538,31 @@ describe("MynthImageAdapter", () => {
       // Assert
       await expect(result).rejects.toThrow("boom");
       expect(logger.request).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({ provider: "mynth", model: DEFAULT_MODEL }),
+        expect.stringContaining(`model=${DEFAULT_MODEL}`),
+        { provider: "mynth", model: DEFAULT_MODEL },
       );
-      expect(logger.errors).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({ error: "boom" }),
+      expect(logger.errors).toHaveBeenCalledWith(expect.any(String), {
+        error: { message: "boom", code: undefined },
+        source: "mynth.generateImages",
+      });
+    });
+
+    it("logs prompt validation errors", async () => {
+      // Arrange
+      const logger = { request: vi.fn(), errors: vi.fn() };
+      const adapter = createAdapter();
+
+      // Act
+      const result = adapter.generateImages(
+        createOptions({
+          logger: logger as never,
+          prompt: [{ type: "audio", source: { type: "url", value: "https://example.com/a.mp3" } }],
+        }),
       );
+
+      // Assert
+      await expect(result).rejects.toThrow();
+      expect(logger.errors).toHaveBeenCalledOnce();
     });
   });
 });
@@ -566,10 +608,7 @@ describe("mynthImage", () => {
 
   it("passes config through the shorthand factory", () => {
     // Arrange
-    const config = {
-      apiKey: "mak_test",
-      baseUrl: "https://custom.api",
-    };
+    const config = { apiKey: "mak_test", baseUrl: "https://custom.api", destination: "bucket" };
 
     // Act
     mynthImage("auto", config);

@@ -16,3 +16,8 @@ export interface MynthImageConfig {
    */
   destination?: string | undefined;
 }
+
+/**
+ * Configuration for the Mynth files adapter.
+ */
+export type MynthFilesConfig = Pick<MynthImageConfig, "apiKey" | "baseUrl">;

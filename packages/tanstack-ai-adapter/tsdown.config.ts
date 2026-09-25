@@ -1,7 +1,8 @@
 import { defineConfig } from "tsdown";
 
 export default defineConfig({
-  entry: ["src/index.ts"],
+  // `byok` is its own entry so browsers can import it without the Mynth SDK.
+  entry: ["src/index.ts", "src/byok.ts"],
   // TanStack AI adapters run wherever TanStack AI does: servers, edge runtimes and browsers.
   platform: "neutral",
   target: "es2022",

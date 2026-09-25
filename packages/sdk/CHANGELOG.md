@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.0.42](https://github.com/mynthio/oss/compare/sdk-v0.0.41...sdk-v0.0.42) (2026-09-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* **sdk:** ModelCapability no longer includes native_enhance_prompt. Qwen, Riverflow, and Gemini image models no longer advertise it.
+
+### Features
+
+* **sdk:** accept an AbortSignal on image generation and task waits ([c86b366](https://github.com/mynthio/oss/commit/c86b366ab7440cde6b80565917161092b6f5c872))
+* **sdk:** drop the native_enhance_prompt model capability ([fdde4d7](https://github.com/mynthio/oss/commit/fdde4d7df715c6243698f0fd77dcb26f7f33780e))
+
 ## [0.0.41](https://github.com/mynthio/oss/compare/sdk-v0.0.40...sdk-v0.0.41) (2026-09-24)
 
 

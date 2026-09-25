@@ -37,6 +37,7 @@ export function isUploadInput(value: unknown): value is MynthSDKTypes.ImageUploa
 export async function uploadImages(
   client: MynthClient,
   input: MynthSDKTypes.ImageUploadInput | readonly MynthSDKTypes.ImageUploadInput[],
+  { signal }: { signal?: AbortSignal | undefined } = {},
 ): Promise<MynthSDKTypes.ImageUploadResponse> {
   const form = new FormData();
   const inputs = Array.isArray(input) ? input : [input];
@@ -52,6 +53,7 @@ export async function uploadImages(
   const json = await client.post<MynthSDKTypes.ApiResponse<MynthSDKTypes.ImageUploadResponse>>(
     UPLOAD_IMAGE_PATH,
     form,
+    { signal },
   );
 
   return json.data;
@@ -65,6 +67,7 @@ export async function uploadImages(
 export async function resolveInputs<AsT extends string>(
   client: MynthClient,
   inputs: readonly ClientInput<AsT>[] | undefined,
+  { signal }: { signal?: AbortSignal | undefined } = {},
 ): Promise<WireInput<AsT>[] | undefined> {
   if (!inputs?.length) {
     return undefined;
@@ -75,7 +78,7 @@ export async function resolveInputs<AsT extends string>(
     if (typeof input !== "string" && input.source.type === "file") return [input.source.file];
     return [];
   });
-  const urls = files.length ? (await uploadImages(client, files)).urls : [];
+  const urls = files.length ? (await uploadImages(client, files, { signal })).urls : [];
   let i = 0;
 
   return inputs.map((input): WireInput<AsT> => {

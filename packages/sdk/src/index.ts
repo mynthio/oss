@@ -21,7 +21,7 @@ import { ImageGenerationResult } from "./image-generation-result.ts";
 import { ImageRateResult } from "./image-rate-result.ts";
 import { ImageRemoveBackgroundResult } from "./image-remove-background-result.ts";
 import { ImageReviewResult } from "./image-review-result.ts";
-import type { TaskAsyncAccess } from "./task-async.ts";
+import type { TaskAsyncAccess, TaskAsyncWaitOptions } from "./task-async.ts";
 import {
   TaskAsync,
   TaskAsyncFetchError,
@@ -52,6 +52,18 @@ type MynthOptions = {
    * Can be overridden on a per-request basis via `request.destination`.
    */
   destination?: string | undefined;
+};
+
+/**
+ * Per-call options for SDK methods that talk to the API.
+ */
+type MynthRequestOptions = {
+  /**
+   * Aborts the call: pending uploads and API requests are cancelled, and a
+   * method that waits for completion stops polling. A task that was already
+   * created keeps running on Mynth.
+   */
+  signal?: AbortSignal | undefined;
 };
 
 type MynthModel = MynthSDKTypes.Model;
@@ -184,6 +196,7 @@ class MynthImage {
    * Generate images from a text prompt.
    *
    * @param request - Image generation request parameters
+   * @param options.signal - Aborts the upload, the create request, or the wait for completion
    * @returns A completed ImageGenerationResult with the generation results
    *
    * @example
@@ -197,10 +210,11 @@ class MynthImage {
    */
   public async generate<const T extends MynthSDKTypes.ImageGenerationClientRequest>(
     request: T,
+    options: MynthRequestOptions = {},
   ): Promise<ImageGenerationResult<ExtractMetadata<T>, ExtractRatingResponse<T>>> {
-    const taskAsync = await this.createGenerationTask(request);
+    const taskAsync = await this.createGenerationTask(request, options);
 
-    return taskAsync.wait();
+    return taskAsync.wait(options);
   }
 
   /**
@@ -227,6 +241,7 @@ class MynthImage {
    * Start image generation without waiting for completion.
    *
    * @param request - Image generation request parameters
+   * @param options.signal - Aborts the upload or the create request. Pass a signal to `.wait()` to abort the wait.
    * @returns A TaskAsync that can be polled for completion via `.wait()`
    *
    * @example
@@ -240,16 +255,19 @@ class MynthImage {
    */
   public async generateAsync<const T extends MynthSDKTypes.ImageGenerationClientRequest>(
     request: T,
+    options: MynthRequestOptions = {},
   ): Promise<TaskAsync<ImageGenerationResult<ExtractMetadata<T>, ExtractRatingResponse<T>>>> {
-    return this.createGenerationTask(request);
+    return this.createGenerationTask(request, options);
   }
 
   private async createGenerationTask<const T extends MynthSDKTypes.ImageGenerationClientRequest>(
     request: T,
+    { signal }: MynthRequestOptions,
   ): Promise<TaskAsync<ImageGenerationResult<ExtractMetadata<T>, ExtractRatingResponse<T>>>> {
     const inputs = await resolveInputs<MynthSDKTypes.ImageGenerationRequestInputAs>(
       this.client,
       request.inputs,
+      { signal },
     );
 
     const json = await this.client.post<
@@ -259,11 +277,15 @@ class MynthImage {
           publicAccessToken: string;
         };
       }>
-    >(GENERATE_IMAGE_PATH, {
-      ...request,
-      inputs,
-      destination: request.destination ?? this.defaultDestination,
-    });
+    >(
+      GENERATE_IMAGE_PATH,
+      {
+        ...request,
+        inputs,
+        destination: request.destination ?? this.defaultDestination,
+      },
+      { signal },
+    );
 
     const data = json.data;
     type Result = ImageGenerationResult<ExtractMetadata<T>, ExtractRatingResponse<T>>;
@@ -852,8 +874,10 @@ export type {
   MynthModel,
   MynthModelPricing,
   MynthOptions,
+  MynthRequestOptions,
   MynthSDKTypes,
   TaskAsyncAccess,
+  TaskAsyncWaitOptions,
   VideoInputRole,
   VideoResolutionTier,
 };

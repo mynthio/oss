@@ -201,6 +201,28 @@ describe("MynthImage", () => {
     );
   });
 
+  test("generate forwards the abort signal to the create request", async () => {
+    // Arrange
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ data: { taskId: "task-123" } }))
+      .mockResolvedValueOnce(jsonResponse({ data: { status: "completed" } }))
+      .mockResolvedValueOnce(jsonResponse({ data: createTaskData() }));
+    vi.stubGlobal("fetch", fetchMock);
+    const image = new MynthImage({ apiKey: "mak_test", baseUrl: "https://api.test" });
+    const controller = new AbortController();
+
+    // Act
+    await image.generate({ prompt: "test prompt" }, { signal: controller.signal });
+
+    // Assert
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "https://api.test/image/generate",
+      expect.objectContaining({ method: "POST", signal: controller.signal }),
+    );
+  });
+
   test("upload sends images as multipart form data", async () => {
     // Arrange
     const fetchMock = vi.fn().mockResolvedValueOnce(

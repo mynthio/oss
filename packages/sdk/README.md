@@ -136,6 +136,22 @@ if (status.status === "completed") {
 }
 ```
 
+### Cancelling
+
+Pass an `AbortSignal` to stop waiting, for example when the incoming request disconnects:
+
+```ts
+const task = await mynth.image.generate(
+  { prompt: "A lighthouse in a storm" },
+  { signal: AbortSignal.timeout(60_000) },
+);
+
+// Or on an async task:
+const completedTask = await taskAsync.wait({ signal: request.signal });
+```
+
+An abort cancels pending uploads and API requests and stops polling, and the call rejects with the signal's reason. A task that was already created keeps running on Mynth. For `generateAsync()`, the signal covers the upload and the create request; pass one to `wait()` to abort the wait. When several `wait()` calls share a task, polling stops only after every one of them has aborted.
+
 ## Request Shape
 
 `generate()` accepts a typed `ImageGenerationRequest`. The simplest request is just a prompt:
@@ -525,7 +541,7 @@ console.log(model);
 // {
 //   id: "google/gemini-3.1-flash-image",
 //   label: "Nano Banana 2",
-//   capabilities: ["inputs", "4k", "native_enhance_prompt"]
+//   capabilities: ["inputs", "4k"]
 // }
 ```
 

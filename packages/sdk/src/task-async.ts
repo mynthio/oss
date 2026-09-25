@@ -88,6 +88,30 @@ type FetchTaskResult =
   | { ok: false; unauthorized: boolean; retryable: boolean; status?: number; error?: Error };
 
 /**
+ * Options for {@link TaskAsync.wait}.
+ */
+export type TaskAsyncWaitOptions = {
+  /**
+   * Stops this wait when aborted, rejecting with the signal's reason. Polling
+   * stops as well once no other `wait()` call is still waiting on the task.
+   * Aborting never cancels the task itself: Mynth keeps generating it.
+   */
+  signal?: AbortSignal | undefined;
+};
+
+/**
+ * One polling loop, shared by every `wait()` call that joins it.
+ */
+type TaskAsyncPoll<ResultT> = {
+  promise: Promise<ResultT>;
+  controller: AbortController;
+  /** Callers waiting with a signal that has not aborted yet. */
+  abortableWaiters: number;
+  /** Set once any caller waits without a signal: nothing can stop the poll then. */
+  pinned: boolean;
+};
+
+/**
  * Public access information for a task, used for client-side polling.
  */
 export type TaskAsyncAccess = {
@@ -113,7 +137,7 @@ export class TaskAsync<ResultT> {
 
   private readonly polling: Required<TaskAsyncPolling>;
 
-  private _completionPromise: Promise<ResultT> | null = null;
+  private poll: TaskAsyncPoll<ResultT> | null = null;
 
   constructor(
     id: string,
@@ -150,24 +174,67 @@ export class TaskAsync<ResultT> {
 
   /**
    * Polls the task until completion and returns the typed result.
-   * Multiple calls to this method return the same promise.
+   * Concurrent calls share one polling loop and settle with the same result.
    *
+   * @param options.signal - Stops this wait when aborted (see {@link TaskAsyncWaitOptions})
    * @throws {TaskAsyncTimeoutError} If polling exceeds the timeout
    * @throws {TaskAsyncUnauthorizedError} If access is denied
    * @throws {TaskAsyncFetchError} If fetching status fails repeatedly
    * @throws {TaskAsyncTaskFetchError} If fetching the completed task fails
    * @throws {TaskAsyncTaskFailedError} If the task fails before completion
    */
-  public async wait(): Promise<ResultT> {
+  public async wait({ signal }: TaskAsyncWaitOptions = {}): Promise<ResultT> {
+    signal?.throwIfAborted();
+
     // Lazy init - only start polling when explicitly requested
-    if (!this._completionPromise) {
-      this._completionPromise = this.pollUntilCompleted();
+    const poll = (this.poll ??= this.startPoll());
+
+    if (!signal) {
+      poll.pinned = true;
+      return poll.promise;
     }
 
-    return this._completionPromise;
+    poll.abortableWaiters++;
+
+    return new Promise<ResultT>((resolve, reject) => {
+      const onAbort = () => {
+        poll.abortableWaiters--;
+        reject(signal.reason);
+
+        if (poll.abortableWaiters === 0 && !poll.pinned) {
+          poll.controller.abort(signal.reason);
+          // A later wait() starts a fresh poll rather than joining an aborted one.
+          if (this.poll === poll) this.poll = null;
+        }
+      };
+
+      signal.addEventListener("abort", onAbort, { once: true });
+
+      poll.promise.then(
+        (result) => {
+          signal.removeEventListener("abort", onAbort);
+          resolve(result);
+        },
+        (error: unknown) => {
+          signal.removeEventListener("abort", onAbort);
+          reject(error);
+        },
+      );
+    });
   }
 
-  private async pollUntilCompleted(): Promise<ResultT> {
+  private startPoll(): TaskAsyncPoll<ResultT> {
+    const controller = new AbortController();
+    const promise = this.pollUntilCompleted(controller.signal);
+
+    // Every waiter handles the outcome itself; once they have all aborted,
+    // nothing is left to observe the poll's own abort rejection.
+    promise.catch(() => {});
+
+    return { promise, controller, abortableWaiters: 0, pinned: false };
+  }
+
+  private async pollUntilCompleted(signal: AbortSignal): Promise<ResultT> {
     const { timeoutMs, fastDurationMs, fastIntervalMs, intervalMs } = this.polling;
     const startTime = Date.now();
     let retryCount = 0;
@@ -181,11 +248,11 @@ export class TaskAsync<ResultT> {
         throw new TaskAsyncTimeoutError(this.id, timeoutMs);
       }
 
-      const result = await this.fetchStatus(useApiKeyFallback);
+      const result = await this.fetchStatus(useApiKeyFallback, signal);
 
       if (result.ok) {
         if (result.status === "completed") {
-          const fetched = await this.fetchTask();
+          const fetched = await this.fetchTask(signal);
 
           if (fetched.ok) {
             return this.resultFactory(fetched.data);
@@ -246,11 +313,11 @@ export class TaskAsync<ResultT> {
       const remainingTime = timeoutMs - elapsed;
       const waitTime = Math.min(interval, remainingTime);
 
-      await this.sleep(waitTime);
+      await this.sleep(waitTime, signal);
     }
   }
 
-  private async fetchStatus(useApiKey: boolean): Promise<FetchStatusResult> {
+  private async fetchStatus(useApiKey: boolean, signal: AbortSignal): Promise<FetchStatusResult> {
     const accessToken =
       useApiKey || !this._access.publicAccessToken ? undefined : this._access.publicAccessToken;
 
@@ -261,6 +328,7 @@ export class TaskAsync<ResultT> {
         }>
       >(TASK_STATUS_PATH(this.id), {
         accessToken,
+        signal,
       });
 
       if (response.ok) {
@@ -288,6 +356,9 @@ export class TaskAsync<ResultT> {
       // Other 4xx errors are not retryable
       return { ok: false, unauthorized: false, retryable: false };
     } catch (error) {
+      // An abort is the caller's decision, not a network blip to retry.
+      signal.throwIfAborted();
+
       // Network errors, connection failures etc. are retryable
       return {
         ok: false,
@@ -298,10 +369,11 @@ export class TaskAsync<ResultT> {
     }
   }
 
-  private async fetchTask(): Promise<FetchTaskResult> {
+  private async fetchTask(signal: AbortSignal): Promise<FetchTaskResult> {
     try {
       const response = await this.client.get<MynthSDKTypes.ApiResponse<MynthSDKTypes.TaskData>>(
         TASK_DETAILS_PATH(this.id),
+        { signal },
       );
 
       if (response.ok) {
@@ -322,6 +394,9 @@ export class TaskAsync<ResultT> {
       // Other 4xx errors are not retryable
       return { ok: false, unauthorized: false, retryable: false, status: response.status };
     } catch (error) {
+      // An abort is the caller's decision, not a network blip to retry.
+      signal.throwIfAborted();
+
       // Network errors, connection failures etc. are retryable
       return {
         ok: false,
@@ -332,7 +407,21 @@ export class TaskAsync<ResultT> {
     }
   }
 
-  private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+  private sleep(ms: number, signal: AbortSignal): Promise<void> {
+    return new Promise((resolve, reject) => {
+      // The signal can abort between a fetch settling and this sleep starting.
+      signal.throwIfAborted();
+
+      const onAbort = () => {
+        clearTimeout(timer);
+        reject(signal.reason);
+      };
+      const timer = setTimeout(() => {
+        signal.removeEventListener("abort", onAbort);
+        resolve();
+      }, ms);
+
+      signal.addEventListener("abort", onAbort, { once: true });
+    });
   }
 }

@@ -27,6 +27,7 @@ type MynthClientRequestOptions = {
   headers?: Record<string, string>;
   accessToken?: string | undefined;
   auth?: boolean | undefined;
+  signal?: AbortSignal | undefined;
 };
 
 function createApiError(data: unknown, status: number) {
@@ -54,7 +55,9 @@ class MynthClient {
       : API_URL;
   }
 
-  getAuthHeaders(override?: Omit<MynthClientRequestOptions, "headers">): Record<string, string> {
+  getAuthHeaders(
+    override?: Pick<MynthClientRequestOptions, "accessToken" | "auth">,
+  ): Record<string, string> {
     if (override?.auth === false) {
       return {};
     }
@@ -68,7 +71,11 @@ class MynthClient {
     return `${this.baseUrl}${path}`;
   }
 
-  public async post<DataType>(path: string, data: unknown): Promise<DataType> {
+  public async post<DataType>(
+    path: string,
+    data: unknown,
+    { signal }: Pick<MynthClientRequestOptions, "signal"> = {},
+  ): Promise<DataType> {
     const isFormData = typeof FormData !== "undefined" && data instanceof FormData;
     const response = await fetch(this.getUrl(path), {
       method: "POST",
@@ -77,6 +84,7 @@ class MynthClient {
         ...this.getAuthHeaders(),
       },
       body: isFormData ? data : JSON.stringify(data),
+      ...(signal ? { signal } : {}),
     });
 
     const json = await response.json();
@@ -90,13 +98,14 @@ class MynthClient {
 
   public async get<DataType>(
     path: string,
-    { headers, accessToken, auth }: MynthClientRequestOptions = {},
+    { headers, accessToken, auth, signal }: MynthClientRequestOptions = {},
   ): Promise<{ data: DataType; status: number; ok: boolean }> {
     const response = await fetch(this.getUrl(path), {
       headers: {
         ...this.getAuthHeaders({ accessToken, auth }),
         ...headers,
       },
+      ...(signal ? { signal } : {}),
     });
 
     const data = (await response.json()) as DataType;

@@ -23,6 +23,8 @@ export const Route = createFileRoute("/api/generate/image")({
           prompt,
           numberOfImages: 1,
           stream: true,
+          // Stop waiting on Mynth when the browser goes away.
+          abortSignal: request.signal,
         });
 
         return toServerSentEventsResponse(stream);

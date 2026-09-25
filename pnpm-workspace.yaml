@@ -14,3 +14,9 @@ allowBuilds:
 # minutes after it lands instead of waiting out the release-age window.
 minimumReleaseAgeExclude:
   - "@mynthio/sdk"
+  # The adapter and example adopted these TanStack AI releases on release day.
+  # Pinned to exact versions, so they stop mattering once they age past the window.
+  - "@tanstack/ai-client@0.35.1"
+  - "@tanstack/ai-event-client@0.13.0"
+  - "@tanstack/ai-react@0.29.1"
+  - "@tanstack/ai@0.61.0"

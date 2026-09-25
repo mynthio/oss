@@ -86,17 +86,23 @@ export namespace MynthSDKTypes {
   // Models
   // ============================================================
 
-  export type ModelInputRule = {
+  /** Roles an image-model input rule can require. */
+  export type ImageModelInputKind = "source" | "reference";
+
+  /** Roles a video-model input rule can require. */
+  export type VideoModelInputKind = "first_frame" | "last_frame" | "reference" | "source";
+
+  export type ModelInputRule<Kind extends string = ImageModelInputKind | VideoModelInputKind> = {
     type: "image";
     /** Role the input plays. Absent means the rule accepts any image. */
-    kind?: string;
+    kind?: Kind;
     min?: number;
     max: number;
   };
 
-  export type ModelMode = {
+  export type ModelMode<Kind extends string = ImageModelInputKind | VideoModelInputKind> = {
     inputs?: {
-      rules: ModelInputRule[];
+      rules: ModelInputRule<Kind>[];
       maxTotal?: number;
     };
   };
@@ -122,7 +128,7 @@ export namespace MynthSDKTypes {
     id: string;
     displayName: string | null;
     type: "image";
-    modes: Partial<Record<"txt->img" | "img->img", ModelMode>>;
+    modes: Partial<Record<"txt->img" | "img->img", ModelMode<ImageModelInputKind>>>;
     pricing: ImageModelPricing | null;
   };
 
@@ -130,7 +136,7 @@ export namespace MynthSDKTypes {
     id: string;
     displayName: string | null;
     type: "video";
-    modes: Partial<Record<"txt->vid" | "img->vid", ModelMode>>;
+    modes: Partial<Record<"txt->vid" | "img->vid", ModelMode<VideoModelInputKind>>>;
     pricing: VideoModelPricing | null;
   };
 
@@ -208,9 +214,8 @@ export namespace MynthSDKTypes {
   export type ImageGenerationRequestOutputFormat = "png" | "jpg" | "webp";
 
   export type ImageGenerationRequestOutput = {
-    format: ImageGenerationRequestOutputFormat;
-    /** Output quality 1-100. Defaults to 80 when output is omitted. */
-    quality: number;
+    /** Converts the result to this format. When omitted, the provider's format is kept. */
+    format?: ImageGenerationRequestOutputFormat;
   };
 
   export type ImageGenerationRequestCustomWebhook = {
@@ -412,7 +417,7 @@ export namespace MynthSDKTypes {
     url: string | null;
     mynth_url: string;
     size: string;
-    cost: string;
+    format: ImageGenerationRequestOutputFormat;
     destination?: ImageResultDestination;
     rating?: ImageResultRating;
   };
@@ -641,7 +646,8 @@ export namespace MynthSDKTypes {
   export type VideoGenerationModelId =
     | "bytedance/seedance-2.0-mini"
     | "google/gemini-omni-flash-1.1"
-    | "prunaai/p-video";
+    | "prunaai/p-video"
+    | "xai/grok-imagine-video-1.5";
 
   export type VideoGenerationModel = VideoGenerationModelId;
 

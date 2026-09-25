@@ -177,7 +177,6 @@ const task = await mynth.image.generate({
   count: 2,
   output: {
     format: "webp",
-    quality: 80,
   },
   webhook: {
     dashboard: false,
@@ -214,7 +213,7 @@ const task = await mynth.image.generate({
 
 `access.pat.enabled` controls whether the create-task response includes a short-lived Public Access Token for browser-side polling. It defaults to `true`.
 
-`output` is optional. When you provide it, include both `format` and `quality`; when omitted, Mynth defaults to WebP at quality 80.
+`output` is optional. Set `output.format` to `png`, `jpg`, or `webp`. When it is omitted, the result keeps the format the provider delivered.
 
 ## Upload Images
 
@@ -561,6 +560,7 @@ Current model IDs include:
 - `black-forest-labs/flux.2-flex`
 - `black-forest-labs/flux.2-max`
 - `black-forest-labs/flux.2-klein-4b`
+- `goofy-ai/prefect-pony-xl-lora`
 - `google/gemini-3.1-flash-lite-image`
 - `google/gemini-3.1-flash-image`
 - `google/gemini-3-pro-image-preview`
@@ -705,13 +705,14 @@ console.log(model);
 // }
 ```
 
-| Model                          | Resolutions     | Duration (s)     | Inputs                  |
-| ------------------------------ | --------------- | ---------------- | ----------------------- |
-| `bytedance/seedance-2.0-mini`  | 480p, 720p      | 4–15 (default 5) | first frame, last frame |
-| `google/gemini-omni-flash-1.1` | 720p, 1080p, 4k | 3–10 (default 8) | first frame, last frame |
-| `prunaai/p-video`              | 720p, 1080p     | 1–10 (default 5) | first frame             |
+| Model                          | Resolutions       | Duration (s)     | Inputs                  |
+| ------------------------------ | ----------------- | ---------------- | ----------------------- |
+| `bytedance/seedance-2.0-mini`  | 480p, 720p        | 4–15 (default 5) | first frame, last frame |
+| `google/gemini-omni-flash-1.1` | 720p, 1080p, 4k   | 3–10 (default 8) | first frame, last frame |
+| `prunaai/p-video`              | 720p, 1080p       | 1–10 (default 5) | first frame             |
+| `xai/grok-imagine-video-1.5`   | 480p, 720p, 1080p | 1–15 (default 8) | first frame             |
 
-All three support generated audio.
+Each of these supports generated audio.
 
 `mynth.models.list()` covers these video models alongside the image catalog.
 

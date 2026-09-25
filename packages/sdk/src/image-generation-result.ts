@@ -45,7 +45,7 @@ export class ImageGenerationResult<
   }
 
   /**
-   * The generation result containing images, cost, and model info.
+   * The generation result: images, the format each one was delivered in, and the model.
    * Returns `null` if the task hasn't completed yet.
    */
   get result(): TypedImageResult<RatingT> | null {

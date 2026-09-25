@@ -156,6 +156,7 @@ export namespace MynthSDKTypes {
     | "bria/fibo-edit-1.5"
     | "bria/fibo-generate-1.5"
     | "circlestone-labs/anima"
+    | "goofy-ai/prefect-pony-xl-lora"
     | "google/gemini-3.1-flash-lite-image"
     | "google/gemini-3.1-flash-image"
     | "google/gemini-3-pro-image-preview"

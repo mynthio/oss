@@ -83,11 +83,15 @@ describe("exit codes", () => {
   });
 
   it("exits 4 on INSUFFICIENT_BALANCE", async () => {
-    expect((await failing(422, "INSUFFICIENT_BALANCE")).status).toBe(4);
+    expect((await failing(402, "INSUFFICIENT_BALANCE")).status).toBe(4);
   });
 
-  it("exits 4 on SPENDING_LIMIT_EXCEEDED even though it is a 429", async () => {
-    expect((await failing(429, "SPENDING_LIMIT_EXCEEDED")).status).toBe(4);
+  it("exits 4 on SPENDING_LIMIT_EXCEEDED", async () => {
+    expect((await failing(402, "SPENDING_LIMIT_EXCEEDED")).status).toBe(4);
+  });
+
+  it("exits 4 on a 402 with an unknown code", async () => {
+    expect((await failing(402, "SOMETHING_NEW")).status).toBe(4);
   });
 
   it("exits 6 when plainly rate limited", async () => {

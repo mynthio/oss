@@ -874,7 +874,8 @@ try {
   console.log(task.urls);
 } catch (error) {
   if (error instanceof MynthAPIError) {
-    console.error(error.status, error.code, error.message);
+    // `message` says what to fix. On a VALIDATION_ERROR, `issues` lists each invalid field.
+    console.error(error.status, error.code, error.message, error.issues);
   } else if (error instanceof TaskAsyncTimeoutError) {
     console.error("Task polling timed out");
   } else if (error instanceof TaskAsyncUnauthorizedError) {

@@ -1,4 +1,4 @@
-import { MynthAPIError, MynthClient } from "./client.ts";
+import { MynthAPIError, type MynthAPIErrorIssue, MynthClient } from "./client.ts";
 import type { AvailableModel, ModelCapability } from "./constants.ts";
 import type { AvailableVideoModel, VideoInputRole, VideoResolutionTier } from "./constants.ts";
 import {
@@ -871,6 +871,7 @@ export type {
   AvailableModel,
   AvailableVideoModel,
   ModelCapability,
+  MynthAPIErrorIssue,
   MynthModel,
   MynthModelPricing,
   MynthOptions,

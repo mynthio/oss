@@ -8,19 +8,37 @@ export class MynthAPIError extends Error {
   public readonly status: number;
   /** Error code from the API response, if available */
   public readonly code?: string | undefined;
+  /**
+   * One entry per invalid field when `code` is `VALIDATION_ERROR` and the
+   * request failed its schema. `message` already states all of them.
+   */
+  public readonly issues?: ReadonlyArray<MynthAPIErrorIssue> | undefined;
 
-  constructor(message: string, status: number, code?: string) {
+  constructor(
+    message: string,
+    status: number,
+    code?: string,
+    issues?: ReadonlyArray<MynthAPIErrorIssue>,
+  ) {
     super(message);
     this.name = "MynthAPIError";
     this.status = status;
     this.code = code;
+    this.issues = issues;
   }
 }
 
+export type MynthAPIErrorIssue = {
+  /** Where the problem is, e.g. `["size", "scale"]`. Empty for the body as a whole. */
+  path: ReadonlyArray<string | number>;
+  message: string;
+};
+
 type APIErrorResponse = {
-  error?: string;
-  message?: string;
-  code?: string;
+  error?: unknown;
+  message?: unknown;
+  code?: unknown;
+  issues?: unknown;
 };
 
 type MynthClientRequestOptions = {
@@ -31,11 +49,26 @@ type MynthClientRequestOptions = {
 };
 
 function createApiError(data: unknown, status: number) {
-  const errorResponse = data as APIErrorResponse;
+  const errorResponse = (typeof data === "object" && data !== null ? data : {}) as APIErrorResponse;
   const message =
-    errorResponse.error || errorResponse.message || `Request failed with status ${status}`;
+    (typeof errorResponse.message === "string" && errorResponse.message) ||
+    (typeof errorResponse.error === "string" && errorResponse.error) ||
+    `Request failed with status ${status}`;
+  const code = typeof errorResponse.code === "string" ? errorResponse.code : undefined;
+  const issues = Array.isArray(errorResponse.issues)
+    ? (errorResponse.issues as MynthAPIErrorIssue[])
+    : undefined;
 
-  return new MynthAPIError(message, status, errorResponse.code);
+  return new MynthAPIError(message, status, code, issues);
+}
+
+/** An error body that is not JSON (a proxy's HTML page, say) still yields an API error. */
+async function readErrorBody(response: Response): Promise<unknown> {
+  try {
+    return await response.json();
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -87,13 +120,11 @@ class MynthClient {
       ...(signal ? { signal } : {}),
     });
 
-    const json = await response.json();
-
     if (!response.ok) {
-      throw createApiError(json, response.status);
+      throw createApiError(await readErrorBody(response), response.status);
     }
 
-    return json as DataType;
+    return (await response.json()) as DataType;
   }
 
   public async get<DataType>(

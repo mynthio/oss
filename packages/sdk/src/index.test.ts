@@ -790,6 +790,56 @@ describe("Mynth", () => {
   });
 });
 
+describe("MynthAPIError", () => {
+  test("keeps the message, code, and issues of a validation error", async () => {
+    // Arrange
+    const issues = [{ path: ["size"], message: 'size "16:9_8k" is not supported.' }];
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          jsonResponse(
+            { code: "VALIDATION_ERROR", message: 'size "16:9_8k" is not supported.', issues },
+            { status: 400 },
+          ),
+        ),
+    );
+    const mynth = new Mynth({ apiKey: "mak_test", baseUrl: "https://api.test" });
+
+    // Act
+    const promise = mynth.image.generateAsync({ prompt: "cat" });
+
+    // Assert
+    await expect(promise).rejects.toMatchObject({
+      name: "MynthAPIError",
+      message: 'size "16:9_8k" is not supported.',
+      status: 400,
+      code: "VALIDATION_ERROR",
+      issues,
+    });
+  });
+
+  test("reports the status when the error body is not JSON", async () => {
+    // Arrange
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValueOnce(new Response("<html>Bad Gateway</html>", { status: 502 })),
+    );
+    const mynth = new Mynth({ apiKey: "mak_test", baseUrl: "https://api.test" });
+
+    // Act
+    const promise = mynth.image.generateAsync({ prompt: "cat" });
+
+    // Assert
+    await expect(promise).rejects.toMatchObject({
+      name: "MynthAPIError",
+      message: "Request failed with status 502",
+      status: 502,
+    });
+  });
+});
+
 function createVideoTaskData(
   overrides: Partial<MynthSDKTypes.VideoGenerationTaskData> = {},
 ): MynthSDKTypes.VideoGenerationTaskData {

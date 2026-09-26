@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.44](https://github.com/mynthio/oss/compare/sdk-v0.0.43...sdk-v0.0.44) (2026-09-26)
+
+
+### Features
+
+* **sdk:** expose validation issues on MynthAPIError ([a5aa5ff](https://github.com/mynthio/oss/commit/a5aa5ff14ed8e642ac04455fb63af706e8143893))
+
 ## [0.0.43](https://github.com/mynthio/oss/compare/sdk-v0.0.42...sdk-v0.0.43) (2026-09-25)
 
 

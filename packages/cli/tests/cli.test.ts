@@ -102,6 +102,14 @@ describe("exit codes", () => {
     expect((await failing(400, "VALIDATION_ERROR")).status).toBe(2);
   });
 
+  it("exits 2 on INVALID_JSON", async () => {
+    expect((await failing(400, "INVALID_JSON")).status).toBe(2);
+  });
+
+  it("exits 2 on UNSUPPORTED_MEDIA_TYPE", async () => {
+    expect((await failing(415, "UNSUPPORTED_MEDIA_TYPE")).status).toBe(2);
+  });
+
   it("exits 1 on a server error", async () => {
     expect((await failing(500, "INTERNAL_SERVER_ERROR")).status).toBe(1);
   });

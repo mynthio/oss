@@ -855,7 +855,7 @@ Set `MYNTH_WEBHOOK_SECRET` in your environment, or pass `webhookSecret` explicit
 
 `upload()`, `generate()`, `generateAsync()`, `rate()`, `rateAsync()`, `alt()`, `altAsync()`, `review()`, `reviewAsync()`, `removeBackground()`, `removeBackgroundAsync()`, `models.list()`, and the `video` equivalents (`video.generate()`, `video.generateAsync()`, `video.upload()`, `video.estimate()`) may throw `MynthAPIError` if the request fails. Polling can also throw task-specific errors:
 
-While polling, transient failures (404, 5xx, dropped connections) are retried: a created task is owed an answer, so a cold cache or a brief outage does not lose you the result. Polling gives up after 20 consecutive failures (~100s) with `TaskAsyncFetchError` or `TaskAsyncTaskFetchError`, and immediately on a 401 or 403 with `TaskAsyncUnauthorizedError`. Image waits time out after 30 minutes, video waits after an hour.
+While polling, transient failures (404, 5xx, dropped connections) are retried: a created task is owed an answer, so a cold cache or a brief outage does not lose you the result. A 429 slows polling down, doubling the interval up to 30 seconds, and only the timeout ends it. Polling gives up after 20 consecutive failures (~100s) with `TaskAsyncFetchError` or `TaskAsyncTaskFetchError`, immediately on a 401 or 403 with `TaskAsyncUnauthorizedError`, and immediately on any other 4xx with `TaskAsyncFetchError` or `TaskAsyncTaskFetchError`. Image waits time out after 30 minutes, video waits after an hour.
 
 ```ts
 import {

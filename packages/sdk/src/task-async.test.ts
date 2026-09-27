@@ -135,6 +135,18 @@ describe("TaskAsyncFetchError", () => {
     // Assert
     expect(error.name).toBe("TaskAsyncFetchError");
   });
+
+  test("includes HTTP status code in message when provided", () => {
+    // Arrange
+    const taskId = "task-fetch-789";
+    const httpStatus = 400;
+
+    // Act
+    const error = new TaskAsyncFetchError(taskId, undefined, httpStatus);
+
+    // Assert
+    expect(error.message).toContain("400");
+  });
 });
 
 describe("TaskAsyncTaskFetchError", () => {
@@ -256,6 +268,7 @@ describe("TaskAsync", () => {
 
     afterEach(() => {
       vi.useRealTimers();
+      vi.restoreAllMocks();
     });
 
     test("returns result when status immediately reports completed", async () => {
@@ -433,6 +446,94 @@ describe("TaskAsync", () => {
 
       // Act & Assert
       await expect(taskAsync.wait()).rejects.toThrow(TaskAsyncUnauthorizedError);
+    });
+
+    test("throws TaskAsyncFetchError at once on a non-retryable 4xx", async () => {
+      // Arrange
+      const mockGet = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        data: { error: "Bad request" },
+      });
+
+      const client = createMockClient({ get: mockGet });
+      const taskAsync = createTaskAsync("bad-request-task", { client });
+
+      // Act
+      const error = await taskAsync.wait().catch((error: unknown) => error);
+
+      // Assert
+      expect(error).toBeInstanceOf(TaskAsyncFetchError);
+      expect(mockGet).toHaveBeenCalledOnce();
+    });
+
+    test("keeps polling through more 429s than the retry budget allows", async () => {
+      // Arrange - 25 consecutive 429s is past the 20-failure budget
+      const taskData = createMockTaskData({ id: "rate-limited-task" });
+      const mockGet = vi.fn();
+      for (let i = 0; i < 25; i++) {
+        mockGet.mockResolvedValueOnce({
+          ok: false,
+          status: 429,
+          data: { error: "Too many requests" },
+        });
+      }
+      mockGet
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          data: { data: { status: "completed" } },
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          data: { data: taskData },
+        });
+
+      const client = createMockClient({ get: mockGet });
+      const taskAsync = createTaskAsync("rate-limited-task", { client });
+
+      // Act
+      const resultPromise = taskAsync.wait();
+      for (let i = 0; i < 26; i++) {
+        await vi.advanceTimersByTimeAsync(31_000);
+      }
+      const result = await resultPromise;
+
+      // Assert
+      expect(result.id).toBe("rate-limited-task");
+    });
+
+    test("doubles the polling interval on each consecutive 429", async () => {
+      // Arrange - no jitter, so the intervals are exact: 5s, 10s, then the 30s cap
+      vi.spyOn(Math, "random").mockReturnValue(0);
+      const mockGet = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        data: { error: "Too many requests" },
+      });
+
+      const client = createMockClient({ get: mockGet });
+      const taskAsync = createTaskAsync("backoff-task", { client });
+      const controller = new AbortController();
+
+      // Act
+      const resultPromise = taskAsync.wait({ signal: controller.signal }).catch(() => {});
+      await vi.advanceTimersByTimeAsync(14_999);
+      const callsBeforeThird = mockGet.mock.calls.length;
+      await vi.advanceTimersByTimeAsync(1);
+      const callsAtThird = mockGet.mock.calls.length;
+      await vi.advanceTimersByTimeAsync(29_999);
+      const callsBeforeFourth = mockGet.mock.calls.length;
+      await vi.advanceTimersByTimeAsync(1);
+      const callsAtFourth = mockGet.mock.calls.length;
+      controller.abort();
+      await resultPromise;
+
+      // Assert
+      expect([callsBeforeThird, callsAtThird, callsBeforeFourth, callsAtFourth]).toEqual([
+        2, 3, 3, 4,
+      ]);
     });
 
     test("retries a 404 status poll and succeeds once the task is visible", async () => {
@@ -895,6 +996,78 @@ describe("TaskAsync", () => {
 
       // Assert
       expect(result.id).toBe("fetch-404-task");
+    });
+
+    test("retries a task fetch network error and succeeds after recovery", async () => {
+      // Arrange
+      const taskData = createMockTaskData({ id: "fetch-network-task" });
+      const mockGet = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          data: { data: { status: "completed" } },
+        })
+        .mockRejectedValueOnce(new Error("Network timeout"))
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          data: { data: { status: "completed" } },
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          data: { data: taskData },
+        });
+
+      const client = createMockClient({ get: mockGet });
+      const taskAsync = createTaskAsync("fetch-network-task", { client });
+
+      // Act
+      const resultPromise = taskAsync.wait();
+      await vi.advanceTimersByTimeAsync(3000);
+      const result = await resultPromise;
+
+      // Assert
+      expect(result.id).toBe("fetch-network-task");
+    });
+
+    test("retries a 429 task fetch and succeeds after backing off", async () => {
+      // Arrange
+      const taskData = createMockTaskData({ id: "fetch-429-task" });
+      const mockGet = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          data: { data: { status: "completed" } },
+        })
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 429,
+          data: { error: "Too many requests" },
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          data: { data: { status: "completed" } },
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          data: { data: taskData },
+        });
+
+      const client = createMockClient({ get: mockGet });
+      const taskAsync = createTaskAsync("fetch-429-task", { client });
+
+      // Act
+      const resultPromise = taskAsync.wait();
+      await vi.advanceTimersByTimeAsync(6000);
+      const result = await resultPromise;
+
+      // Assert
+      expect(result.id).toBe("fetch-429-task");
     });
   });
 

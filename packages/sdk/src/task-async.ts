@@ -11,6 +11,10 @@ const SLOW_POLLING_INTERVAL_MS = 5_000; // 5 seconds
 // intervals above. A created task is owed an answer, so it is worth waiting out
 // a deploy or a cold cache instead of failing the caller's run.
 const MAX_RETRY_COUNT = 20;
+// A 429 doubles the interval per consecutive rate-limited poll, up to this. It
+// does not spend the retry budget above: being told to slow down is not an
+// outage, so only the timeout bounds it.
+const MAX_RATE_LIMITED_INTERVAL_MS = 30_000;
 
 /**
  * Polling cadence overrides. Anything omitted keeps the image-task default.
@@ -47,11 +51,16 @@ export class TaskAsyncUnauthorizedError extends Error {
 }
 
 /**
- * Error thrown when fetching task status fails after multiple retries.
+ * Error thrown when fetching task status fails after multiple retries, or at
+ * once on a response that a retry cannot change (a 400, say).
  */
 export class TaskAsyncFetchError extends Error {
-  constructor(taskId: string, cause?: Error) {
-    super(`Failed to fetch status for task ${taskId} after multiple retries`);
+  constructor(taskId: string, cause?: Error, status?: number) {
+    super(
+      status
+        ? `Failed to fetch status for task ${taskId} (status ${status})`
+        : `Failed to fetch status for task ${taskId} after multiple retries`,
+    );
     this.name = "TaskAsyncFetchError";
     this.cause = cause;
   }
@@ -81,11 +90,26 @@ export class TaskAsyncTaskFailedError extends Error {
 
 type FetchStatusResult =
   | { ok: true; status: MynthSDKTypes.TaskStatus }
-  | { ok: false; unauthorized: boolean; retryable: boolean; notFound?: boolean; error?: Error };
+  | {
+      ok: false;
+      unauthorized: boolean;
+      retryable: boolean;
+      notFound?: boolean;
+      rateLimited?: boolean;
+      status?: number;
+      error?: Error;
+    };
 
 type FetchTaskResult =
   | { ok: true; data: MynthSDKTypes.TaskData }
-  | { ok: false; unauthorized: boolean; retryable: boolean; status?: number; error?: Error };
+  | {
+      ok: false;
+      unauthorized: boolean;
+      retryable: boolean;
+      rateLimited?: boolean;
+      status?: number;
+      error?: Error;
+    };
 
 /**
  * Options for {@link TaskAsync.wait}.
@@ -179,7 +203,7 @@ export class TaskAsync<ResultT> {
    * @param options.signal - Stops this wait when aborted (see {@link TaskAsyncWaitOptions})
    * @throws {TaskAsyncTimeoutError} If polling exceeds the timeout
    * @throws {TaskAsyncUnauthorizedError} If access is denied
-   * @throws {TaskAsyncFetchError} If fetching status fails repeatedly
+   * @throws {TaskAsyncFetchError} If fetching status fails repeatedly, or with a non-retryable 4xx
    * @throws {TaskAsyncTaskFetchError} If fetching the completed task fails
    * @throws {TaskAsyncTaskFailedError} If the task fails before completion
    */
@@ -238,6 +262,7 @@ export class TaskAsync<ResultT> {
     const { timeoutMs, fastDurationMs, fastIntervalMs, intervalMs } = this.polling;
     const startTime = Date.now();
     let retryCount = 0;
+    let rateLimitedCount = 0;
     let useApiKeyFallback = false;
     let lastError: Error | undefined;
 
@@ -249,6 +274,7 @@ export class TaskAsync<ResultT> {
       }
 
       const result = await this.fetchStatus(useApiKeyFallback, signal);
+      let rateLimited = false;
 
       if (result.ok) {
         if (result.status === "completed") {
@@ -262,12 +288,16 @@ export class TaskAsync<ResultT> {
             throw new TaskAsyncUnauthorizedError(this.id);
           }
 
-          // The task settled, so its record is owed to us as much as its status
-          // was: a 404 or 5xx here is a blip, and shares the same budget.
-          retryCount++;
+          if (fetched.rateLimited) {
+            rateLimited = true;
+          } else {
+            // The task settled, so its record is owed to us as much as its
+            // status was: a 404 or 5xx here is a blip, and shares the same budget.
+            retryCount++;
 
-          if (!fetched.retryable || retryCount >= MAX_RETRY_COUNT) {
-            throw new TaskAsyncTaskFetchError(this.id, fetched.status, fetched.error);
+            if (!fetched.retryable || retryCount >= MAX_RETRY_COUNT) {
+              throw new TaskAsyncTaskFetchError(this.id, fetched.status, fetched.error);
+            }
           }
         } else if (result.status === "failed") {
           throw new TaskAsyncTaskFailedError(this.id);
@@ -293,7 +323,13 @@ export class TaskAsync<ResultT> {
           throw new TaskAsyncUnauthorizedError(this.id);
         }
 
-        if (result.retryable) {
+        if (!result.retryable) {
+          throw new TaskAsyncFetchError(this.id, result.error, result.status);
+        }
+
+        if (result.rateLimited) {
+          rateLimited = true;
+        } else {
           retryCount++;
           lastError = result.error;
 
@@ -303,11 +339,18 @@ export class TaskAsync<ResultT> {
         }
       }
 
+      rateLimitedCount = rateLimited ? rateLimitedCount + 1 : 0;
+
       // Calculate polling interval with slight randomness
       const isInFastPhase = elapsed < fastDurationMs;
       const baseInterval = isInFastPhase ? fastIntervalMs : intervalMs;
+      // The cap never shortens a profile whose own interval is already longer.
+      const backedOffInterval = Math.min(
+        baseInterval * 2 ** rateLimitedCount,
+        Math.max(baseInterval, MAX_RATE_LIMITED_INTERVAL_MS),
+      );
       const jitter = Math.random() * 500; // 0-500ms randomness
-      const interval = baseInterval + jitter;
+      const interval = backedOffInterval + jitter;
 
       // Don't wait longer than remaining timeout
       const remainingTime = timeoutMs - elapsed;
@@ -348,13 +391,18 @@ export class TaskAsync<ResultT> {
         return { ok: false, unauthorized: false, retryable: true, notFound: true };
       }
 
+      // 429 asks us to back off rather than give up
+      if (response.status === 429) {
+        return { ok: false, unauthorized: false, retryable: true, rateLimited: true };
+      }
+
       // 5xx errors are retryable
       if (response.status >= 500) {
         return { ok: false, unauthorized: false, retryable: true };
       }
 
       // Other 4xx errors are not retryable
-      return { ok: false, unauthorized: false, retryable: false };
+      return { ok: false, unauthorized: false, retryable: false, status: response.status };
     } catch (error) {
       // An abort is the caller's decision, not a network blip to retry.
       signal.throwIfAborted();
@@ -383,6 +431,17 @@ export class TaskAsync<ResultT> {
       // 401 or 403 are unauthorized
       if (response.status === 401 || response.status === 403) {
         return { ok: false, unauthorized: true, retryable: false };
+      }
+
+      // 429 asks us to back off, as it does on the status endpoint
+      if (response.status === 429) {
+        return {
+          ok: false,
+          unauthorized: false,
+          retryable: true,
+          rateLimited: true,
+          status: response.status,
+        };
       }
 
       // 404 and 5xx errors are retryable, for the same reason they are on the

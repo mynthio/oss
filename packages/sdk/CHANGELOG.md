@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.45](https://github.com/mynthio/oss/compare/sdk-v0.0.44...sdk-v0.0.45) (2026-09-27)
+
+
+### Bug Fixes
+
+* **sdk:** back off on 429 while polling and fail fast on other 4xx ([0c1b9fd](https://github.com/mynthio/oss/commit/0c1b9fd58cbe6500e40f1dfdd8541b244791ae75))
+
 ## [0.0.44](https://github.com/mynthio/oss/compare/sdk-v0.0.43...sdk-v0.0.44) (2026-09-26)
 
 

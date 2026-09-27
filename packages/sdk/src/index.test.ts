@@ -145,6 +145,44 @@ function createRemoveBackgroundTaskData(
 describe("MynthImage", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  test("reads the API key from MYNTH_API_KEY when none is passed", async () => {
+    // Arrange
+    vi.stubEnv("MYNTH_API_KEY", "mak_env");
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse({ data: { taskId: "task-123" } }));
+    vi.stubGlobal("fetch", fetchMock);
+    const image = new MynthImage({ baseUrl: "https://api.test" });
+
+    // Act
+    await image.generateAsync({ prompt: "test prompt" });
+
+    // Assert
+    expect(fetchMock.mock.calls[0]?.[1]?.headers).toMatchObject({
+      Authorization: "Bearer mak_env",
+    });
+  });
+
+  test("throws when no API key is passed or set in the environment", () => {
+    // Arrange
+    vi.stubEnv("MYNTH_API_KEY", undefined);
+
+    // Act & Assert
+    expect(() => new MynthImage()).toThrow("Mynth API key is required");
+  });
+
+  test("rejects a file input when the upload returns no URL", async () => {
+    // Arrange
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse({ data: { urls: [] } })));
+    const image = new MynthImage({ apiKey: "mak_test", baseUrl: "https://api.test" });
+    const file = new File(["image-bytes"], "input.webp", { type: "image/webp" });
+
+    // Act
+    const promise = image.altAsync({ file });
+
+    // Assert
+    await expect(promise).rejects.toThrow("Image upload returned no URL");
   });
 
   test("generateAsync returns a pollable task without waiting", async () => {
@@ -883,6 +921,15 @@ function createVideoTaskData(
 describe("MynthVideo", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  test("throws when no API key is passed or set in the environment", () => {
+    // Arrange
+    vi.stubEnv("MYNTH_API_KEY", undefined);
+
+    // Act & Assert
+    expect(() => new MynthVideo()).toThrow("Mynth API key is required");
   });
 
   test("generateAsync returns a pollable task without waiting", async () => {

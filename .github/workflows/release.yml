@@ -20,6 +20,9 @@ jobs:
     runs-on: ubuntu-latest
     # Skip verification on release-please commits (version bumps, changelog updates)
     if: "!startsWith(github.event.head_commit.message, 'chore(main): release')"
+    permissions:
+      contents: read
+      id-token: write # Codecov upload over OIDC
 
     steps:
       - name: Checkout
@@ -41,8 +44,13 @@ jobs:
       - name: Type check
         run: pnpm run typecheck
 
-      - name: Run tests
-        run: pnpm run test
+      # Coverage from `main` is the baseline pull requests are compared against,
+      # and what the README badges show.
+      - name: Run tests with coverage
+        run: pnpm run test:coverage
+
+      - name: Upload coverage
+        uses: ./.github/actions/upload-coverage
 
       - name: Build
         run: pnpm run build

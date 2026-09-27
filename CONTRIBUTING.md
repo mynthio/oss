@@ -15,6 +15,8 @@ pnpm test
 pnpm build
 ```
 
+`pnpm test:coverage` runs the tests with coverage and writes an HTML report to each package's `coverage/index.html`. CI uploads the same reports to [Codecov](https://app.codecov.io/gh/mynthio/oss), which comments on every pull request with the change per package.
+
 To work on a specific package:
 
 ```bash

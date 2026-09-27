@@ -1,0 +1,10 @@
+{
+  "all": true,
+  "src": ["src"],
+  "include": ["src/**"],
+  "reporter": ["text", "html", "lcovonly"],
+  "reporterOptions": {
+    "text": { "skipFull": true },
+    "lcovonly": { "projectRoot": "../.." }
+  }
+}

@@ -1,0 +1,36 @@
+name: Upload coverage
+description: Uploads each released package's lcov report to Codecov under its own flag.
+
+# The calling job needs `id-token: write`: uploads authenticate with OIDC, so the
+# repository needs no Codecov token. Pull requests from forks, which get no OIDC
+# token, fall back to Codecov's tokenless upload for public repositories.
+#
+# A new package needs a step here, a flag in codecov.yml, and `after_n_builds`
+# there bumped to the new number of uploads.
+
+runs:
+  using: composite
+  steps:
+    - name: Upload SDK coverage
+      uses: codecov/codecov-action@v7
+      with:
+        use_oidc: true
+        disable_search: true
+        files: packages/sdk/coverage/lcov.info
+        flags: sdk
+
+    - name: Upload CLI coverage
+      uses: codecov/codecov-action@v7
+      with:
+        use_oidc: true
+        disable_search: true
+        files: packages/cli/coverage/lcov.info
+        flags: cli
+
+    - name: Upload TanStack AI adapter coverage
+      uses: codecov/codecov-action@v7
+      with:
+        use_oidc: true
+        disable_search: true
+        files: packages/tanstack-ai-adapter/coverage/lcov.info
+        flags: tanstack-ai-adapter

@@ -1,0 +1,34 @@
+# Each released package is uploaded under its own flag by
+# .github/actions/upload-coverage.
+codecov:
+  notify:
+    # Wait for every package so statuses never reflect a partial upload.
+    after_n_builds: 3
+
+coverage:
+  status:
+    # The project check fails when total coverage drops by more than 1 point; the
+    # patch check never fails. Neither is required to merge into `main`.
+    project:
+      default:
+        target: auto
+        threshold: 1%
+    patch:
+      default:
+        informational: true
+
+flags:
+  sdk:
+    paths:
+      - packages/sdk/src/
+  cli:
+    paths:
+      - packages/cli/src/
+  tanstack-ai-adapter:
+    paths:
+      - packages/tanstack-ai-adapter/src/
+
+comment:
+  layout: "header, diff, flags, files, footer"
+  behavior: default
+  after_n_builds: 3

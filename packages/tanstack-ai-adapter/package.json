@@ -37,6 +37,7 @@
   "scripts": {
     "build": "tsdown",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "typecheck": "tsc"
   },
@@ -46,10 +47,11 @@
   "devDependencies": {
     "@arethetypeswrong/core": "^0.18.5",
     "@tanstack/ai": "^0.61.0",
+    "@vitest/coverage-v8": "^5.0.2",
     "publint": "^0.3.24",
     "tsdown": "^0.23.0",
     "typescript": "7.0.2",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.2"
   },
   "peerDependencies": {
     "@tanstack/ai": ">=0.61.0"

@@ -18,6 +18,9 @@ jobs:
   ci:
     name: Lint, Format, Test & Build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Codecov upload over OIDC
 
     steps:
       - name: Checkout
@@ -69,8 +72,11 @@ jobs:
       - name: Type check
         run: pnpm run typecheck
 
-      - name: Run tests
-        run: pnpm run test
+      - name: Run tests with coverage
+        run: pnpm run test:coverage
+
+      - name: Upload coverage
+        uses: ./.github/actions/upload-coverage
 
       - name: Build
         run: pnpm run build

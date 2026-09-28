@@ -892,7 +892,7 @@ try {
 
 ## Documentation
 
-For product documentation and API guides, visit [docs.mynth.io](https://docs.mynth.io).
+For product documentation and API guides, visit [mynth.io/docs](https://mynth.io/docs).
 
 ## Contributing
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.46](https://github.com/mynthio/oss/compare/sdk-v0.0.45...sdk-v0.0.46) (2026-09-30)
+
+
+### Features
+
+* add image upscaling to SDK, CLI, and agent skill ([4308444](https://github.com/mynthio/oss/commit/4308444859046258e143be70d211cd7d75691170))
+
 ## [0.0.45](https://github.com/mynthio/oss/compare/sdk-v0.0.44...sdk-v0.0.45) (2026-09-27)
 
 

@@ -321,6 +321,18 @@ export const imageRemoveBackgroundResult = z.object({
 });
 export type ImageRemoveBackgroundResult = z.infer<typeof imageRemoveBackgroundResult>;
 
+export const imageUpscaleResult = z.object({
+  image: z.object({
+    id: z.string(),
+    url: z.string().nullable(),
+    mynth_url: z.string(),
+    size: z.string(),
+    format: z.string(),
+    destination: imageDestination.optional(),
+  }),
+});
+export type ImageUpscaleResult = z.infer<typeof imageUpscaleResult>;
+
 //
 // Destinations
 //

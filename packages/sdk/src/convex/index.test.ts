@@ -315,6 +315,62 @@ describe("mynthWebhookAction", () => {
     });
   });
 
+  test("dispatches image upscale completion events", async () => {
+    // Arrange
+    const imageUpscaleTaskCompleted = vi.fn();
+    const payload: MynthSDKTypes.WebhookTaskImageUpscaleCompletedPayload = {
+      event: "task.image.upscale.completed",
+      task: { id: "tsk_upscale" },
+      request: { url: "https://cdn.example.com/image.jpg", size: "2x", effort: "low" },
+      result: {
+        image: {
+          id: "img_1",
+          url: "https://cdn.example.com/upscaled.png",
+          mynth_url: "https://mynth.example.com/upscaled.png",
+          size: "2048x1536",
+          format: "png",
+        },
+      },
+    };
+    const action = mynthWebhookAction({ imageUpscaleTaskCompleted }, { webhookSecret: SECRET });
+
+    // Act
+    const response = await invoke(action, await createWebhookRequest(payload));
+
+    // Assert
+    expect({
+      status: response.status,
+      calls: imageUpscaleTaskCompleted.mock.calls,
+    }).toEqual({
+      status: 200,
+      calls: [[payload, { context: {}, request: expect.any(Request), deliveryId: DELIVERY_ID }]],
+    });
+  });
+
+  test("dispatches image upscale failure events", async () => {
+    // Arrange
+    const imageUpscaleTaskFailed = vi.fn();
+    const payload: MynthSDKTypes.WebhookTaskImageUpscaleFailedPayload = {
+      event: "task.image.upscale.failed",
+      task: { id: "tsk_upscale" },
+      request: { url: "https://cdn.example.com/image.jpg", size: "2x", effort: "low" },
+      errors: [{ code: "OUTPUT_TOO_LARGE" }],
+    };
+    const action = mynthWebhookAction({ imageUpscaleTaskFailed }, { webhookSecret: SECRET });
+
+    // Act
+    const response = await invoke(action, await createWebhookRequest(payload));
+
+    // Assert
+    expect({
+      status: response.status,
+      calls: imageUpscaleTaskFailed.mock.calls,
+    }).toEqual({
+      status: 200,
+      calls: [[payload, { context: {}, request: expect.any(Request), deliveryId: DELIVERY_ID }]],
+    });
+  });
+
   test("returns a Convex HTTP action that httpRouter accepts", () => {
     // Arrange
     const http = httpRouter();

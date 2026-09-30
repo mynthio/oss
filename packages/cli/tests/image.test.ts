@@ -476,6 +476,179 @@ describe("image remove-background", () => {
   });
 });
 
+const completedUpscale = {
+  type: "image.upscale",
+  status: "completed",
+  cost: "0.03",
+  result: {
+    image: {
+      id: "img_1",
+      url: "https://cdn.test/upscaled.png",
+      mynth_url: "https://mynth.test/upscaled.png",
+      size: "2048x1536",
+      format: "png",
+    },
+  },
+};
+
+describe("image upscale", () => {
+  it("sends only the flags the caller set", async () => {
+    await withApi(
+      (request, response) => json(response, 201, { data: { taskId: "tsk_1" } }),
+      async (env, requests) => {
+        const result = await runCli(
+          [
+            "image",
+            "upscale",
+            "https://cdn.test/product.jpg",
+            "--size",
+            "4x",
+            "--effort",
+            "high",
+            "--format",
+            "jpg",
+            "--metadata",
+            '{"sku":"1"}',
+            "--webhook-url",
+            "https://hooks.test/a",
+            "--async",
+          ],
+          { ...env, MYNTH_DESTINATION: "bunny-prod" },
+        );
+
+        expect(result.status).toBe(0);
+        expect(requests[0]?.url).toBe("/image/upscale");
+        expect(requests[0]?.body).toEqual({
+          url: "https://cdn.test/product.jpg",
+          size: "4x",
+          effort: "high",
+          output: { format: "jpg" },
+          destination: "bunny-prod",
+          webhook: { custom: [{ url: "https://hooks.test/a" }] },
+          metadata: { sku: "1" },
+          access: { pat: { enabled: true } },
+        });
+      },
+    );
+  });
+
+  it("prints the task id and public access token with --async", async () => {
+    await withApi(
+      (request, response) =>
+        json(response, 201, {
+          data: {
+            taskId: "tsk_async",
+            estimatedCost: "0.03",
+            access: { publicAccessToken: "pat_test" },
+          },
+        }),
+      async (env) => {
+        const result = await runCli(
+          [
+            "image",
+            "upscale",
+            "https://cdn.test/a.jpg",
+            "-s",
+            "2x",
+            "--effort",
+            "low",
+            "--async",
+            "--json",
+          ],
+          env,
+        );
+
+        expect(JSON.parse(result.stdout)).toEqual({
+          taskId: "tsk_async",
+          estimatedCost: "0.03",
+          access: { publicAccessToken: "pat_test" },
+        });
+      },
+    );
+  });
+
+  it("waits for the task and returns the image as JSON", async () => {
+    await withApi(
+      taskRoutes({
+        taskId: "tsk_up",
+        createPath: "/image/upscale",
+        task: completedUpscale,
+      }),
+      async (env) => {
+        const result = await runCli(
+          [
+            "image",
+            "upscale",
+            "https://cdn.test/product.jpg",
+            "--size",
+            "2x",
+            "--effort",
+            "low",
+            "--json",
+          ],
+          env,
+        );
+
+        expect(result.status).toBe(0);
+        expect(JSON.parse(result.stdout)).toEqual({
+          taskId: "tsk_up",
+          cost: "0.03",
+          ...completedUpscale.result,
+        });
+      },
+    );
+  });
+
+  it("prints a human summary", async () => {
+    await withApi(
+      taskRoutes({
+        taskId: "tsk_up",
+        createPath: "/image/upscale",
+        task: completedUpscale,
+      }),
+      async (env) => {
+        const result = await runCli(
+          ["image", "upscale", "https://cdn.test/product.jpg", "--size", "2x", "--effort", "low"],
+          env,
+        );
+
+        expect(result.status).toBe(0);
+        expect(result.stdout).toContain("Upscaled (task tsk_up)");
+        expect(result.stdout).toContain("2048x1536 png");
+        expect(result.stdout).toContain("https://cdn.test/upscaled.png");
+      },
+    );
+  });
+
+  it("requires --effort, since it sets the price", async () => {
+    const result = await runCli(["image", "upscale", "https://cdn.test/a.jpg", "--size", "2x"]);
+
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("--effort");
+  });
+
+  it("requires --size", async () => {
+    const result = await runCli(["image", "upscale", "https://cdn.test/a.jpg", "--effort", "low"]);
+
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("--size");
+  });
+
+  it("rejects an unknown size", async () => {
+    const result = await runCli([
+      "image",
+      "upscale",
+      "https://cdn.test/a.jpg",
+      "--size",
+      "8x",
+      "--effort",
+      "low",
+    ]);
+
+    expect(result.status).toBe(2);
+  });
+});
+
 describe("image upload", () => {
   it("posts the files as multipart and maps URLs back to paths", async () => {
     await withApi(

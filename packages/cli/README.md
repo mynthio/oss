@@ -143,6 +143,30 @@ mynth image remove-background ./shot.jpg --destination bunny-prod --async --json
 | `--metadata`              | Inline JSON attached to the task.                                             |
 | `--async`                 | Print the task ID and a public access token instead of waiting.               |
 
+## Upscaling images
+
+Takes one URL or one local file and enlarges it 2x or 4x, up to 4096x4096. Mynth picks the model:
+
+```bash
+mynth image upscale https://cdn.example.com/product.jpg --size 2x --effort low
+mynth image upscale ./shot.jpg --size 4x --effort high --format webp -o ./out
+mynth image upscale ./shot.jpg -s 2x --effort low --destination bunny-prod --async --json
+```
+
+| Flag                      | Purpose                                                                            |
+| ------------------------- | ---------------------------------------------------------------------------------- |
+| `-s, --size`              | Required. `2x` or `4x`.                                                            |
+| `--effort`                | Required. `low` is fast and sharp, `high` rebuilds fine detail. It sets the price. |
+| `-f, --format`            | `png`, `jpg`, or `webp`. Defaults to whatever the provider returns.                |
+| `-o, --output-dir`        | Download the result into this directory.                                           |
+| `--destination`           | Deliver to a configured storage destination. Defaults to `MYNTH_DESTINATION`.      |
+| `--webhook-url`           | Deliver this task's events to a URL (repeatable).                                  |
+| `--no-dashboard-webhooks` | Skip dashboard-configured webhooks for this task.                                  |
+| `--metadata`              | Inline JSON attached to the task.                                                  |
+| `--async`                 | Print the task ID and a public access token instead of waiting.                    |
+
+A result larger than 4096x4096 fails the task with `OUTPUT_TOO_LARGE` and is not charged.
+
 ## Analyzing images
 
 Every analysis command takes one URL or one local file, and waits for the result:

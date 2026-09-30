@@ -17,6 +17,8 @@ const EVENT_HANDLER_NAMES = {
   "task.image.review.failed": "imageReviewTaskFailed",
   "task.image.remove_background.completed": "imageRemoveBackgroundTaskCompleted",
   "task.image.remove_background.failed": "imageRemoveBackgroundTaskFailed",
+  "task.image.upscale.completed": "imageUpscaleTaskCompleted",
+  "task.image.upscale.failed": "imageUpscaleTaskFailed",
   "task.video.generate.completed": "videoTaskCompleted",
   "task.video.generate.failed": "videoTaskFailed",
 } as const;

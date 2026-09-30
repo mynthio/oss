@@ -13,6 +13,7 @@ export const RATE_IMAGE_PATH = "/image/rate";
 export const ALT_IMAGE_PATH = "/image/alt";
 export const REVIEW_IMAGE_PATH = "/image/review";
 export const REMOVE_BACKGROUND_IMAGE_PATH = "/image/remove-background";
+export const UPSCALE_IMAGE_PATH = "/image/upscale";
 export const GENERATE_VIDEO_PATH = "/video/generate";
 export const ESTIMATE_VIDEO_PATH = "/video/generate/estimate";
 export const MODELS_PATH = "/models";

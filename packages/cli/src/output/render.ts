@@ -1,4 +1,4 @@
-import type { ImageRemoveBackgroundResult, Task } from "../api/schemas.ts";
+import type { ImageRemoveBackgroundResult, ImageUpscaleResult, Task } from "../api/schemas.ts";
 import { imageGenerateResult, type GeneratedImage } from "../api/schemas.ts";
 import { glyph, glyphForStatus, indent, plural, print } from "./print.ts";
 
@@ -64,6 +64,26 @@ export const renderRemoveBackground = (
 
   print(`${glyph.ok} Removed background (task ${removal.taskId})`);
   if (removal.cost !== null) print(`  Cost:  ${removal.cost}`);
+  print(`  Size:  ${image.size} ${image.format}`);
+  print("");
+  print(`  ${glyph.ok} ${image.url ?? image.mynth_url}`);
+  if (image.destination?.status === "failed") {
+    print(
+      `      ${glyph.fail} destination ${image.destination.name}: ${formatError(image.destination.error)}`,
+    );
+  }
+};
+
+export const renderUpscale = (
+  upscale: ImageUpscaleResult & {
+    readonly taskId: string;
+    readonly cost: string | null;
+  },
+): void => {
+  const { image } = upscale;
+
+  print(`${glyph.ok} Upscaled (task ${upscale.taskId})`);
+  if (upscale.cost !== null) print(`  Cost:  ${upscale.cost}`);
   print(`  Size:  ${image.size} ${image.format}`);
   print("");
   print(`  ${glyph.ok} ${image.url ?? image.mynth_url}`);

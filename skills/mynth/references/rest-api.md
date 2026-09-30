@@ -151,6 +151,10 @@ Response (200):
 
 `POST /image/remove-background` — remove the background from a single existing image by URL. Async only; returns `201` with `taskId`, `estimatedCost`, and a PAT. Request and response shapes: see [image-remove-background.md](image-remove-background.md).
 
+## Upscale
+
+`POST /image/upscale` — enlarge a single existing image by URL. Body needs `url`, `size` (`"2x"` or `"4x"`), and `effort` (`"low"` or `"high"`). Async only; returns `201` with `taskId`, `estimatedCost`, and a PAT. Request and response shapes: see [image-upscale.md](image-upscale.md).
+
 ## Review
 
 `POST /image/review` — score one image from 1 to 4 and list its defects. Body: `{ "url", "effort": "high" | "low" }` (default `high`). Async only. Details: https://mynth.io/docs/guides/review-images.md

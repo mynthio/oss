@@ -14,6 +14,7 @@ import {
   RATE_IMAGE_PATH,
   REMOVE_BACKGROUND_IMAGE_PATH,
   REVIEW_IMAGE_PATH,
+  UPSCALE_IMAGE_PATH,
   VIDEO_POLLING,
 } from "./constants.ts";
 import { ImageAltResult } from "./image-alt-result.ts";
@@ -21,6 +22,7 @@ import { ImageGenerationResult } from "./image-generation-result.ts";
 import { ImageRateResult } from "./image-rate-result.ts";
 import { ImageRemoveBackgroundResult } from "./image-remove-background-result.ts";
 import { ImageReviewResult } from "./image-review-result.ts";
+import { ImageUpscaleResult } from "./image-upscale-result.ts";
 import type { TaskAsyncAccess, TaskAsyncWaitOptions } from "./task-async.ts";
 import {
   TaskAsync,
@@ -76,6 +78,8 @@ type ExtractVideoMetadata<T extends MynthSDKTypes.VideoGenerationClientRequest> 
 
 type ExtractRemoveBackgroundMetadata<T extends MynthSDKTypes.ImageRemoveBackgroundClientRequest> =
   T["metadata"];
+
+type ExtractUpscaleMetadata<T extends MynthSDKTypes.ImageUpscaleClientRequest> = T["metadata"];
 
 type ExtractRatingConfig<T extends MynthSDKTypes.ImageGenerationClientRequest> = T["rating"];
 
@@ -576,6 +580,75 @@ class MynthImage {
         ),
     });
   }
+
+  /**
+   * Upscale a single image 2x or 4x.
+   *
+   * Mynth picks the model. `effort` sets the price, so it has no default. The
+   * upscaled image can be at most 4096x4096 pixels; a larger request fails
+   * with `OUTPUT_TOO_LARGE` and is not charged.
+   *
+   * @param request - Image URL or local file, size, and effort, plus optional output, destination, webhook, and metadata
+   * @returns An ImageUpscaleResult with the enlarged image
+   *
+   * @example
+   * ```typescript
+   * const result = await image.upscale({ url: "https://...", size: "2x", effort: "low" });
+   * console.log(result.image.url);
+   * ```
+   */
+  public async upscale<const T extends MynthSDKTypes.ImageUpscaleClientRequest>(
+    request: T,
+  ): Promise<ImageUpscaleResult<ExtractUpscaleMetadata<T>>> {
+    const taskAsync = await this.createUpscaleTask(request);
+
+    return taskAsync.wait();
+  }
+
+  /**
+   * Start an upscale without waiting for completion.
+   *
+   * @param request - Image URL or local file, size, and effort, plus optional output, destination, webhook, and metadata
+   * @returns A TaskAsync that can be polled for completion via `.wait()`
+   *
+   * @example
+   * ```typescript
+   * const taskAsync = await image.upscaleAsync({ url: "https://...", size: "2x", effort: "low" });
+   *
+   * return { id: taskAsync.id, access: taskAsync.access };
+   * ```
+   */
+  public async upscaleAsync<const T extends MynthSDKTypes.ImageUpscaleClientRequest>(
+    request: T,
+  ): Promise<TaskAsync<ImageUpscaleResult<ExtractUpscaleMetadata<T>>>> {
+    return this.createUpscaleTask(request);
+  }
+
+  private async createUpscaleTask<const T extends MynthSDKTypes.ImageUpscaleClientRequest>(
+    request: T,
+  ): Promise<TaskAsync<ImageUpscaleResult<ExtractUpscaleMetadata<T>>>> {
+    type MetadataT = ExtractUpscaleMetadata<T>;
+
+    const url = await this.resolveUrlOrFile(request);
+    const { file: _, url: __, ...rest } = request;
+
+    const json = await this.client.post<
+      MynthSDKTypes.ApiResponse<MynthSDKTypes.ImageUpscaleCreatedResponse>
+    >(UPSCALE_IMAGE_PATH, {
+      ...rest,
+      url,
+      destination: request.destination ?? this.defaultDestination,
+    });
+
+    const data = json.data;
+
+    return new TaskAsync<ImageUpscaleResult<MetadataT>>(data.taskId, {
+      client: this.client,
+      pat: data.access?.publicAccessToken,
+      resultFactory: (taskData) =>
+        ImageUpscaleResult.fromTaskData<MetadataT>(taskData as MynthSDKTypes.ImageUpscaleTaskData),
+    });
+  }
 }
 
 /**
@@ -853,6 +926,7 @@ export {
   ImageRateResult,
   ImageRemoveBackgroundResult,
   ImageReviewResult,
+  ImageUpscaleResult,
   Mynth,
   MynthImage,
   MynthModels,

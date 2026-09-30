@@ -16,14 +16,14 @@ await mynth.image.generate({
 
 Or set a default for all requests via `new Mynth({ destination: "my-bucket" })` or the `MYNTH_DESTINATION` env var. REST: `"destination": "my-bucket"` in the generate body.
 
-Only `image.generate` and `image.remove_background` accept `destination`; video drops it silently. A name the user does not own fails at create with `400 VALIDATION_ERROR`.
+Only `image.generate`, `image.remove_background`, and `image.upscale` accept `destination`; video drops it silently. A name the user does not own fails at create with `400 VALIDATION_ERROR`.
 
 Each delivered image has:
 
 - `url`: the destination URL built from `url_template`, or `null` when the upload failed or no `url_template` is set
 - `mynth_url`: always the Mynth CDN URL, served for 7 days
 
-A failed upload does not fail the image or the task. On `image.generate` it shows only as `url: null` next to `mynth_url`, with no error attached. On `image.remove_background` the image also carries `destination`: `{ status: "success", name }` or `{ status: "failed", name, error: { code, message?, provider_response? } }`.
+A failed upload does not fail the image or the task. On `image.generate` it shows only as `url: null` next to `mynth_url`, with no error attached. On `image.remove_background` and `image.upscale` the image also carries `destination`: `{ status: "success", name }` or `{ status: "failed", name, error: { code, message?, provider_response? } }`.
 
 ## Manage Destinations
 

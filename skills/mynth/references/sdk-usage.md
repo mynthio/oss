@@ -174,6 +174,20 @@ const result = await mynth.image.removeBackground({
 result.image.url;
 ```
 
+## Upscale
+
+Use `mynth.image.upscale()` to enlarge an existing image 2x or 4x. Mynth picks the model; `size` and `effort` are required. See [image-upscale.md](image-upscale.md) for efforts, the size limit, destinations, and the async variant.
+
+```ts
+const result = await mynth.image.upscale({
+  url: "https://example.com/product.jpg",
+  size: "2x",
+  effort: "low",
+});
+
+result.image.url;
+```
+
 ## Error Handling
 
 ```ts

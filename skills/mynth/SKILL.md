@@ -5,7 +5,7 @@ description: >
   unified media generation API and SDK. Covers @mynthio/sdk, the REST API,
   choosing a model from the live catalog, Public Access Tokens for browser
   polling, webhooks, image content rating, alt text, review, background
-  removal, Destinations (deliver to S3/R2/Bunny), Next.js, TanStack Start,
+  removal, upscaling, Destinations (deliver to S3/R2/Bunny), Next.js, TanStack Start,
   Convex, and the @mynthio/tanstack-ai-adapter. Trigger for Mynth-specific
   setup, provider replacement, multi-model image or video generation, task
   polling, content moderation of images, or webhook sync.
@@ -60,7 +60,7 @@ Or `GET https://api.mynth.io/models` (modes, input rules, pricing) or `https://m
 2. If the user has not named a model, show two or three candidates with their price and what they support, and let the user choose. The catalog does not rank models; quality depends on the user's prompts.
 3. Use the chosen id in the code you write. Ask the user whether they want it saved for later generations, and where, rather than deciding that yourself.
 
-Rating, alt text, review, and background removal take no `model`. Mynth picks those.
+Rating, alt text, review, background removal, and upscaling take no `model`. Mynth picks those.
 
 ## Pick the Reference
 
@@ -76,6 +76,7 @@ Rating, alt text, review, and background removal take no `model`. Mynth picks th
 | Rate/moderate image content        | [image-rating.md](references/image-rating.md)                       |
 | Generate image alt text            | [image-alt.md](references/image-alt.md)                             |
 | Remove an image background         | [image-remove-background.md](references/image-remove-background.md) |
+| Upscale an image                   | [image-upscale.md](references/image-upscale.md)                     |
 | Deliver images to user storage     | [destinations.md](references/destinations.md)                       |
 
 Not covered by a reference: video generation, image review, and the TanStack Start webhook helper. Read the docs for those:

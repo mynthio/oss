@@ -31,7 +31,13 @@ export const uploadImages = async (
   return paths.map((path, index) => ({ path, url: urls[index]! }));
 };
 
-export type ImageTaskEndpoint = "generate" | "rate" | "alt" | "review" | "remove-background";
+export type ImageTaskEndpoint =
+  | "generate"
+  | "rate"
+  | "alt"
+  | "review"
+  | "remove-background"
+  | "upscale";
 
 /** POSTs a request body to an async image endpoint and returns the created task. */
 export const createImageTask = (

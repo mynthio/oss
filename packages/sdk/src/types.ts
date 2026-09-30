@@ -17,6 +17,7 @@ export namespace MynthSDKTypes {
     | "image.alt"
     | "image.review"
     | "image.remove_background"
+    | "image.upscale"
     | "video.generate";
 
   export type TaskBase = {
@@ -67,6 +68,11 @@ export namespace MynthSDKTypes {
         result: ImageRemoveBackgroundTaskResult | null;
       })
     | (TaskBase & {
+        type: "image.upscale";
+        request: ImageUpscaleRequest;
+        result: ImageUpscaleTaskResult | null;
+      })
+    | (TaskBase & {
         type: "video.generate";
         request: VideoGenerationRequest;
         result: VideoResult | null;
@@ -80,6 +86,7 @@ export namespace MynthSDKTypes {
     TaskData,
     { type: "image.remove_background" }
   >;
+  export type ImageUpscaleTaskData = Extract<TaskData, { type: "image.upscale" }>;
   export type VideoGenerationTaskData = Extract<TaskData, { type: "video.generate" }>;
 
   // ============================================================
@@ -639,6 +646,76 @@ export namespace MynthSDKTypes {
   };
 
   // ============================================================
+  // Image Upscale
+  // ============================================================
+
+  /**
+   * Upscaler to run, and the price.
+   * - `low`: fast and sharp
+   * - `high`: rebuilds fine detail such as small text and faces
+   */
+  export type ImageUpscaleEffort = "low" | "high";
+
+  export type ImageUpscaleFactor = 2 | 4;
+
+  /**
+   * How much to enlarge each side: a shorthand, or an explicit scale.
+   * The upscaled image can be at most 4096x4096 pixels.
+   */
+  export type ImageUpscaleSize = "2x" | "4x" | { type: "scale"; factor: ImageUpscaleFactor };
+
+  export type ImageUpscaleOutputFormat = "png" | "jpg" | "webp";
+
+  export type ImageUpscaleRequestOutput = {
+    /** Converts the result to this format. When omitted, the provider's format is kept. */
+    format?: ImageUpscaleOutputFormat;
+  };
+
+  /** Request body for the image upscale endpoint (API wire format). */
+  export type ImageUpscaleRequest = {
+    /** Image URL to upscale. */
+    url: string;
+    size: ImageUpscaleSize;
+    /** Sets the price, so there is no default. */
+    effort: ImageUpscaleEffort;
+    output?: ImageUpscaleRequestOutput;
+    webhook?: ImageGenerationRequestWebhook;
+    access?: ImageGenerationRequestAccess;
+    metadata?: Record<string, unknown>;
+    destination?: string;
+  };
+
+  /**
+   * Image upscale request for the SDK client.
+   * Pass either `url` or `file` (files are uploaded before the API call).
+   */
+  export type ImageUpscaleClientRequest = ImageClientUrlOrFile & Omit<ImageUpscaleRequest, "url">;
+
+  /** Create-task response from the image upscale endpoint. */
+  export type ImageUpscaleCreatedResponse = {
+    taskId: string;
+    estimatedCost: string;
+    access?: {
+      publicAccessToken: string;
+    };
+  };
+
+  export type ImageUpscaleResultImage = {
+    id: string;
+    /** Destination URL, or the Mynth URL without a destination. `null` when delivery failed. */
+    url: string | null;
+    mynth_url: string;
+    /** `{width}x{height}`. Can be a few pixels off the source times the factor. */
+    size: string;
+    format: ImageUpscaleOutputFormat;
+    destination?: ImageResultDestination;
+  };
+
+  export type ImageUpscaleTaskResult = {
+    image: ImageUpscaleResultImage;
+  };
+
+  // ============================================================
   // Video Generate
   // ============================================================
 
@@ -867,6 +944,26 @@ export namespace MynthSDKTypes {
   };
 
   /**
+   * Webhook payload for image upscale task completion.
+   */
+  export type WebhookTaskImageUpscaleCompletedPayload = {
+    task: { id: string };
+    event: "task.image.upscale.completed";
+    result: ImageUpscaleTaskResult;
+    request: ImageUpscaleRequest;
+  };
+
+  /**
+   * Webhook payload for image upscale task failure.
+   */
+  export type WebhookTaskImageUpscaleFailedPayload = {
+    task: { id: string };
+    event: "task.image.upscale.failed";
+    request: ImageUpscaleRequest;
+    errors: TaskError[];
+  };
+
+  /**
    * Webhook payload for video generation task completion.
    */
   export type WebhookTaskVideoCompletedPayload = {
@@ -900,6 +997,8 @@ export namespace MynthSDKTypes {
     | WebhookTaskImageReviewFailedPayload
     | WebhookTaskImageRemoveBackgroundCompletedPayload
     | WebhookTaskImageRemoveBackgroundFailedPayload
+    | WebhookTaskImageUpscaleCompletedPayload
+    | WebhookTaskImageUpscaleFailedPayload
     | WebhookTaskVideoCompletedPayload
     | WebhookTaskVideoFailedPayload;
 }

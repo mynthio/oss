@@ -473,6 +473,51 @@ const taskAsync = await mynth.image.removeBackgroundAsync({
 return { id: taskAsync.id, access: taskAsync.access };
 ```
 
+## Upscale
+
+Enlarge an existing image 2x or 4x. Mynth picks the model, so there is no `model` field. `size` and `effort` are both required:
+
+```ts
+const result = await mynth.image.upscale({
+  url: "https://example.com/product.jpg",
+  size: "2x",
+  effort: "low",
+});
+
+console.log(result.image.url); // upscaled image
+console.log(result.image.size); // e.g. "2048x1536"
+```
+
+`effort` sets the price: `low` is fast and sharp, `high` rebuilds fine detail such as small text and faces. `size` is `"2x"` or `"4x"`, or `{ type: "scale", factor: 2 | 4 }`. The upscaled image can be at most 4096x4096 pixels; a larger request fails with `OUTPUT_TOO_LARGE` and is not charged.
+
+The result keeps the format the provider returned. Set `output.format` to always get `png`, `jpg`, or `webp`.
+`upscale()` also takes a local `file`, plus `destination`, `webhook`, and `metadata` like `generate()`:
+
+```ts
+const result = await mynth.image.upscale({
+  file,
+  size: "4x",
+  effort: "high",
+  output: { format: "webp" },
+  destination: "bunny-prod",
+  metadata: { productId: "sku_1" },
+});
+
+console.log(result.metadata.productId);
+```
+
+Use `upscaleAsync()` to create the task without waiting. It returns a public access token, like `generateAsync()`:
+
+```ts
+const taskAsync = await mynth.image.upscaleAsync({
+  url: "https://example.com/product.jpg",
+  size: "2x",
+  effort: "low",
+});
+
+return { id: taskAsync.id, access: taskAsync.access };
+```
+
 ## Working With Image Results
 
 Completed generation tasks expose a few helpful accessors:
@@ -839,6 +884,13 @@ export const mynthWebhook = mynthWebhookAction({
   imageRemoveBackgroundTaskFailed: async (payload) => {
     console.error("Mynth remove background task failed:", payload.task.id);
   },
+  imageUpscaleTaskCompleted: async (payload) => {
+    console.log("Completed upscale task:", payload.task.id);
+    console.log(payload.result.image.url);
+  },
+  imageUpscaleTaskFailed: async (payload) => {
+    console.error("Mynth upscale task failed:", payload.task.id);
+  },
   videoTaskCompleted: async (payload) => {
     console.log("Completed video task:", payload.task.id);
     console.log(payload.result.videos);
@@ -853,7 +905,7 @@ Set `MYNTH_WEBHOOK_SECRET` in your environment, or pass `webhookSecret` explicit
 
 ## Error Handling
 
-`upload()`, `generate()`, `generateAsync()`, `rate()`, `rateAsync()`, `alt()`, `altAsync()`, `review()`, `reviewAsync()`, `removeBackground()`, `removeBackgroundAsync()`, `models.list()`, and the `video` equivalents (`video.generate()`, `video.generateAsync()`, `video.upload()`, `video.estimate()`) may throw `MynthAPIError` if the request fails. Polling can also throw task-specific errors:
+`upload()`, `generate()`, `generateAsync()`, `rate()`, `rateAsync()`, `alt()`, `altAsync()`, `review()`, `reviewAsync()`, `removeBackground()`, `removeBackgroundAsync()`, `upscale()`, `upscaleAsync()`, `models.list()`, and the `video` equivalents (`video.generate()`, `video.generateAsync()`, `video.upload()`, `video.estimate()`) may throw `MynthAPIError` if the request fails. Polling can also throw task-specific errors:
 
 While polling, transient failures (404, 5xx, dropped connections) are retried: a created task is owed an answer, so a cold cache or a brief outage does not lose you the result. A 429 slows polling down, doubling the interval up to 30 seconds, and only the timeout ends it. Polling gives up after 20 consecutive failures (~100s) with `TaskAsyncFetchError` or `TaskAsyncTaskFetchError`, immediately on a 401 or 403 with `TaskAsyncUnauthorizedError`, and immediately on any other 4xx with `TaskAsyncFetchError` or `TaskAsyncTaskFetchError`. Image waits time out after 30 minutes, video waits after an hour.
 

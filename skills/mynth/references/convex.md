@@ -70,6 +70,8 @@ The helper verifies `X-Mynth-Signature` and routes:
 - `task.image.alt.failed` to `imageAltTaskFailed`
 - `task.image.remove_background.completed` to `imageRemoveBackgroundTaskCompleted`
 - `task.image.remove_background.failed` to `imageRemoveBackgroundTaskFailed`
+- `task.image.upscale.completed` to `imageUpscaleTaskCompleted`
+- `task.image.upscale.failed` to `imageUpscaleTaskFailed`
 - `task.image.review.completed` / `.failed` to `imageReviewTaskCompleted` / `imageReviewTaskFailed`
 - `task.video.generate.completed` / `.failed` to `videoTaskCompleted` / `videoTaskFailed`
 

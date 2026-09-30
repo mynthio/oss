@@ -142,6 +142,37 @@ function createRemoveBackgroundTaskData(
   } as MynthSDKTypes.ImageRemoveBackgroundTaskData;
 }
 
+function createUpscaleTaskData(
+  overrides: Partial<MynthSDKTypes.ImageUpscaleTaskData> = {},
+): MynthSDKTypes.ImageUpscaleTaskData {
+  return {
+    id: "task-upscale-123",
+    status: "completed",
+    type: "image.upscale",
+    apiKeyId: "api-key-123",
+    userId: "user-123",
+    cost: "0.03",
+    result: {
+      image: {
+        id: "img_123",
+        url: "https://cdn.test/upscaled.png",
+        mynth_url: "https://mynth.test/upscaled.png",
+        size: "2048x1536",
+        format: "png",
+      },
+    },
+    request: {
+      url: "https://cdn.test/image.jpg",
+      size: "2x",
+      effort: "low",
+      metadata: { productId: "sku_1" },
+    },
+    createdAt: "2026-01-29T12:00:00Z",
+    updatedAt: "2026-01-29T12:00:00Z",
+    ...overrides,
+  } as MynthSDKTypes.ImageUpscaleTaskData;
+}
+
 describe("MynthImage", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -400,6 +431,18 @@ describe("MynthImage", () => {
         image.removeBackgroundAsync({ file, output: { format: "webp" } }),
       body: {
         output: { format: "webp" },
+        url: "https://cdn.test/uploaded.webp",
+      },
+    },
+    {
+      name: "upscaleAsync",
+      path: "https://api.test/image/upscale",
+      taskId: "task-upscale-123",
+      call: (image: MynthImage, file: File) =>
+        image.upscaleAsync({ file, size: "4x", effort: "high" }),
+      body: {
+        size: "4x",
+        effort: "high",
         url: "https://cdn.test/uploaded.webp",
       },
     },
@@ -742,6 +785,107 @@ describe("MynthImage.removeBackground", () => {
       id: "task-remove-background-123",
       access: { publicAccessToken: "pat_test" },
       body: { url: "https://cdn.test/image.jpg", destination: "bunny-prod" },
+    });
+  });
+});
+
+describe("MynthImage.upscale", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  test("waits for the result and exposes the image and typed metadata", async () => {
+    // Arrange
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse(
+          {
+            data: {
+              taskId: "task-upscale-123",
+              estimatedCost: "0.03",
+              access: { publicAccessToken: "pat_test" },
+            },
+          },
+          { status: 201 },
+        ),
+      )
+      .mockResolvedValueOnce(jsonResponse({ data: { status: "completed" } }))
+      .mockResolvedValueOnce(jsonResponse({ data: createUpscaleTaskData() }));
+    vi.stubGlobal("fetch", fetchMock);
+    const image = new MynthImage({ apiKey: "mak_test", baseUrl: "https://api.test" });
+
+    // Act
+    const result = await image.upscale({
+      url: "https://cdn.test/image.jpg",
+      size: "2x",
+      effort: "low",
+      metadata: { productId: "sku_1" },
+    });
+    const productId: string = result.metadata.productId;
+
+    // Assert
+    expect({
+      taskId: result.taskId,
+      cost: result.cost,
+      image: result.image,
+      productId,
+    }).toEqual({
+      taskId: "task-upscale-123",
+      cost: "0.03",
+      image: {
+        id: "img_123",
+        url: "https://cdn.test/upscaled.png",
+        mynth_url: "https://mynth.test/upscaled.png",
+        size: "2048x1536",
+        format: "png",
+      },
+      productId: "sku_1",
+    });
+  });
+
+  test("sends the default destination and hands back the public access token", async () => {
+    // Arrange
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      jsonResponse(
+        {
+          data: {
+            taskId: "task-upscale-123",
+            estimatedCost: "0.15",
+            access: { publicAccessToken: "pat_test" },
+          },
+        },
+        { status: 201 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const image = new MynthImage({
+      apiKey: "mak_test",
+      baseUrl: "https://api.test",
+      destination: "bunny-prod",
+    });
+
+    // Act
+    const taskAsync = await image.upscaleAsync({
+      url: "https://cdn.test/image.jpg",
+      size: { type: "scale", factor: 4 },
+      effort: "high",
+    });
+
+    // Assert
+    expect({
+      id: taskAsync.id,
+      access: taskAsync.access,
+      body: JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string),
+    }).toEqual({
+      id: "task-upscale-123",
+      access: { publicAccessToken: "pat_test" },
+      body: {
+        url: "https://cdn.test/image.jpg",
+        size: { type: "scale", factor: 4 },
+        effort: "high",
+        destination: "bunny-prod",
+      },
     });
   });
 });

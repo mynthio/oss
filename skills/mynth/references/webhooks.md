@@ -4,7 +4,7 @@ Use webhooks when generated results must be persisted, billed, moderated, or att
 
 ## Per-Request Custom Webhooks
 
-Pass directly in the generate request (`image.generate`, `image.removeBackground`, `video.generate`; not rate/alt/review). Up to 5 URLs. These are not signed, so the SDK helpers reject them.
+Pass directly in the generate request (`image.generate`, `image.removeBackground`, `image.upscale`, `video.generate`; not rate/alt/review). Up to 5 URLs. These are not signed, so the SDK helpers reject them.
 
 ```ts
 await mynth.image.generate({
@@ -43,6 +43,8 @@ await fetch("https://api.mynth.io/webhook", {
 - `task.image.alt.failed` — alt text task failed
 - `task.image.remove_background.completed` — background removal task succeeded
 - `task.image.remove_background.failed` — background removal task failed
+- `task.image.upscale.completed` — upscale task succeeded
+- `task.image.upscale.failed` — upscale task failed
 - `task.image.review.completed` / `task.image.review.failed` — review task settled
 - `task.video.generate.completed` / `task.video.generate.failed` — video task settled
 - `task.completed` — any task completed

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.47](https://github.com/mynthio/oss/compare/sdk-v0.0.46...sdk-v0.0.47) (2026-10-01)
+
+
+### Features
+
+* **sdk:** add Ideogram 4.5 ([bcb9660](https://github.com/mynthio/oss/commit/bcb9660d487a95ef74c7574b4156bcb093343f9c))
+
 ## [0.0.46](https://github.com/mynthio/oss/compare/sdk-v0.0.45...sdk-v0.0.46) (2026-09-30)
 
 

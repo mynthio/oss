@@ -612,6 +612,7 @@ Current model IDs include:
 - `google/gemini-3-pro-image-preview`
 - `imagineart/imagineart-1.5-pro`
 - `imagineart/imagineart-2.0`
+- `ideogram/ideogram-4.5`
 - `john6666/bismuth-illustrious-mix`
 - `maxfeifei8/one-obsession`
 - `krea/krea-2-turbo`

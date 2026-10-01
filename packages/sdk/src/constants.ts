@@ -278,6 +278,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["inputs"],
   },
   {
+    id: "ideogram/ideogram-4.5",
+    label: "Ideogram 4.5",
+    capabilities: ["inputs"],
+  },
+  {
     id: "openai/gpt-image-2",
     label: "GPT Image 2",
     capabilities: ["inputs"],

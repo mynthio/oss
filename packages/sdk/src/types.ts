@@ -176,6 +176,7 @@ export namespace MynthSDKTypes {
     | "google/gemini-3-pro-image-preview"
     | "imagineart/imagineart-1.5-pro"
     | "imagineart/imagineart-2.0"
+    | "ideogram/ideogram-4.5"
     | "klingai/kling-image-3.0"
     | "klingai/kling-image-o3"
     | "krea/krea-2-turbo"

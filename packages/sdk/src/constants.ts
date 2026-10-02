@@ -133,6 +133,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["inputs"],
   },
   {
+    id: "black-forest-labs/flux-3",
+    label: "FLUX.3",
+    capabilities: ["inputs", "4k"],
+  },
+  {
     id: "bria/fibo-edit-1.5",
     label: "FIBO Edit 1.5",
     capabilities: ["inputs"],

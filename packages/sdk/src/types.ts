@@ -167,6 +167,7 @@ export namespace MynthSDKTypes {
     | "black-forest-labs/flux.2-flex"
     | "black-forest-labs/flux.2-max"
     | "black-forest-labs/flux.2-klein-4b"
+    | "black-forest-labs/flux-3"
     | "bria/fibo-edit-1.5"
     | "bria/fibo-generate-1.5"
     | "circlestone-labs/anima"

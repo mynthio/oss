@@ -606,6 +606,7 @@ Current model IDs include:
 - `black-forest-labs/flux.2-flex`
 - `black-forest-labs/flux.2-max`
 - `black-forest-labs/flux.2-klein-4b`
+- `black-forest-labs/flux-3`
 - `goofy-ai/prefect-pony-xl-lora`
 - `google/gemini-3.1-flash-lite-image`
 - `google/gemini-3.1-flash-image`

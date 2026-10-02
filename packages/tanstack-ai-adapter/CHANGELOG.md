@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.32](https://github.com/mynthio/oss/compare/tan-ai-v0.0.31...tan-ai-v0.0.32) (2026-10-02)
+
+
+### Features
+
+* **tan-ai:** sync FLUX.3 and Ideogram 4.5 models with SDK 0.0.48 ([abacbe1](https://github.com/mynthio/oss/commit/abacbe1b61a51876a48f0102303a16fb8f4a7e43))
+
 ## [0.0.31](https://github.com/mynthio/oss/compare/tan-ai-v0.0.30...tan-ai-v0.0.31) (2026-09-25)
 
 

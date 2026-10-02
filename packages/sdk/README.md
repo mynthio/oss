@@ -754,12 +754,13 @@ console.log(model);
 // }
 ```
 
-| Model                          | Resolutions       | Duration (s)     | Inputs                  |
-| ------------------------------ | ----------------- | ---------------- | ----------------------- |
-| `bytedance/seedance-2.0-mini`  | 480p, 720p        | 4–15 (default 5) | first frame, last frame |
-| `google/gemini-omni-flash-1.1` | 720p, 1080p, 4k   | 3–10 (default 8) | first frame, last frame |
-| `prunaai/p-video`              | 720p, 1080p       | 1–10 (default 5) | first frame             |
-| `xai/grok-imagine-video-1.5`   | 480p, 720p, 1080p | 1–15 (default 8) | first frame             |
+| Model                               | Resolutions       | Duration (s)     | Inputs                  |
+| ----------------------------------- | ----------------- | ---------------- | ----------------------- |
+| `bytedance/seedance-2.0-mini`       | 480p, 720p        | 4–15 (default 5) | first frame, last frame |
+| `google/gemini-omni-flash-1.1`      | 720p, 1080p, 4k   | 3–10 (default 8) | first frame, last frame |
+| `prunaai/p-video`                   | 720p, 1080p       | 1–10 (default 5) | first frame             |
+| `xai/grok-imagine-video-1.5`        | 480p, 720p, 1080p | 1–15 (default 8) | first frame             |
+| `xai/grok-imagine-video-1.5-lite`   | 480p, 720p, 1080p | 1–15 (default 6) | first frame             |
 
 Each of these supports generated audio.
 

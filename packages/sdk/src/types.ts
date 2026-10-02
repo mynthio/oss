@@ -728,7 +728,8 @@ export namespace MynthSDKTypes {
     | "bytedance/seedance-2.0-mini"
     | "google/gemini-omni-flash-1.1"
     | "prunaai/p-video"
-    | "xai/grok-imagine-video-1.5";
+    | "xai/grok-imagine-video-1.5"
+    | "xai/grok-imagine-video-1.5-lite";
 
   export type VideoGenerationModel = VideoGenerationModelId;
 

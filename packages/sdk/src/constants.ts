@@ -427,4 +427,14 @@ export const AVAILABLE_VIDEO_MODELS: readonly AvailableVideoModel[] = [
     inputs: ["first_frame"],
     maxInputs: 1,
   },
+  {
+    id: "xai/grok-imagine-video-1.5-lite",
+    label: "Grok Imagine Video 1.5 Lite",
+    resolutions: ["480p", "720p", "1080p"],
+    defaultResolution: "480p",
+    duration: { default: 6, min: 1, max: 15 },
+    audio: true,
+    inputs: ["first_frame"],
+    maxInputs: 1,
+  },
 ];

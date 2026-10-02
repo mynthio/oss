@@ -23,6 +23,7 @@ export const MYNTH_IMAGE_MODELS = [
   "black-forest-labs/flux.2-flex",
   "black-forest-labs/flux.2-max",
   "black-forest-labs/flux.2-klein-4b",
+  "black-forest-labs/flux-3",
   "bria/fibo-edit-1.5",
   "bria/fibo-generate-1.5",
   "circlestone-labs/anima",
@@ -52,6 +53,7 @@ export const MYNTH_IMAGE_MODELS = [
   "google/gemini-3-pro-image-preview",
   "imagineart/imagineart-1.5-pro",
   "imagineart/imagineart-2.0",
+  "ideogram/ideogram-4.5",
   "openai/gpt-image-2",
   "openai/gpt-image-2.5-flare",
   "openai/gpt-image-2.5-sunburst",
@@ -89,6 +91,7 @@ export const MYNTH_IMAGE_INPUT_MODELS = [
   "black-forest-labs/flux.2-flex",
   "black-forest-labs/flux.2-max",
   "black-forest-labs/flux.2-klein-4b",
+  "black-forest-labs/flux-3",
   "bria/fibo-edit-1.5",
   "circlestone-labs/anima",
   "klingai/kling-image-3.0",
@@ -109,6 +112,7 @@ export const MYNTH_IMAGE_INPUT_MODELS = [
   "google/gemini-3.1-flash-image",
   "google/gemini-3-pro-image-preview",
   "imagineart/imagineart-2.0",
+  "ideogram/ideogram-4.5",
   "openai/gpt-image-2",
   "openai/gpt-image-2.5-flare",
   "openai/gpt-image-2.5-sunburst",
@@ -145,6 +149,7 @@ export type MynthImageNegativePromptModel = (typeof MYNTH_IMAGE_NEGATIVE_PROMPT_
  * `scale: "4k"`). Mirrors the `4k` capability in the SDK's `AVAILABLE_MODELS`.
  */
 export const MYNTH_IMAGE_4K_MODELS = [
+  "black-forest-labs/flux-3",
   "klingai/kling-image-o3",
   "sourceful/riverflow-2.0-pro",
   "google/gemini-3.1-flash-image",

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.48](https://github.com/mynthio/oss/compare/sdk-v0.0.47...sdk-v0.0.48) (2026-10-02)
+
+
+### Features
+
+* **sdk:** add the FLUX.3 image model id ([#127](https://github.com/mynthio/oss/issues/127)) ([326b926](https://github.com/mynthio/oss/commit/326b926424503e6cc5dfddea3eee9cdc19b53980))
+
 ## [0.0.47](https://github.com/mynthio/oss/compare/sdk-v0.0.46...sdk-v0.0.47) (2026-10-01)
 
 

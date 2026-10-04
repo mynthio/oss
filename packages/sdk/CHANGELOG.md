@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.0.49](https://github.com/mynthio/oss/compare/sdk-v0.0.48...sdk-v0.0.49) (2026-10-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* **sdk:** Result classes and their runtime exports are replaced by plain objects and type-only exports. Replace result.id with result.taskId, getImages()/getVideos() with images/videos, getMetadata() with metadata, and result.result fields with their mapped result fields or raw.result. Webhook callbacks receive mapped results or task failures instead of wire payloads.
+
+### Features
+
+* **sdk:** return plain task results from polling and webhooks ([338a169](https://github.com/mynthio/oss/commit/338a169a9c49e8c87eadf920b8819f4de93b80a2))
+
 ## [0.0.48](https://github.com/mynthio/oss/compare/sdk-v0.0.47...sdk-v0.0.48) (2026-10-02)
 
 ### Features

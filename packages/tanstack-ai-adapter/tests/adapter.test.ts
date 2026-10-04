@@ -1,4 +1,4 @@
-import type { MynthSDKTypes } from "@mynthio/sdk";
+import type { ImageGenerationResult, MynthGeneratedImage, MynthSDKTypes } from "@mynthio/sdk";
 import type { ImageGenerationOptions } from "@tanstack/ai";
 import { resolveDebugOption } from "@tanstack/ai/adapter-internals";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -24,47 +24,50 @@ const DEFAULT_MODEL = "krea/krea-2-large" as const;
 const { MynthImageAdapter, createMynthImage, mynthImage } = await import("../src/adapter.ts");
 const { MynthNoImagesError } = await import("../src/errors.ts");
 
-function successImage(
-  overrides: Partial<MynthSDKTypes.ImageResultImageSuccess> = {},
-): MynthSDKTypes.ImageResultImageSuccess {
+function successImage(overrides: Partial<MynthGeneratedImage> = {}): MynthGeneratedImage {
   return {
-    status: "success",
     id: "img_1",
     url: "https://cdn.mynth.io/image1.webp",
-    mynth_url: "https://cdn.mynth.io/image1.webp",
+    mynthUrl: "https://cdn.mynth.io/image1.webp",
+    width: 1024,
+    height: 1024,
     size: "1024x1024",
     format: "webp",
+    mimeType: "image/webp",
+    destination: undefined,
+    rating: undefined,
     ...overrides,
   };
 }
 
-function failedImage(code: string): MynthSDKTypes.ImageResultImageFailure {
-  return { status: "failed", error: { code } };
+function failedImage(code: string): MynthSDKTypes.TaskError {
+  return { code };
 }
 
-/** Mirrors the parts of the SDK's ImageGenerationResult the adapter reads. */
+/** A completed generation, as the SDK's `generate()` returns it. */
 function createMockTask(
   overrides: {
-    id?: string;
-    model?: string;
-    cost?: string | null;
-    images?: MynthSDKTypes.ImageResultImage[];
+    taskId?: string;
+    model?: MynthSDKTypes.ImageGenerationModelId;
+    cost?: string;
+    images?: MynthGeneratedImage[];
+    failures?: MynthSDKTypes.TaskError[];
     magicPrompt?: MynthSDKTypes.ImageResultMagicPrompt;
   } = {},
-) {
+): ImageGenerationResult {
   const images = overrides.images ?? [successImage()];
-  const result = {
-    model: overrides.model,
-    images,
-    ...(overrides.magicPrompt ? { magic_prompt: overrides.magicPrompt } : {}),
-  };
+  const model = overrides.model ?? DEFAULT_MODEL;
 
   return {
-    id: overrides.id ?? "task-123",
-    data: { cost: overrides.cost === undefined ? "0.01" : overrides.cost },
-    result,
-    getImages: ({ includeFailed = false }: { includeFailed?: boolean } = {}) =>
-      includeFailed ? images : images.filter((image) => image.status === "success"),
+    taskId: overrides.taskId ?? "task-123",
+    cost: overrides.cost ?? "0.01",
+    model,
+    images,
+    failures: overrides.failures ?? [],
+    urls: images.flatMap((image) => (image.url === null ? [] : [image.url])),
+    magicPrompt: overrides.magicPrompt,
+    metadata: undefined,
+    raw: { request: { prompt: "test prompt" }, result: { model, images: [] } },
   };
 }
 
@@ -440,7 +443,7 @@ describe("MynthImageAdapter", () => {
       // Arrange
       generateMock.mockResolvedValue(
         createMockTask({
-          images: [successImage({ url: null, mynth_url: "https://cdn.mynth.io/copy.webp" })],
+          images: [successImage({ url: null, mynthUrl: "https://cdn.mynth.io/copy.webp" })],
         }),
       );
       const adapter = createAdapter();
@@ -452,34 +455,12 @@ describe("MynthImageAdapter", () => {
       expect(result.images).toEqual([{ url: "https://cdn.mynth.io/copy.webp" }]);
     });
 
-    it("falls back to the requested model when the result omits it", async () => {
-      // Arrange
-      const adapter = createAdapter();
-
-      // Act
-      const result = await adapter.generateImages(createOptions());
-
-      // Assert
-      expect(result.model).toBe(DEFAULT_MODEL);
-    });
-
-    it("omits the cost when the task reports none", async () => {
-      // Arrange
-      generateMock.mockResolvedValue(createMockTask({ cost: null }));
-      const adapter = createAdapter();
-
-      // Act
-      const result = await adapter.generateImages(createOptions());
-
-      // Assert
-      expect(result.usage).not.toHaveProperty("cost");
-    });
-
     it("returns only the successful images when some fail", async () => {
       // Arrange
       generateMock.mockResolvedValue(
         createMockTask({
-          images: [successImage({ url: "https://cdn.mynth.io/ok.webp" }), failedImage("NSFW")],
+          images: [successImage({ url: "https://cdn.mynth.io/ok.webp" })],
+          failures: [failedImage("NSFW")],
         }),
       );
       const adapter = createAdapter();
@@ -495,7 +476,10 @@ describe("MynthImageAdapter", () => {
     it("throws MynthNoImagesError when every image fails", async () => {
       // Arrange
       generateMock.mockResolvedValue(
-        createMockTask({ images: [failedImage("NSFW"), failedImage("PROVIDER_ERROR")] }),
+        createMockTask({
+          images: [],
+          failures: [failedImage("NSFW"), failedImage("PROVIDER_ERROR")],
+        }),
       );
       const adapter = createAdapter();
 

@@ -199,27 +199,21 @@ export class MynthImageAdapter<TModel extends MynthImageModel> extends BaseImage
   }
 
   private transformResponse(task: MynthImageTask): ImageGenerationResult {
-    const succeeded = task.getImages();
-
-    if (succeeded.length === 0) {
-      const errors = task
-        .getImages({ includeFailed: true })
-        .flatMap((image) => (image.status === "failed" ? [image.error] : []));
-
-      throw new MynthNoImagesError(task.id, errors);
+    if (task.images.length === 0) {
+      throw new MynthNoImagesError(task.taskId, task.failures);
     }
 
-    const revisedPrompt = task.result?.magic_prompt?.positive;
-    const images: Array<GeneratedImage> = succeeded.map((image) => ({
+    const revisedPrompt = task.magicPrompt?.positive;
+    const images: Array<GeneratedImage> = task.images.map((image) => ({
       // `url` is the destination URL, or null when a destination upload
       // failed or has no public URL; the Mynth CDN copy is always there.
-      url: image.url ?? image.mynth_url,
+      url: image.url ?? image.mynthUrl,
       ...(revisedPrompt ? { revisedPrompt } : {}),
     }));
 
     return {
-      id: task.id,
-      model: task.result?.model ?? this.model,
+      id: task.taskId,
+      model: task.model,
       images,
       usage: this.buildUsage(task, images.length),
     };
@@ -230,14 +224,12 @@ export class MynthImageAdapter<TModel extends MynthImageModel> extends BaseImage
    * Image generation has no tokens, so the token fields are zero.
    */
   private buildUsage(task: MynthImageTask, imageCount: number): TokenUsage {
-    const cost = task.data.cost === null ? undefined : Number(task.data.cost);
-
     return {
       promptTokens: 0,
       completionTokens: 0,
       totalTokens: 0,
       billed: { quantity: imageCount, unit: "images" },
-      ...(cost !== undefined && Number.isFinite(cost) ? { cost } : {}),
+      cost: Number(task.cost),
     };
   }
 }

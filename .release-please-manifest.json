@@ -1,5 +1,5 @@
 {
-  "packages/sdk": "0.0.48",
+  "packages/sdk": "0.0.49",
   "packages/tanstack-ai-adapter": "0.0.32",
   "packages/cli": "0.0.25"
 }

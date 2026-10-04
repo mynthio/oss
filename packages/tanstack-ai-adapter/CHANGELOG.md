@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.33](https://github.com/mynthio/oss/compare/tan-ai-v0.0.32...tan-ai-v0.0.33) (2026-10-04)
+
+
+### Bug Fixes
+
+* **tan-ai:** support SDK 0.0.49 plain task results ([#131](https://github.com/mynthio/oss/issues/131)) ([47028a2](https://github.com/mynthio/oss/commit/47028a2bf78a776925bd87e5880b48c9821477bf))
+
 ## [0.0.32](https://github.com/mynthio/oss/compare/tan-ai-v0.0.31...tan-ai-v0.0.32) (2026-10-02)
 
 

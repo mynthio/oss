@@ -12,9 +12,10 @@ const result = await mynth.image.upscale({
 });
 
 result.image.url; // destination URL, or the Mynth URL without a destination
-result.image.mynth_url;
+result.image.mynthUrl;
 result.image.format; // "png" | "jpg" | "webp"
-result.image.size; // "2048x1536"
+result.image.width; // 2048
+result.image.height; // 1536
 result.cost;
 ```
 
@@ -93,4 +94,4 @@ Poll `/tasks/:id` for the result, or use the `task.image.upscale.completed` webh
 }
 ```
 
-A failed destination upload sets `image.url` to `null`; `image.mynth_url` is always set.
+A failed destination upload sets `image.url` to `null`; `image.mynth_url` (`image.mynthUrl` in the SDK) is always set.

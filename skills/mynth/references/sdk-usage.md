@@ -21,8 +21,8 @@ const task = await mynth.image.generate({
 });
 
 console.log(task.urls); // ["https://cdn.mynth.io/..."]
-console.log(task.result?.model); // resolved model
-console.log(task.getImages());
+console.log(task.model); // resolved model
+console.log(task.images[0]?.width, task.images[0]?.height);
 ```
 
 ## Start Now, Finish Later
@@ -102,20 +102,33 @@ const task = await mynth.image.generate({
   prompt: "A cat astronaut",
 });
 
-task.id;
-task.status; // "pending" | "completed" | "failed"
-task.isCompleted;
-task.isFailed;
-task.urls; // string[] — successful image URLs only
-task.getImages(); // successful images: { id, url, mynth_url, size, format, rating? }
-task.getImages({ includeFailed: true }); // include failed images with error codes
-task.result?.model; // resolved model ID
-task.getMetadata(); // your metadata object
+task.taskId;
+task.cost; // USD string
+task.model; // resolved model ID
+task.metadata; // your metadata object, typed from the request
+task.magicPrompt; // rewritten prompt when magic_prompt was on
+task.images; // successful images, in order
+task.failures; // [{ code, message? }] for each failed image
+task.urls; // `url` of each successful image, skipping null
+task.raw; // task data exactly as the API returned it
+
+const [image] = task.images;
+image.url; // destination URL, Mynth URL without a destination, null if delivery failed
+image.mynthUrl; // always set, served for 7 days
+image.width; // 1024
+image.height; // 768
+image.size; // "1024x768"
+image.format; // "webp"
+image.mimeType; // "image/webp"
+image.destination; // delivery status when a destination was named
+image.rating; // when the request set `rating`
 ```
 
-Each image has `url` (your storage when a destination was named, `null` if that upload failed) and `mynth_url` (always the Mynth CDN URL, served for 7 days). `task.urls` skips `null` entries; use `getImages()` and read `mynth_url` when destinations are involved.
+`url` is never replaced by `mynthUrl`: write `image.url ?? image.mynthUrl` only where any URL will do. `task.urls` skips `null` entries; read `task.images` when destinations are involved.
 
-A completed task can hold failed images: `urls` and `getImages()` skip them. Compare `getImages().length` with `count`, or read `getImages({ includeFailed: true })` for each `error.code`.
+A completed task can hold failed images: they are in `task.failures`, not `task.images`. Compare `task.images.length` with `count`.
+
+Results are plain objects: pass them to client components, server functions, or Convex as they are. To download an image, `fetch(image.mynthUrl)`.
 
 ## Models
 
@@ -134,6 +147,8 @@ const video = await mynth.video.generate({
 });
 
 video.urls;
+video.videos[0]?.duration; // each video: id, url, mynthUrl, cost, duration, resolution, audio
+video.failures;
 ```
 
 `video.generate()` waits up to an hour. In request handlers use `video.generateAsync()` and finish in a webhook. `video.estimate()` prices a body. Video takes no `destination`. Details: https://mynth.io/docs/guides/generate-video.md

@@ -58,7 +58,7 @@ On completion:
 ```json
 {
   "event": "task.image.generate.completed",
-  "task": { "id": "tsk_..." },
+  "task": { "id": "tsk_...", "cost": "0.03000000" },
   "request": { "model": "black-forest-labs/flux.2-pro", "prompt": "A sunset", "count": 1 },
   "result": {
     "model": "black-forest-labs/flux.2-pro",
@@ -121,12 +121,14 @@ For Next.js App Router, use the SDK helper:
 import { mynthWebhookHandler } from "@mynthio/sdk/next";
 
 export const POST = mynthWebhookHandler({
-  imageTaskCompleted: async (payload, { request }) => {
-    await saveImages(payload.task.id, payload.result.images);
+  imageTaskCompleted: async (result, { request }) => {
+    await saveImages(result.taskId, result.images);
     console.log(request.url);
   },
 });
 ```
+
+A completed callback receives the same result the SDK method returns (`result.taskId`, `result.cost`, `result.images`, `result.metadata`); a failed one receives `{ taskId, errors, metadata, raw }`, with `metadata` only for task types that take it.
 
 Set `MYNTH_WEBHOOK_SECRET`. Keep the route public, make side effects idempotent, and enqueue slow work. The helper only accepts signed, registered webhooks.
 

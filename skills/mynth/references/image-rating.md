@@ -31,7 +31,7 @@ const task = await mynth.image.generate({
   rating: true, // or { mode: "nsfw_sfw" } or { mode: "custom", levels: [...] }
 });
 
-task.getImages()[0].rating; // { status: "success", level: "sfw" } | { status: "failed", error: { code } }
+task.images[0]?.rating; // { status: "success", level: "sfw" } | { status: "failed", error: { code } }
 ```
 
 With custom levels and `as const`, the SDK narrows `level` to your level values.

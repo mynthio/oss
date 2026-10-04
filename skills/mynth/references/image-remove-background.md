@@ -10,9 +10,10 @@ const result = await mynth.image.removeBackground({
 });
 
 result.image.url; // destination URL, or the Mynth URL without a destination
-result.image.mynth_url;
+result.image.mynthUrl;
 result.image.format; // "png" | "webp"
-result.image.size; // "1024x768"
+result.image.width; // 1024
+result.image.height; // 768
 result.cost;
 ```
 
@@ -78,4 +79,4 @@ Poll `/tasks/:id` for the result, or use the `task.image.remove_background.compl
 }
 ```
 
-A failed destination upload sets `image.url` to `null`; `image.mynth_url` is always set.
+A failed destination upload sets `image.url` to `null`; `image.mynth_url` (`image.mynthUrl` in the SDK) is always set.

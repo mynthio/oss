@@ -17,25 +17,25 @@ import { internal } from "./_generated/api";
 const http = httpRouter();
 
 export const mynthWebhook = mynthWebhookAction({
-  imageTaskCompleted: async (payload, { context }) => {
+  imageTaskCompleted: async (result, { context }) => {
     await context.runMutation(internal.images.save, {
-      taskId: payload.task.id,
-      images: payload.result.images,
+      taskId: result.taskId,
+      images: result.images,
     });
   },
-  imageTaskFailed: async (payload) => {
-    console.error("Task failed:", payload.task.id);
+  imageTaskFailed: async (failure) => {
+    console.error("Task failed:", failure.taskId);
   },
-  imageRateTaskCompleted: async (payload, { context }) => {
+  imageRateTaskCompleted: async (result, { context }) => {
     await context.runMutation(internal.images.saveRating, {
-      taskId: payload.task.id,
-      level: payload.result.level,
+      taskId: result.taskId,
+      level: result.level,
     });
   },
-  imageAltTaskCompleted: async (payload, { context }) => {
+  imageAltTaskCompleted: async (result, { context }) => {
     await context.runMutation(internal.images.saveAltText, {
-      taskId: payload.task.id,
-      alt: payload.result.alt,
+      taskId: result.taskId,
+      alt: result.alt,
     });
   },
 });
@@ -52,7 +52,7 @@ Set `MYNTH_WEBHOOK_SECRET` in Convex, or pass it explicitly:
 ```ts
 export const mynthWebhook = mynthWebhookAction(
   {
-    imageTaskCompleted: async (payload) => {
+    imageTaskCompleted: async (result) => {
       /* ... */
     },
   },

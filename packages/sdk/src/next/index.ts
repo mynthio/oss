@@ -27,8 +27,8 @@ export type MynthWebhookHandlerOptions = WebhookHandlerOptions;
  * import { mynthWebhookHandler } from "@mynthio/sdk/next";
  *
  * export const POST = mynthWebhookHandler({
- *   imageTaskCompleted: async (payload, { deliveryId }) => {
- *     console.log(deliveryId, payload.task.id);
+ *   imageTaskCompleted: async (result, { deliveryId }) => {
+ *     console.log(deliveryId, result.taskId);
  *   },
  * });
  * ```

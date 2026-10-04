@@ -2,433 +2,378 @@
 
 ## [0.0.48](https://github.com/mynthio/oss/compare/sdk-v0.0.47...sdk-v0.0.48) (2026-10-02)
 
-
 ### Features
 
-* **sdk:** add the FLUX.3 image model id ([#127](https://github.com/mynthio/oss/issues/127)) ([326b926](https://github.com/mynthio/oss/commit/326b926424503e6cc5dfddea3eee9cdc19b53980))
+- **sdk:** add the FLUX.3 image model id ([#127](https://github.com/mynthio/oss/issues/127)) ([326b926](https://github.com/mynthio/oss/commit/326b926424503e6cc5dfddea3eee9cdc19b53980))
 
 ## [0.0.47](https://github.com/mynthio/oss/compare/sdk-v0.0.46...sdk-v0.0.47) (2026-10-01)
 
-
 ### Features
 
-* **sdk:** add Ideogram 4.5 ([bcb9660](https://github.com/mynthio/oss/commit/bcb9660d487a95ef74c7574b4156bcb093343f9c))
+- **sdk:** add Ideogram 4.5 ([bcb9660](https://github.com/mynthio/oss/commit/bcb9660d487a95ef74c7574b4156bcb093343f9c))
 
 ## [0.0.46](https://github.com/mynthio/oss/compare/sdk-v0.0.45...sdk-v0.0.46) (2026-09-30)
 
-
 ### Features
 
-* add image upscaling to SDK, CLI, and agent skill ([4308444](https://github.com/mynthio/oss/commit/4308444859046258e143be70d211cd7d75691170))
+- add image upscaling to SDK, CLI, and agent skill ([4308444](https://github.com/mynthio/oss/commit/4308444859046258e143be70d211cd7d75691170))
 
 ## [0.0.45](https://github.com/mynthio/oss/compare/sdk-v0.0.44...sdk-v0.0.45) (2026-09-27)
 
-
 ### Bug Fixes
 
-* **sdk:** back off on 429 while polling and fail fast on other 4xx ([0c1b9fd](https://github.com/mynthio/oss/commit/0c1b9fd58cbe6500e40f1dfdd8541b244791ae75))
+- **sdk:** back off on 429 while polling and fail fast on other 4xx ([0c1b9fd](https://github.com/mynthio/oss/commit/0c1b9fd58cbe6500e40f1dfdd8541b244791ae75))
 
 ## [0.0.44](https://github.com/mynthio/oss/compare/sdk-v0.0.43...sdk-v0.0.44) (2026-09-26)
 
-
 ### Features
 
-* **sdk:** expose validation issues on MynthAPIError ([a5aa5ff](https://github.com/mynthio/oss/commit/a5aa5ff14ed8e642ac04455fb63af706e8143893))
+- **sdk:** expose validation issues on MynthAPIError ([a5aa5ff](https://github.com/mynthio/oss/commit/a5aa5ff14ed8e642ac04455fb63af706e8143893))
 
 ## [0.0.43](https://github.com/mynthio/oss/compare/sdk-v0.0.42...sdk-v0.0.43) (2026-09-25)
 
-
 ### ⚠ BREAKING CHANGES
 
-* **sdk:** `output.quality` is removed, and `ImageResultImageSuccess.cost` is replaced by a required `format`.
+- **sdk:** `output.quality` is removed, and `ImageResultImageSuccess.cost` is replaced by a required `format`.
 
 ### Features
 
-* **sdk:** add goofy-ai/prefect-pony-xl-lora ([#109](https://github.com/mynthio/oss/issues/109)) ([148af76](https://github.com/mynthio/oss/commit/148af76c9af931d3c62ccbd0330b206e5a047946))
-* **sdk:** add Recraft V4.1 Flash ([7e0dda9](https://github.com/mynthio/oss/commit/7e0dda94678d5fa2b78249625ba771a9815118f0))
-* **sdk:** add Seedream 5.0 Flash ([#117](https://github.com/mynthio/oss/issues/117)) ([1bb67f0](https://github.com/mynthio/oss/commit/1bb67f00ab4d4e326b964da2e8d69f56024d5c6d))
-* **sdk:** align image and video types with the API ([cebaad0](https://github.com/mynthio/oss/commit/cebaad01ebd159978f90470c8c91722e12bee26d))
+- **sdk:** add goofy-ai/prefect-pony-xl-lora ([#109](https://github.com/mynthio/oss/issues/109)) ([148af76](https://github.com/mynthio/oss/commit/148af76c9af931d3c62ccbd0330b206e5a047946))
+- **sdk:** add Recraft V4.1 Flash ([7e0dda9](https://github.com/mynthio/oss/commit/7e0dda94678d5fa2b78249625ba771a9815118f0))
+- **sdk:** add Seedream 5.0 Flash ([#117](https://github.com/mynthio/oss/issues/117)) ([1bb67f0](https://github.com/mynthio/oss/commit/1bb67f00ab4d4e326b964da2e8d69f56024d5c6d))
+- **sdk:** align image and video types with the API ([cebaad0](https://github.com/mynthio/oss/commit/cebaad01ebd159978f90470c8c91722e12bee26d))
 
 ## [0.0.42](https://github.com/mynthio/oss/compare/sdk-v0.0.41...sdk-v0.0.42) (2026-09-25)
 
-
 ### ⚠ BREAKING CHANGES
 
-* **sdk:** ModelCapability no longer includes native_enhance_prompt. Qwen, Riverflow, and Gemini image models no longer advertise it.
+- **sdk:** ModelCapability no longer includes native_enhance_prompt. Qwen, Riverflow, and Gemini image models no longer advertise it.
 
 ### Features
 
-* **sdk:** accept an AbortSignal on image generation and task waits ([c86b366](https://github.com/mynthio/oss/commit/c86b366ab7440cde6b80565917161092b6f5c872))
-* **sdk:** drop the native_enhance_prompt model capability ([fdde4d7](https://github.com/mynthio/oss/commit/fdde4d7df715c6243698f0fd77dcb26f7f33780e))
+- **sdk:** accept an AbortSignal on image generation and task waits ([c86b366](https://github.com/mynthio/oss/commit/c86b366ab7440cde6b80565917161092b6f5c872))
+- **sdk:** drop the native_enhance_prompt model capability ([fdde4d7](https://github.com/mynthio/oss/commit/fdde4d7df715c6243698f0fd77dcb26f7f33780e))
 
 ## [0.0.41](https://github.com/mynthio/oss/compare/sdk-v0.0.40...sdk-v0.0.41) (2026-09-24)
 
-
 ### Features
 
-* **sdk:** pass the delivery ID to webhook handlers ([f606ffd](https://github.com/mynthio/oss/commit/f606ffdebfe4f564ac00db3318d3361e53752cd0))
+- **sdk:** pass the delivery ID to webhook handlers ([f606ffd](https://github.com/mynthio/oss/commit/f606ffdebfe4f564ac00db3318d3361e53752cd0))
 
 ## [0.0.40](https://github.com/mynthio/oss/compare/sdk-v0.0.39...sdk-v0.0.40) (2026-09-18)
 
-
 ### ⚠ BREAKING CHANGES
 
-* **sdk:** drop url from single-image task results
+- **sdk:** drop url from single-image task results
 
 ### Features
 
-* **sdk:** add image.removeBackground ([a55b7a4](https://github.com/mynthio/oss/commit/a55b7a44c293e7dc984078f9d60a105d6b83e10b))
-* **sdk:** drop url from single-image task results ([3ee6e1f](https://github.com/mynthio/oss/commit/3ee6e1fbb118230db051b98fd3d74d1c988cabf8))
+- **sdk:** add image.removeBackground ([a55b7a4](https://github.com/mynthio/oss/commit/a55b7a44c293e7dc984078f9d60a105d6b83e10b))
+- **sdk:** drop url from single-image task results ([3ee6e1f](https://github.com/mynthio/oss/commit/3ee6e1fbb118230db051b98fd3d74d1c988cabf8))
 
 ## [0.0.39](https://github.com/mynthio/oss/compare/sdk-v0.0.38...sdk-v0.0.39) (2026-09-14)
 
-
 ### Features
 
-* **sdk:** add circlestone-labs/anima ([#102](https://github.com/mynthio/oss/issues/102)) ([7453f7f](https://github.com/mynthio/oss/commit/7453f7f330452ecdf0238e5e5cb47599ea0082b1))
-* **sdk:** add microsoft/mai-image-2.6 and 2.6-flash ([#103](https://github.com/mynthio/oss/issues/103)) ([55fd17a](https://github.com/mynthio/oss/commit/55fd17abe2296e1259939253a2251d35b1274e39))
+- **sdk:** add circlestone-labs/anima ([#102](https://github.com/mynthio/oss/issues/102)) ([7453f7f](https://github.com/mynthio/oss/commit/7453f7f330452ecdf0238e5e5cb47599ea0082b1))
+- **sdk:** add microsoft/mai-image-2.6 and 2.6-flash ([#103](https://github.com/mynthio/oss/issues/103)) ([55fd17a](https://github.com/mynthio/oss/commit/55fd17abe2296e1259939253a2251d35b1274e39))
 
 ## [0.0.38](https://github.com/mynthio/oss/compare/sdk-v0.0.37...sdk-v0.0.38) (2026-09-09)
 
-
 ### Features
 
-* **sdk:** add bria/fibo-edit-1.5 ([#94](https://github.com/mynthio/oss/issues/94)) ([4928b38](https://github.com/mynthio/oss/commit/4928b380d80ec8f125819565cbe5ce5aefc575ed))
-* **sdk:** add GPT Image 2.5 Flare and Sunburst ([#99](https://github.com/mynthio/oss/issues/99)) ([b932f30](https://github.com/mynthio/oss/commit/b932f300b782f96c3c3191d8417a95185a59ceb9))
-* **sdk:** add minimax/h3 ([#97](https://github.com/mynthio/oss/issues/97)) ([5bdfac2](https://github.com/mynthio/oss/commit/5bdfac2d5acfc577a87bcb40a1940cc239e22ba3))
-* **sdk:** add the video generation client and video models to the catalog ([280d91d](https://github.com/mynthio/oss/commit/280d91dfd31545a97df80f7e81a83bc5564f092a))
-* **sdk:** add xai/grok-imagine-image-2.0 ([#91](https://github.com/mynthio/oss/issues/91)) ([4a82ca2](https://github.com/mynthio/oss/commit/4a82ca24d10459996ff8a47d7422cadb978d3708))
+- **sdk:** add bria/fibo-edit-1.5 ([#94](https://github.com/mynthio/oss/issues/94)) ([4928b38](https://github.com/mynthio/oss/commit/4928b380d80ec8f125819565cbe5ce5aefc575ed))
+- **sdk:** add GPT Image 2.5 Flare and Sunburst ([#99](https://github.com/mynthio/oss/issues/99)) ([b932f30](https://github.com/mynthio/oss/commit/b932f300b782f96c3c3191d8417a95185a59ceb9))
+- **sdk:** add minimax/h3 ([#97](https://github.com/mynthio/oss/issues/97)) ([5bdfac2](https://github.com/mynthio/oss/commit/5bdfac2d5acfc577a87bcb40a1940cc239e22ba3))
+- **sdk:** add the video generation client and video models to the catalog ([280d91d](https://github.com/mynthio/oss/commit/280d91dfd31545a97df80f7e81a83bc5564f092a))
+- **sdk:** add xai/grok-imagine-image-2.0 ([#91](https://github.com/mynthio/oss/issues/91)) ([4a82ca2](https://github.com/mynthio/oss/commit/4a82ca24d10459996ff8a47d7422cadb978d3708))
 
 ## [0.0.37](https://github.com/mynthio/oss/compare/sdk-v0.0.36...sdk-v0.0.37) (2026-09-03)
 
-
 ### Features
 
-* **sdk:** accept boolean magic_prompt and dashboard webhooks ([9710027](https://github.com/mynthio/oss/commit/97100279023fd5036b6a601703cd3bd2bfe59ec0))
-* **sdk:** add bria/fibo-generate-1.5 ([f6838d5](https://github.com/mynthio/oss/commit/f6838d5eede9cada39ea4949ecfd3fd660716f6e))
-* **sdk:** add meta/muse-image ([7026da6](https://github.com/mynthio/oss/commit/7026da63cab0cfdbf95d418c107cabbe1205e196))
-
+- **sdk:** accept boolean magic_prompt and dashboard webhooks ([9710027](https://github.com/mynthio/oss/commit/97100279023fd5036b6a601703cd3bd2bfe59ec0))
+- **sdk:** add bria/fibo-generate-1.5 ([f6838d5](https://github.com/mynthio/oss/commit/f6838d5eede9cada39ea4949ecfd3fd660716f6e))
+- **sdk:** add meta/muse-image ([7026da6](https://github.com/mynthio/oss/commit/7026da63cab0cfdbf95d418c107cabbe1205e196))
 
 ### Bug Fixes
 
-* **sdk:** wait 30 minutes and retry transient poll failures ([96ea33a](https://github.com/mynthio/oss/commit/96ea33a38f0728501ae086cdab17eefe67c4651c))
+- **sdk:** wait 30 minutes and retry transient poll failures ([96ea33a](https://github.com/mynthio/oss/commit/96ea33a38f0728501ae086cdab17eefe67c4651c))
 
 ## [0.0.36](https://github.com/mynthio/oss/compare/sdk-v0.0.35...sdk-v0.0.36) (2026-08-06)
 
-
 ### Features
 
-* **sdk:** add image review and framework webhook helpers ([22b301a](https://github.com/mynthio/oss/commit/22b301a12d5ac25f7b2e1644e68c26418a01a1bc))
+- **sdk:** add image review and framework webhook helpers ([22b301a](https://github.com/mynthio/oss/commit/22b301a12d5ac25f7b2e1644e68c26418a01a1bc))
 
 ## [0.0.35](https://github.com/mynthio/oss/compare/sdk-v0.0.34...sdk-v0.0.35) (2026-08-05)
 
-
 ### Features
 
-* **sdk:** add Qwen Image 3.0 models ([59c30e2](https://github.com/mynthio/oss/commit/59c30e230899068b3f0c0a4c5efaeb9822bee713))
+- **sdk:** add Qwen Image 3.0 models ([59c30e2](https://github.com/mynthio/oss/commit/59c30e230899068b3f0c0a4c5efaeb9822bee713))
 
 ## [0.0.34](https://github.com/mynthio/oss/compare/sdk-v0.0.33...sdk-v0.0.34) (2026-08-02)
 
-
 ### ⚠ BREAKING CHANGES
 
-* **sdk:** simplify rate and alt to single-image API
+- **sdk:** simplify rate and alt to single-image API
 
 ### Features
 
-* **sdk:** simplify rate and alt to single-image API ([a67399a](https://github.com/mynthio/oss/commit/a67399a3bdc65c54a12b6926632c76f447a939d5))
+- **sdk:** simplify rate and alt to single-image API ([a67399a](https://github.com/mynthio/oss/commit/a67399a3bdc65c54a12b6926632c76f447a939d5))
 
 ## [0.0.33](https://github.com/mynthio/oss/compare/sdk-v0.0.32...sdk-v0.0.33) (2026-07-18)
 
-
 ### Features
 
-* **sdk:** add One Obsession model ([a40f3a2](https://github.com/mynthio/oss/commit/a40f3a287a65fca1b44ef7fb9d3652e790b1712b))
+- **sdk:** add One Obsession model ([a40f3a2](https://github.com/mynthio/oss/commit/a40f3a287a65fca1b44ef7fb9d3652e790b1712b))
 
 ## [0.0.32](https://github.com/mynthio/oss/compare/sdk-v0.0.31...sdk-v0.0.32) (2026-07-17)
 
-
 ### Features
 
-* **sdk:** add Reve and Reve Remix models ([ec77ac8](https://github.com/mynthio/oss/commit/ec77ac8b6ae51575df89af9b3f3e19632fdcae44))
+- **sdk:** add Reve and Reve Remix models ([ec77ac8](https://github.com/mynthio/oss/commit/ec77ac8b6ae51575df89af9b3f3e19632fdcae44))
 
 ## [0.0.31](https://github.com/mynthio/oss/compare/sdk-v0.0.30...sdk-v0.0.31) (2026-07-09)
 
-
 ### Features
 
-* **sdk:** upload local files in generate, rate, and alt ([6219732](https://github.com/mynthio/oss/commit/6219732086a071763c2dd597ac8e1aba731ba414))
+- **sdk:** upload local files in generate, rate, and alt ([6219732](https://github.com/mynthio/oss/commit/6219732086a071763c2dd597ac8e1aba731ba414))
 
 ## [0.0.30](https://github.com/mynthio/oss/compare/sdk-v0.0.29...sdk-v0.0.30) (2026-07-09)
 
-
 ### Features
 
-* **sdk:** add Seedream Pro model ([ba67173](https://github.com/mynthio/oss/commit/ba67173d3072ccd7410c6429d68b236ab70f8c5e))
+- **sdk:** add Seedream Pro model ([ba67173](https://github.com/mynthio/oss/commit/ba67173d3072ccd7410c6429d68b236ab70f8c5e))
 
 ## [0.0.29](https://github.com/mynthio/oss/compare/sdk-v0.0.28...sdk-v0.0.29) (2026-07-08)
 
-
 ### Features
 
-* **sdk:** add temporary image uploads ([e718660](https://github.com/mynthio/oss/commit/e7186606088445ee3e139eb9ba4c48caf8a7d099))
+- **sdk:** add temporary image uploads ([e718660](https://github.com/mynthio/oss/commit/e7186606088445ee3e139eb9ba4c48caf8a7d099))
 
 ## [0.0.28](https://github.com/mynthio/oss/compare/sdk-v0.0.27...sdk-v0.0.28) (2026-07-07)
 
-
 ### Features
 
-* **sdk:** add image alt text API and Convex alt webhook handlers ([e88a2ed](https://github.com/mynthio/oss/commit/e88a2eda18b2fe268345bf367e7d2f692dafb856))
+- **sdk:** add image alt text API and Convex alt webhook handlers ([e88a2ed](https://github.com/mynthio/oss/commit/e88a2eda18b2fe268345bf367e7d2f692dafb856))
 
 ## [0.0.27](https://github.com/mynthio/oss/compare/sdk-v0.0.26...sdk-v0.0.27) (2026-07-05)
 
-
 ### Features
 
-* **sdk:** add support for ideogram/remove-background model ([5807821](https://github.com/mynthio/oss/commit/5807821d38025633a03e1d4b98c6c47cea460196))
+- **sdk:** add support for ideogram/remove-background model ([5807821](https://github.com/mynthio/oss/commit/5807821d38025633a03e1d4b98c6c47cea460196))
 
 ## [0.0.26](https://github.com/mynthio/oss/compare/sdk-v0.0.25...sdk-v0.0.26) (2026-07-05)
 
-
 ### Features
 
-* **sdk:** add Riverflow 2.0 Pro model ([de1c51a](https://github.com/mynthio/oss/commit/de1c51af06a742ad7c8d7016b3be1cea887f7565))
+- **sdk:** add Riverflow 2.0 Pro model ([de1c51a](https://github.com/mynthio/oss/commit/de1c51af06a742ad7c8d7016b3be1cea887f7565))
 
 ## [0.0.25](https://github.com/mynthio/oss/compare/sdk-v0.0.24...sdk-v0.0.25) (2026-07-01)
 
-
 ### Features
 
-* **sdk:** add Kling IMAGE 3.0 and Kling IMAGE O3 models ([6df44dc](https://github.com/mynthio/oss/commit/6df44dc93852969fd08eed8d6226a732189eb4c4))
+- **sdk:** add Kling IMAGE 3.0 and Kling IMAGE O3 models ([6df44dc](https://github.com/mynthio/oss/commit/6df44dc93852969fd08eed8d6226a732189eb4c4))
 
 ## [0.0.24](https://github.com/mynthio/oss/compare/sdk-v0.0.23...sdk-v0.0.24) (2026-06-30)
 
-
 ### Features
 
-* **sdk:** add Gemini Flash Lite and ImagineArt 2.0 models ([d88de4b](https://github.com/mynthio/oss/commit/d88de4baa6fc593bf62e7bf39599ce93924b2854))
+- **sdk:** add Gemini Flash Lite and ImagineArt 2.0 models ([d88de4b](https://github.com/mynthio/oss/commit/d88de4baa6fc593bf62e7bf39599ce93924b2854))
 
 ## [0.0.23](https://github.com/mynthio/oss/compare/sdk-v0.0.22...sdk-v0.0.23) (2026-06-30)
 
-
 ### Features
 
-* **sdk:** add Z Image and Wan 2.7 models ([e4e40fe](https://github.com/mynthio/oss/commit/e4e40fe569232b439730c8871fe56081ca020945))
+- **sdk:** add Z Image and Wan 2.7 models ([e4e40fe](https://github.com/mynthio/oss/commit/e4e40fe569232b439730c8871fe56081ca020945))
 
 ## [0.0.22](https://github.com/mynthio/oss/compare/sdk-v0.0.21...sdk-v0.0.22) (2026-06-26)
 
-
 ### ⚠ BREAKING CHANGES
 
-* **sdk:** Image input roles now use source and reference instead of style, background, product, object, and character.
+- **sdk:** Image input roles now use source and reference instead of style, background, product, object, and character.
 
 ### Features
 
-* **sdk:** add source and reference image roles ([840aa27](https://github.com/mynthio/oss/commit/840aa274655b199b8f22579dcc3ee8ffb0f09bc0))
+- **sdk:** add source and reference image roles ([840aa27](https://github.com/mynthio/oss/commit/840aa274655b199b8f22579dcc3ee8ffb0f09bc0))
 
 ## [0.0.21](https://github.com/mynthio/oss/compare/sdk-v0.0.20...sdk-v0.0.21) (2026-06-25)
 
-
 ### Features
 
-* **sdk:** add Grok Imagine quality model ([20dea45](https://github.com/mynthio/oss/commit/20dea45a317a93faecbb5b2c0815229320deccc4))
+- **sdk:** add Grok Imagine quality model ([20dea45](https://github.com/mynthio/oss/commit/20dea45a317a93faecbb5b2c0815229320deccc4))
 
 ## [0.0.20](https://github.com/mynthio/oss/compare/sdk-v0.0.19...sdk-v0.0.20) (2026-06-24)
 
-
 ### ⚠ BREAKING CHANGES
 
-* **sdk:** image input intent is now as; legacy size variants, auto provider selection, inputFee, and retired capabilities are removed.
+- **sdk:** image input intent is now as; legacy size variants, auto provider selection, inputFee, and retired capabilities are removed.
 
 ### Features
 
-* **sdk:** update image generation API fields ([#51](https://github.com/mynthio/oss/issues/51)) ([c827fea](https://github.com/mynthio/oss/commit/c827fea95f3c44a42165c1997c81d1449ed08abb))
+- **sdk:** update image generation API fields ([#51](https://github.com/mynthio/oss/issues/51)) ([c827fea](https://github.com/mynthio/oss/commit/c827fea95f3c44a42165c1997c81d1449ed08abb))
 
 ## [0.0.19](https://github.com/mynthio/oss/compare/sdk-v0.0.18...sdk-v0.0.19) (2026-06-20)
 
-
 ### ⚠ BREAKING CHANGES
 
-* **sdk:** Structured image inputs no longer use the role field; use the optional intent field instead.
+- **sdk:** Structured image inputs no longer use the role field; use the optional intent field instead.
 
 ### Features
 
-* **sdk:** add image input intents ([1926793](https://github.com/mynthio/oss/commit/192679369d3690603b296222f28da10cac64e3cb))
+- **sdk:** add image input intents ([1926793](https://github.com/mynthio/oss/commit/192679369d3690603b296222f28da10cac64e3cb))
 
 ## [0.0.18](https://github.com/mynthio/oss/compare/sdk-v0.0.17...sdk-v0.0.18) (2026-06-15)
 
-
 ### Features
 
-* **sdk:** add model catalog and async rating ([aa37185](https://github.com/mynthio/oss/commit/aa371856313941796844e0b7547b333dc18331cd))
+- **sdk:** add model catalog and async rating ([aa37185](https://github.com/mynthio/oss/commit/aa371856313941796844e0b7547b333dc18331cd))
 
 ## [0.0.17](https://github.com/mynthio/oss/compare/sdk-v0.0.16...sdk-v0.0.17) (2026-06-09)
 
-
 ### Bug Fixes
 
-* **sdk:** wrap API responses in data envelope ([c3f42c5](https://github.com/mynthio/oss/commit/c3f42c58ff55d342cbe21c6ca92cfb5d5a01ffdb))
+- **sdk:** wrap API responses in data envelope ([c3f42c5](https://github.com/mynthio/oss/commit/c3f42c58ff55d342cbe21c6ca92cfb5d5a01ffdb))
 
 ## [0.0.16](https://github.com/mynthio/oss/compare/sdk-v0.0.15...sdk-v0.0.16) (2026-05-12)
 
-
 ### Features
 
-* **sdk:** align image APIs with task schema ([f1e494e](https://github.com/mynthio/oss/commit/f1e494e528b8de3821f675bdc432727904d91250))
+- **sdk:** align image APIs with task schema ([f1e494e](https://github.com/mynthio/oss/commit/f1e494e528b8de3821f675bdc432727904d91250))
 
 ## [0.0.15](https://github.com/mynthio/oss/compare/sdk-v0.0.14...sdk-v0.0.15) (2026-04-24)
 
-
 ### Features
 
-* **sdk:** add gpt-image-2 model support ([b5cb14e](https://github.com/mynthio/oss/commit/b5cb14ed2aab94fa9ec23875696bd5d255752a38))
+- **sdk:** add gpt-image-2 model support ([b5cb14e](https://github.com/mynthio/oss/commit/b5cb14ed2aab94fa9ec23875696bd5d255752a38))
 
 ## [0.0.14](https://github.com/mynthio/oss/compare/sdk-v0.0.13...sdk-v0.0.14) (2026-04-21)
 
-
 ### Features
 
-* **sdk:** add destination delivery support ([ec2a575](https://github.com/mynthio/oss/commit/ec2a57555549abff9cbff687ce72c4e66d79b088))
+- **sdk:** add destination delivery support ([ec2a575](https://github.com/mynthio/oss/commit/ec2a57555549abff9cbff687ce72c4e66d79b088))
 
 ## [0.0.13](https://github.com/mynthio/oss/compare/sdk-v0.0.12...sdk-v0.0.13) (2026-04-12)
 
-
 ### Features
 
-* **sdk:** add ImagineArt 1.5 Pro model ([76061aa](https://github.com/mynthio/oss/commit/76061aae7a39579f39cc6618ee30af891395ba3e))
+- **sdk:** add ImagineArt 1.5 Pro model ([76061aa](https://github.com/mynthio/oss/commit/76061aae7a39579f39cc6618ee30af891395ba3e))
 
 ## [0.0.12](https://github.com/mynthio/oss/compare/sdk-v0.0.11...sdk-v0.0.12) (2026-04-09)
 
-
 ### ⚠ BREAKING CHANGES
 
-* **sdk:** image generation now lives under mynth.image.generate(), TaskAsync#toTask() is now wait(), and Task has been renamed to ImageGenerationResult.
+- **sdk:** image generation now lives under mynth.image.generate(), TaskAsync#toTask() is now wait(), and Task has been renamed to ImageGenerationResult.
 
 ### Features
 
-* **sdk:** split image client and add rating API ([4fa4185](https://github.com/mynthio/oss/commit/4fa4185700bad98cd65bba1898df006c69b6c663))
+- **sdk:** split image client and add rating API ([4fa4185](https://github.com/mynthio/oss/commit/4fa4185700bad98cd65bba1898df006c69b6c663))
 
 ## [0.0.11](https://github.com/mynthio/oss/compare/sdk-v0.0.10...sdk-v0.0.11) (2026-04-02)
 
-
 ### ⚠ BREAKING CHANGES
 
-* **sdk:** async image task type and webhook event names now use the image.generate namespace.
+- **sdk:** async image task type and webhook event names now use the image.generate namespace.
 
 ### Features
 
-* **sdk:** rename async image task event identifiers ([64290f3](https://github.com/mynthio/oss/commit/64290f31dc0700cfd9c91a84b1aae77543b0f930))
+- **sdk:** rename async image task event identifiers ([64290f3](https://github.com/mynthio/oss/commit/64290f31dc0700cfd9c91a84b1aae77543b0f930))
 
 ## [0.0.10](https://github.com/mynthio/oss/compare/sdk-v0.0.9...sdk-v0.0.10) (2026-04-01)
 
-
 ### Features
 
-* **sdk:** add FLUX.2 Pro, Flex, and Max models ([b45abed](https://github.com/mynthio/oss/commit/b45abedf057a2b6820b01c1437e422eabac2d923))
+- **sdk:** add FLUX.2 Pro, Flex, and Max models ([b45abed](https://github.com/mynthio/oss/commit/b45abedf057a2b6820b01c1437e422eabac2d923))
 
 ## [0.0.9](https://github.com/mynthio/oss/compare/sdk-v0.0.8...sdk-v0.0.9) (2026-04-01)
 
-
 ### ⚠ BREAKING CHANGES
 
-* **sdk:** `ImageResultCost.fee` removed, replaced by optional `magic_prompt`
+- **sdk:** `ImageResultCost.fee` removed, replaced by optional `magic_prompt`
 
 ### Features
 
-* **sdk:** add negative_prompt capability and update cost metadata ([b1f329b](https://github.com/mynthio/oss/commit/b1f329be7da3489deb5169cfbec0f0ba8e5f8388))
-
+- **sdk:** add negative_prompt capability and update cost metadata ([b1f329b](https://github.com/mynthio/oss/commit/b1f329be7da3489deb5169cfbec0f0ba8e5f8388))
 
 ### Bug Fixes
 
-* **sdk:** update package dependencies ([ddd5387](https://github.com/mynthio/oss/commit/ddd5387f618ee6dd1f3c5f2f5689a7b17e92c44e))
+- **sdk:** update package dependencies ([ddd5387](https://github.com/mynthio/oss/commit/ddd5387f618ee6dd1f3c5f2f5689a7b17e92c44e))
 
 ## [0.0.8](https://github.com/mynthio/oss/compare/sdk-v0.0.7...sdk-v0.0.8) (2026-03-30)
 
-
 ### Features
 
-* **sdk:** add Pony Diffusion V6 XL model ([09a054b](https://github.com/mynthio/oss/commit/09a054b71a80eb07eac3bfcbeaf3d181d293124d))
+- **sdk:** add Pony Diffusion V6 XL model ([09a054b](https://github.com/mynthio/oss/commit/09a054b71a80eb07eac3bfcbeaf3d181d293124d))
 
 ## [0.0.7](https://github.com/mynthio/oss/compare/sdk-v0.0.6...sdk-v0.0.7) (2026-03-27)
 
-
 ### Features
 
-* **sdk:** add PAT access and aspect-ratio request types ([9cb4fde](https://github.com/mynthio/oss/commit/9cb4fdebda1c5ae25d7a68683af593c1570eebcb))
+- **sdk:** add PAT access and aspect-ratio request types ([9cb4fde](https://github.com/mynthio/oss/commit/9cb4fdebda1c5ae25d7a68683af593c1570eebcb))
 
 ## [0.0.6](https://github.com/mynthio/oss/compare/sdk-v0.0.5...sdk-v0.0.6) (2026-03-16)
 
-
 ### Features
 
-* **models:** add Recraft v4 image models ([efb61d6](https://github.com/mynthio/oss/commit/efb61d6e630c696249ce7f30740924dacd2a9a7e))
+- **models:** add Recraft v4 image models ([efb61d6](https://github.com/mynthio/oss/commit/efb61d6e630c696249ce7f30740924dacd2a9a7e))
 
 ## [0.0.5](https://github.com/mynthio/oss/compare/sdk-v0.0.4...sdk-v0.0.5) (2026-03-14)
 
-
 ### Bug Fixes
 
-* **sdk:** sync model capabilities and image response types ([1f503b6](https://github.com/mynthio/oss/commit/1f503b699d0083e2a420e55143c780c37aa68f60))
+- **sdk:** sync model capabilities and image response types ([1f503b6](https://github.com/mynthio/oss/commit/1f503b699d0083e2a420e55143c780c37aa68f60))
 
 ## [0.0.4](https://github.com/mynthio/mynth-sdk/compare/sdk-v0.0.3...sdk-v0.0.4) (2026-03-10)
 
-
 ### Features
 
-* **monorepo:** move sdk into packages workspace ([e7f66d4](https://github.com/mynthio/mynth-sdk/commit/e7f66d4173e843789556e780e55d4b40e14a9239))
+- **monorepo:** move sdk into packages workspace ([e7f66d4](https://github.com/mynthio/mynth-sdk/commit/e7f66d4173e843789556e780e55d4b40e14a9239))
 
 ## [0.0.3](https://github.com/mynthio/mynth-sdk/compare/sdk-v0.0.2...sdk-v0.0.3) (2026-03-06)
 
-
 ### Features
 
-* add Seedream 5.0 Lite and Nano Banana 2 models, add 0.5k and 3k size scales ([b5f9cc6](https://github.com/mynthio/mynth-sdk/commit/b5f9cc6013974d071754f13b8845a7551f241fb1))
+- add Seedream 5.0 Lite and Nano Banana 2 models, add 0.5k and 3k size scales ([b5f9cc6](https://github.com/mynthio/mynth-sdk/commit/b5f9cc6013974d071754f13b8845a7551f241fb1))
 
 ## [0.0.2](https://github.com/mynthio/mynth-sdk/compare/sdk-v0.0.2...sdk-v0.0.2) (2026-02-25)
 
-
 ### Build System
 
-* switch from changesets to release-please ([a50711b](https://github.com/mynthio/mynth-sdk/commit/a50711b40c9bc033cea37cfee0d109e45d4a0780))
+- switch from changesets to release-please ([a50711b](https://github.com/mynthio/mynth-sdk/commit/a50711b40c9bc033cea37cfee0d109e45d4a0780))
 
 ## [0.0.2](https://github.com/mynthio/mynth-sdk/compare/sdk-v0.0.2...sdk-v0.0.2) (2026-02-25)
 
-
 ### Build System
 
-* switch from changesets to release-please ([92f772e](https://github.com/mynthio/mynth-sdk/commit/92f772e079ca470d9da4c558c91545df735ac5c3))
+- switch from changesets to release-please ([92f772e](https://github.com/mynthio/mynth-sdk/commit/92f772e079ca470d9da4c558c91545df735ac5c3))
 
 ## [0.0.2](https://github.com/mynthio/mynth-sdk/compare/sdk-v0.0.2...sdk-v0.0.2) (2026-02-25)
 
-
 ### Build System
 
-* switch from changesets to release-please ([7e9144e](https://github.com/mynthio/mynth-sdk/commit/7e9144e2b981289f15c980a90e905d8427f810e3))
+- switch from changesets to release-please ([7e9144e](https://github.com/mynthio/mynth-sdk/commit/7e9144e2b981289f15c980a90e905d8427f810e3))
 
 ## [0.0.2](https://github.com/mynthio/mynth-sdk/compare/sdk-v0.0.2...sdk-v0.0.2) (2026-02-25)
 
-
 ### Build System
 
-* switch from changesets to release-please ([041cb29](https://github.com/mynthio/mynth-sdk/commit/041cb293a1114e16eb7274d0af4e17f2c808958e))
+- switch from changesets to release-please ([041cb29](https://github.com/mynthio/mynth-sdk/commit/041cb293a1114e16eb7274d0af4e17f2c808958e))
 
 ## [0.0.2](https://github.com/mynthio/mynth-sdk/compare/sdk-v0.0.2...sdk-v0.0.2) (2026-02-25)
 
-
 ### Build System
 
-* switch from changesets to release-please ([2bf216f](https://github.com/mynthio/mynth-sdk/commit/2bf216fe439db8bd689759f2c7a98e132755d2b4))
+- switch from changesets to release-please ([2bf216f](https://github.com/mynthio/mynth-sdk/commit/2bf216fe439db8bd689759f2c7a98e132755d2b4))
 
 ## [0.0.2](https://github.com/mynthio/mynth-sdk/compare/sdk-v0.0.2...sdk-v0.0.2) (2026-02-25)
 
-
 ### Build System
 
-* switch from changesets to release-please ([f618987](https://github.com/mynthio/mynth-sdk/commit/f61898727b3979183cc7677ede074e6bbe4f8be3))
+- switch from changesets to release-please ([f618987](https://github.com/mynthio/mynth-sdk/commit/f61898727b3979183cc7677ede074e6bbe4f8be3))
 
 ## [0.0.2](https://github.com/mynthio/mynth-sdk/compare/sdk-v0.0.1...sdk-v0.0.2) (2026-02-25)
 
-
 ### Build System
 
-* switch from changesets to release-please ([ddf45cd](https://github.com/mynthio/mynth-sdk/commit/ddf45cd6648a1487790cfc0144cd0deebd3be3bc))
+- switch from changesets to release-please ([ddf45cd](https://github.com/mynthio/mynth-sdk/commit/ddf45cd6648a1487790cfc0144cd0deebd3be3bc))

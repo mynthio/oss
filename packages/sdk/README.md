@@ -43,9 +43,9 @@ const task = await mynth.image.generate({
   prompt: "A fox in a neon-lit city at night",
 });
 
-console.log(task.id);
+console.log(task.taskId);
 console.log(task.urls);
-console.log(task.result?.model);
+console.log(task.model);
 ```
 
 If you omit `model` and `size`, Mynth resolves them automatically. `generate()` waits for completion and returns a completed task.
@@ -76,7 +76,7 @@ const task = await mynth.image.generate({
   model: "black-forest-labs/flux.2-dev",
 });
 
-console.log(task.status); // "completed"
+console.log(task.images[0]?.width); // 1024
 console.log(task.urls);
 ```
 
@@ -330,7 +330,11 @@ const task = await mynth.image.generate({
   rating: true, // same result levels as { mode: "nsfw_sfw" }
 });
 
-console.log(task.getImages()[0]?.rating?.level); // "sfw" | "nsfw"
+const rating = task.images[0]?.rating;
+
+if (rating?.status === "success") {
+  console.log(rating.level); // "sfw" | "nsfw"
+}
 ```
 
 For custom labels, pass at least two and at most seven levels:
@@ -348,7 +352,11 @@ const task = await mynth.image.generate({
   },
 });
 
-console.log(task.getImages()[0]?.rating?.level); // "general" | "teen" | "adult"
+const rating = task.images[0]?.rating;
+
+if (rating?.status === "success") {
+  console.log(rating.level); // "general" | "teen" | "adult"
+}
 ```
 
 You can also rate an existing image URL (mode defaults to `nsfw_sfw`):
@@ -485,7 +493,7 @@ const result = await mynth.image.upscale({
 });
 
 console.log(result.image.url); // upscaled image
-console.log(result.image.size); // e.g. "2048x1536"
+console.log(result.image.width, result.image.height); // e.g. 2048 1536
 ```
 
 `effort` sets the price: `low` is fast and sharp, `high` rebuilds fine detail such as small text and faces. `size` is `"2x"` or `"4x"`, or `{ type: "scale", factor: 2 | 4 }`. The upscaled image can be at most 4096x4096 pixels; a larger request fails with `OUTPUT_TOO_LARGE` and is not charged.
@@ -520,7 +528,7 @@ return { id: taskAsync.id, access: taskAsync.access };
 
 ## Working With Image Results
 
-Completed generation tasks expose a few helpful accessors:
+`generate()`, `removeBackground()`, and `upscale()` all hand back the same image shape, `MynthOutputImage`:
 
 ```ts
 const task = await mynth.image.generate({
@@ -528,17 +536,53 @@ const task = await mynth.image.generate({
   metadata: { source: "readme-example" },
 });
 
-console.log(task.id);
-console.log(task.status);
-console.log(task.isCompleted);
-console.log(task.urls);
-console.log(task.getImages());
-console.log(task.getImages({ includeFailed: true }));
-console.log(task.getMetadata());
-console.log(task.result?.magic_prompt);
+console.log(task.taskId);
+console.log(task.cost); // "0.04"
+console.log(task.model); // resolved model, also when you asked for "auto"
+console.log(task.metadata); // { source: "readme-example" }, typed from the request
+console.log(task.magicPrompt); // the rewritten prompt, with magic_prompt: true
+console.log(task.urls); // `url` of each image, skipping `null`
+
+for (const image of task.images) {
+  image.id;
+  image.url; // your destination's URL, or the Mynth URL without a destination; null if delivery failed
+  image.mynthUrl; // always set, served for 7 days
+  image.width; // 1024
+  image.height; // 768
+  image.size; // "1024x768"
+  image.format; // "png" | "jpg" | "webp"
+  image.mimeType; // "image/png" | "image/jpeg" | "image/webp"
+  image.destination; // delivery status when the request named a destination
+  image.rating; // generate() only, typed from the request's rating levels
+}
 ```
 
-`task.urls` and `task.getImages()` return only successful images by default. `task.result?.images` may also include failed image entries.
+`url` is exactly what the API reports. The SDK never swaps in the Mynth URL for you, so a `null` cannot hide behind a URL from another origin. Fall back explicitly where any URL will do:
+
+```ts
+const src = image.url ?? image.mynthUrl;
+```
+
+`task.images` holds the successful images only. A completed task can also hold failed ones; `task.failures` lists why:
+
+```ts
+if (task.failures.length > 0) {
+  console.warn(task.failures); // [{ code: "PROVIDER_ERROR", message: "..." }]
+}
+```
+
+Results are plain objects, so they pass as they are to client components, server functions, Convex mutations, and `JSON.stringify`.
+
+To download an image, fetch `mynthUrl`. It is set with or without a destination:
+
+```ts
+import { writeFile } from "node:fs/promises";
+
+const response = await fetch(image.mynthUrl);
+await writeFile(`cat.${image.format}`, new Uint8Array(await response.arrayBuffer()));
+```
+
+Every result also keeps the request and result exactly as the API returned them, in `raw`, for fields the SDK does not map yet.
 
 ## Available Models
 
@@ -651,7 +695,7 @@ const task = await mynth.video.generate({
 });
 
 console.log(task.urls);
-console.log(task.getVideos()[0]?.duration);
+console.log(task.videos[0]?.duration);
 ```
 
 Video generation always runs on a pinned model: unlike images, there is no `auto`, so `model` is required.
@@ -720,17 +764,20 @@ Because the model is always concrete, the estimate is exact.
 
 ### Working With Video Results
 
+Video results mirror image results:
+
 ```ts
-console.log(task.id);
-console.log(task.status);
-console.log(task.isCompleted);
+console.log(task.taskId);
+console.log(task.cost); // failed videos are refunded
+console.log(task.model);
 console.log(task.urls);
-console.log(task.getVideos());
-console.log(task.getVideos({ includeFailed: true }));
-console.log(task.getMetadata());
+console.log(task.videos); // successful videos only
+console.log(task.failures); // [{ code, message? }] for each failed video
+console.log(task.metadata);
+console.log(task.raw);
 ```
 
-Each successful video carries `url`, `mynth_url`, `cost`, `duration`, `resolution`, and `audio`.
+Each video has `id`, `url`, `mynthUrl`, `cost`, `duration`, `resolution`, and `audio`.
 
 ### Video Models
 
@@ -793,22 +840,22 @@ Create a Route Handler:
 import { mynthWebhookHandler } from "@mynthio/sdk/next";
 
 export const POST = mynthWebhookHandler({
-  imageTaskCompleted: async (payload, { request }) => {
-    console.log("Completed task:", payload.task.id);
+  imageTaskCompleted: async (result, { request }) => {
+    console.log("Completed task:", result.taskId);
     console.log("Received at:", request.url);
 
-    await saveImages(payload.task.id, payload.result.images);
+    await saveImages(result.taskId, result.images);
   },
-  imageTaskFailed: async (payload) => {
-    await markTaskFailed(payload.task.id, payload.errors);
+  imageTaskFailed: async (failure) => {
+    await markTaskFailed(failure.taskId, failure.errors);
   },
-  videoTaskCompleted: async (payload) => {
-    await saveVideos(payload.task.id, payload.result.videos);
+  videoTaskCompleted: async (result) => {
+    await saveVideos(result.taskId, result.videos);
   },
 });
 ```
 
-The helper reads the raw body, verifies `X-Mynth-Signature`, rejects signatures older than five minutes, and checks `X-Mynth-Event` before calling a typed handler. The last handler argument contains the original `request` and `deliveryId`, the `X-Mynth-Delivery` value that every retry repeats.
+The helper reads the raw body, verifies `X-Mynth-Signature`, rejects signatures older than five minutes, and checks `X-Mynth-Event` before calling a typed handler. A completed callback receives the same result that `generate()`, `upscale()` and the other methods return, so `result.images`, `result.cost` and `result.metadata` work the same in both places. A failed callback receives `{ taskId, errors, metadata, raw }`; `metadata` is there for task types whose request takes it. The last handler argument contains the original `request` and `deliveryId`, the `X-Mynth-Delivery` value that every retry repeats.
 
 The route must be publicly reachable, so exclude it from authentication middleware. Make callback side effects idempotent by storing `deliveryId` and skipping IDs you have already handled, and enqueue slow work before returning. Callback errors are propagated so Mynth can retry the delivery.
 
@@ -827,13 +874,13 @@ export const Route = createFileRoute("/api/webhooks/mynth")({
   server: {
     handlers: {
       POST: mynthWebhookHandler({
-        imageTaskCompleted: async (payload, { request, params, context }) => {
-          console.log("Completed task:", payload.task.id);
+        imageTaskCompleted: async (result, { request, params, context }) => {
+          console.log("Completed task:", result.taskId);
           console.log("Received at:", request.url);
-          await saveImages(payload.task.id, payload.result.images);
+          await saveImages(result.taskId, result.images);
         },
-        imageTaskFailed: async (payload) => {
-          await markTaskFailed(payload.task.id, payload.errors);
+        imageTaskFailed: async (failure) => {
+          await markTaskFailed(failure.taskId, failure.errors);
         },
       }),
     },
@@ -851,54 +898,54 @@ The package includes a Convex HTTP action helper for webhook verification and ev
 import { mynthWebhookAction } from "@mynthio/sdk/convex";
 
 export const mynthWebhook = mynthWebhookAction({
-  imageTaskCompleted: async (payload, { context }) => {
-    console.log("Completed task:", payload.task.id);
-    console.log(payload.result.images);
+  imageTaskCompleted: async (result, { context }) => {
+    console.log("Completed task:", result.taskId);
+    console.log(result.images);
   },
-  imageTaskFailed: async (payload) => {
-    console.error("Mynth task failed:", payload.task.id);
+  imageTaskFailed: async (failure) => {
+    console.error("Mynth task failed:", failure.taskId);
   },
-  imageRateTaskCompleted: async (payload) => {
-    console.log("Completed rating task:", payload.task.id);
-    console.log(payload.result.level);
+  imageRateTaskCompleted: async (result) => {
+    console.log("Completed rating task:", result.taskId);
+    console.log(result.level);
   },
-  imageRateTaskFailed: async (payload) => {
-    console.error("Mynth rating task failed:", payload.task.id);
+  imageRateTaskFailed: async (failure) => {
+    console.error("Mynth rating task failed:", failure.taskId);
   },
-  imageAltTaskCompleted: async (payload) => {
-    console.log("Completed alt text task:", payload.task.id);
-    console.log(payload.result.alt);
+  imageAltTaskCompleted: async (result) => {
+    console.log("Completed alt text task:", result.taskId);
+    console.log(result.alt);
   },
-  imageAltTaskFailed: async (payload) => {
-    console.error("Mynth alt text task failed:", payload.task.id);
+  imageAltTaskFailed: async (failure) => {
+    console.error("Mynth alt text task failed:", failure.taskId);
   },
-  imageReviewTaskCompleted: async (payload) => {
-    console.log("Completed review task:", payload.task.id);
-    console.log(payload.result.summary);
+  imageReviewTaskCompleted: async (result) => {
+    console.log("Completed review task:", result.taskId);
+    console.log(result.summary);
   },
-  imageReviewTaskFailed: async (payload) => {
-    console.error("Mynth review task failed:", payload.task.id);
+  imageReviewTaskFailed: async (failure) => {
+    console.error("Mynth review task failed:", failure.taskId);
   },
-  imageRemoveBackgroundTaskCompleted: async (payload) => {
-    console.log("Completed remove background task:", payload.task.id);
-    console.log(payload.result.image.url);
+  imageRemoveBackgroundTaskCompleted: async (result) => {
+    console.log("Completed remove background task:", result.taskId);
+    console.log(result.image.url);
   },
-  imageRemoveBackgroundTaskFailed: async (payload) => {
-    console.error("Mynth remove background task failed:", payload.task.id);
+  imageRemoveBackgroundTaskFailed: async (failure) => {
+    console.error("Mynth remove background task failed:", failure.taskId);
   },
-  imageUpscaleTaskCompleted: async (payload) => {
-    console.log("Completed upscale task:", payload.task.id);
-    console.log(payload.result.image.url);
+  imageUpscaleTaskCompleted: async (result) => {
+    console.log("Completed upscale task:", result.taskId);
+    console.log(result.image.url);
   },
-  imageUpscaleTaskFailed: async (payload) => {
-    console.error("Mynth upscale task failed:", payload.task.id);
+  imageUpscaleTaskFailed: async (failure) => {
+    console.error("Mynth upscale task failed:", failure.taskId);
   },
-  videoTaskCompleted: async (payload) => {
-    console.log("Completed video task:", payload.task.id);
-    console.log(payload.result.videos);
+  videoTaskCompleted: async (result) => {
+    console.log("Completed video task:", result.taskId);
+    console.log(result.videos);
   },
-  videoTaskFailed: async (payload) => {
-    console.error("Mynth video task failed:", payload.task.id);
+  videoTaskFailed: async (failure) => {
+    console.error("Mynth video task failed:", failure.taskId);
   },
 });
 ```

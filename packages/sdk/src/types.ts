@@ -321,6 +321,20 @@ export namespace MynthSDKTypes {
   };
 
   // ============================================================
+  // Output Images
+  // ============================================================
+
+  /** Formats Mynth delivers images in. */
+  export type ImageFormat = "png" | "jpg" | "webp";
+
+  /** MIME type of each image format, e.g. for a `Content-Type` header. */
+  export type ImageMimeType<FormatT extends ImageFormat = ImageFormat> = {
+    png: "image/png";
+    jpg: "image/jpeg";
+    webp: "image/webp";
+  }[FormatT];
+
+  // ============================================================
   // Image Upload
   // ============================================================
 
@@ -845,11 +859,18 @@ export namespace MynthSDKTypes {
   // Webhooks
   // ============================================================
 
+  /** The `task` object on a completed webhook payload. */
+  export type WebhookTaskCompleted = {
+    id: string;
+    /** USD charged for the task */
+    cost: string;
+  };
+
   /**
    * Webhook payload for image generation task completion.
    */
   export type WebhookTaskImageCompletedPayload = {
-    task: { id: string };
+    task: WebhookTaskCompleted;
     event: "task.image.generate.completed";
     result: ImageResult;
     request: ImageGenerationRequest;
@@ -869,7 +890,7 @@ export namespace MynthSDKTypes {
    * Webhook payload for image rating task completion.
    */
   export type WebhookTaskImageRateCompletedPayload<LevelT extends string = string> = {
-    task: { id: string };
+    task: WebhookTaskCompleted;
     event: "task.image.rate.completed";
     result: ImageRateTaskResult<LevelT>;
     request: ImageRateRequest;
@@ -889,7 +910,7 @@ export namespace MynthSDKTypes {
    * Webhook payload for image alt text task completion.
    */
   export type WebhookTaskImageAltCompletedPayload = {
-    task: { id: string };
+    task: WebhookTaskCompleted;
     event: "task.image.alt.completed";
     result: ImageAltTaskResult;
     request: ImageAltRequest;
@@ -909,7 +930,7 @@ export namespace MynthSDKTypes {
    * Webhook payload for image review task completion.
    */
   export type WebhookTaskImageReviewCompletedPayload = {
-    task: { id: string };
+    task: WebhookTaskCompleted;
     event: "task.image.review.completed";
     result: ImageReviewTaskResult;
     request: ImageReviewRequest;
@@ -929,7 +950,7 @@ export namespace MynthSDKTypes {
    * Webhook payload for image remove background task completion.
    */
   export type WebhookTaskImageRemoveBackgroundCompletedPayload = {
-    task: { id: string };
+    task: WebhookTaskCompleted;
     event: "task.image.remove_background.completed";
     result: ImageRemoveBackgroundTaskResult;
     request: ImageRemoveBackgroundRequest;
@@ -949,7 +970,7 @@ export namespace MynthSDKTypes {
    * Webhook payload for image upscale task completion.
    */
   export type WebhookTaskImageUpscaleCompletedPayload = {
-    task: { id: string };
+    task: WebhookTaskCompleted;
     event: "task.image.upscale.completed";
     result: ImageUpscaleTaskResult;
     request: ImageUpscaleRequest;
@@ -969,7 +990,7 @@ export namespace MynthSDKTypes {
    * Webhook payload for video generation task completion.
    */
   export type WebhookTaskVideoCompletedPayload = {
-    task: { id: string };
+    task: WebhookTaskCompleted;
     event: "task.video.generate.completed";
     result: VideoResult;
     request: VideoGenerationRequest;

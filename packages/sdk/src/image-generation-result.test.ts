@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { ImageGenerationResult } from "./image-generation-result.ts";
+import { toImageGenerationResult } from "./image-generation-result.ts";
 import type { MynthSDKTypes } from "./types.ts";
 
 const deliveredImage: MynthSDKTypes.ImageResultImageSuccess = {
@@ -10,6 +10,7 @@ const deliveredImage: MynthSDKTypes.ImageResultImageSuccess = {
   mynth_url: "https://mynth.test/1.webp",
   size: "1024x1024",
   format: "webp",
+  rating: { status: "success", level: "sfw" },
 };
 
 // Delivered only to a user destination, so it has no public URL.
@@ -24,52 +25,96 @@ const failedImage: MynthSDKTypes.ImageResultImageFailure = {
   error: { code: "PROVIDER_ERROR" },
 };
 
-const images = [deliveredImage, destinationOnlyImage, failedImage];
+const request: MynthSDKTypes.ImageGenerationRequest = {
+  prompt: "a cat",
+  metadata: { userId: "user_1" },
+};
 
-function createResult(result: MynthSDKTypes.ImageResult | null) {
-  return new ImageGenerationResult({
-    id: "task-123",
-    status: "completed",
-    result,
-  } as MynthSDKTypes.ImageGenerationTaskData);
-}
+const result: MynthSDKTypes.ImageResult = {
+  model: "black-forest-labs/flux.2-dev",
+  images: [deliveredImage, destinationOnlyImage, failedImage],
+  magic_prompt: { positive: "a cat, golden hour" },
+};
 
-describe("ImageGenerationResult", () => {
+describe("toImageGenerationResult", () => {
+  test("maps the completed task", () => {
+    // Arrange & Act
+    const generation = toImageGenerationResult({
+      taskId: "task-123",
+      cost: "0.02",
+      request,
+      result,
+    });
+
+    // Assert
+    expect({
+      taskId: generation.taskId,
+      cost: generation.cost,
+      model: generation.model,
+      magicPrompt: generation.magicPrompt,
+      metadata: generation.metadata,
+      raw: generation.raw,
+    }).toEqual({
+      taskId: "task-123",
+      cost: "0.02",
+      model: "black-forest-labs/flux.2-dev",
+      magicPrompt: { positive: "a cat, golden hour" },
+      metadata: { userId: "user_1" },
+      raw: { request, result },
+    });
+  });
+
+  test("splits successful images, with their rating, from failures", () => {
+    // Arrange & Act
+    const generation = toImageGenerationResult({
+      taskId: "task-123",
+      cost: "0.02",
+      request,
+      result,
+    });
+
+    // Assert
+    expect({ images: generation.images, failures: generation.failures }).toStrictEqual({
+      images: [
+        {
+          id: "img_1",
+          url: "https://cdn.test/1.webp",
+          mynthUrl: "https://mynth.test/1.webp",
+          width: 1024,
+          height: 1024,
+          size: "1024x1024",
+          format: "webp",
+          mimeType: "image/webp",
+          destination: undefined,
+          rating: { status: "success", level: "sfw" },
+        },
+        {
+          id: "img_2",
+          url: null,
+          mynthUrl: "https://mynth.test/1.webp",
+          width: 1024,
+          height: 1024,
+          size: "1024x1024",
+          format: "webp",
+          mimeType: "image/webp",
+          destination: undefined,
+          rating: { status: "success", level: "sfw" },
+        },
+      ],
+      failures: [{ code: "PROVIDER_ERROR" }],
+    });
+  });
+
   test("urls lists only successful images that have a URL", () => {
-    // Arrange
-    const result = createResult({ model: "black-forest-labs/flux.2-dev", images });
-
-    // Act & Assert
-    expect(result.urls).toEqual(["https://cdn.test/1.webp"]);
-  });
-
-  test("urls is empty before the task has a result", () => {
-    // Arrange
-    const result = createResult(null);
-
-    // Act & Assert
-    expect(result.urls).toEqual([]);
-  });
-
-  test("getImages returns only successful images by default", () => {
-    // Arrange
-    const result = createResult({ model: "black-forest-labs/flux.2-dev", images });
-
-    // Act
-    const successful = result.getImages();
+    // Arrange & Act
+    const generation = toImageGenerationResult({
+      taskId: "task-123",
+      cost: "0.02",
+      request,
+      result,
+    });
 
     // Assert
-    expect(successful).toEqual([deliveredImage, destinationOnlyImage]);
-  });
-
-  test("getImages includes failed images when asked", () => {
-    // Arrange
-    const result = createResult({ model: "black-forest-labs/flux.2-dev", images });
-
-    // Act
-    const all = result.getImages({ includeFailed: true });
-
-    // Assert
-    expect(all).toEqual(images);
+    expect(generation.urls).toEqual(["https://cdn.test/1.webp"]);
   });
 });

@@ -1,75 +1,57 @@
+import { type MynthOutputVideo, toOutputVideo } from "./output-video.ts";
+import type { MynthCompletedTask } from "./task-result.ts";
 import type { MynthSDKTypes } from "./types.ts";
 
 /**
- * Represents a completed video generation task.
+ * A completed video generation task.
  *
  * @template MetadataT - Type of the metadata attached to the request
  */
-export class VideoGenerationResult<MetadataT = Record<string, unknown> | undefined> {
-  /** Raw task data from the API */
-  public readonly data: MynthSDKTypes.VideoGenerationTaskData;
-
-  constructor(data: MynthSDKTypes.VideoGenerationTaskData) {
-    this.data = data;
-  }
-
-  /** Unique identifier for this task */
-  get id(): string {
-    return this.data.id;
-  }
-
-  /** Current status of the task */
-  get status(): MynthSDKTypes.TaskStatus {
-    return this.data.status;
-  }
-
+export type VideoGenerationResult<MetadataT = Record<string, unknown> | undefined> = {
+  /** The task ID created for this request */
+  taskId: string;
+  /** Cost charged for the completed task. Failed videos are refunded. */
+  cost: string;
+  /** Model that generated the videos */
+  model: MynthSDKTypes.VideoGenerationModelId;
+  /** Successfully generated videos, in order */
+  videos: MynthOutputVideo[];
   /**
-   * The generation result containing videos and model info.
-   * Returns `null` if the task hasn't completed yet.
+   * Why videos failed. A completed task can hold failed videos; they are not
+   * in `videos`.
    */
-  get result(): MynthSDKTypes.VideoResult | null {
-    return this.data.result;
+  failures: MynthSDKTypes.TaskError[];
+  /** The `url` of each successful video */
+  urls: string[];
+  /** Metadata attached to the request */
+  metadata: MetadataT;
+  /** The request and result as the API returned them, for fields the SDK does not map yet */
+  raw: { request: MynthSDKTypes.VideoGenerationRequest; result: MynthSDKTypes.VideoResult };
+};
+
+/** Map a completed video generation task. */
+export function toVideoGenerationResult<MetadataT = Record<string, unknown> | undefined>(
+  task: MynthCompletedTask<MynthSDKTypes.VideoGenerationRequest, MynthSDKTypes.VideoResult>,
+): VideoGenerationResult<MetadataT> {
+  const videos: MynthOutputVideo[] = [];
+  const failures: MynthSDKTypes.TaskError[] = [];
+
+  for (const video of task.result.videos) {
+    if (video.status === "success") {
+      videos.push(toOutputVideo(video));
+    } else {
+      failures.push(video.error);
+    }
   }
 
-  /** Whether the task completed successfully */
-  get isCompleted(): boolean {
-    return this.data.status === "completed";
-  }
-
-  /** Whether the task failed */
-  get isFailed(): boolean {
-    return this.data.status === "failed";
-  }
-
-  /**
-   * Get all successfully generated video URLs.
-   * Convenience method that extracts just the URLs from successful videos.
-   */
-  get urls(): string[] {
-    return this.getVideos().map((video) => video.url);
-  }
-
-  /**
-   * Get generated videos from the task result.
-   *
-   * @param options.includeFailed - If true, includes failed video results
-   * @returns Array of video results
-   */
-  getVideos(options: { includeFailed: true }): MynthSDKTypes.VideoResultVideo[];
-  getVideos(options?: { includeFailed?: false }): MynthSDKTypes.VideoResultVideoSuccess[];
-  getVideos(
-    options: { includeFailed?: boolean } = {},
-  ): MynthSDKTypes.VideoResultVideo[] | MynthSDKTypes.VideoResultVideoSuccess[] {
-    if (options.includeFailed) return this.data.result?.videos ?? [];
-
-    return (this.data.result?.videos.filter((video) => video.status === "success") ??
-      []) as MynthSDKTypes.VideoResultVideoSuccess[];
-  }
-
-  /**
-   * Get the metadata that was attached to the generation request.
-   */
-  getMetadata(): MetadataT {
-    return this.data.request?.metadata as MetadataT;
-  }
+  return {
+    taskId: task.taskId,
+    cost: task.cost,
+    model: task.result.model,
+    videos,
+    failures,
+    urls: videos.map((video) => video.url),
+    metadata: task.request.metadata as MetadataT,
+    raw: { request: task.request, result: task.result },
+  };
 }

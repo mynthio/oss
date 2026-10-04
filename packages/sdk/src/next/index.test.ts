@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 
+import { WEBHOOK_HANDLER_NAMES, WEBHOOK_PAYLOADS } from "../webhooks/payloads.fixture.ts";
 import { mynthWebhookHandler } from "./index.ts";
 
 const SECRET = "wbs_test";
@@ -45,8 +46,8 @@ function currentTimestamp() {
   return Math.floor(Date.now() / 1000);
 }
 
-function payload(event: string) {
-  return { event, task: { id: "tsk_test" } };
+function payload(event: keyof typeof WEBHOOK_PAYLOADS) {
+  return WEBHOOK_PAYLOADS[event];
 }
 
 function restoreWebhookSecret() {
@@ -62,221 +63,30 @@ afterEach(() => {
 });
 
 describe("mynthWebhookHandler", () => {
-  test("dispatches image generation completion events with request context", async () => {
-    // Arrange
-    const eventPayload = payload("task.image.generate.completed");
-    const request = await createWebhookRequest(JSON.stringify(eventPayload), eventPayload.event);
-    const imageTaskCompleted = vi.fn();
-    const handler = mynthWebhookHandler({ imageTaskCompleted }, { webhookSecret: SECRET });
+  test.each(WEBHOOK_HANDLER_NAMES)(
+    "dispatches %s to %s with request context",
+    async (event, handlerName) => {
+      // Arrange
+      const eventPayload = WEBHOOK_PAYLOADS[event];
+      const request = await createWebhookRequest(JSON.stringify(eventPayload), event);
+      const callback = vi.fn();
+      const handler = mynthWebhookHandler({ [handlerName]: callback }, { webhookSecret: SECRET });
 
-    // Act
-    const response = await handler(request);
+      // Act
+      const response = await handler(request);
 
-    // Assert
-    expect({ status: response.status, calls: imageTaskCompleted.mock.calls }).toEqual({
-      status: 200,
-      calls: [[eventPayload, { request, deliveryId: DELIVERY_ID }]],
-    });
-  });
-
-  test("dispatches image generation failure events", async () => {
-    // Arrange
-    const eventPayload = payload("task.image.generate.failed");
-    const request = await createWebhookRequest(JSON.stringify(eventPayload), eventPayload.event);
-    const imageTaskFailed = vi.fn();
-    const handler = mynthWebhookHandler({ imageTaskFailed }, { webhookSecret: SECRET });
-
-    // Act
-    const response = await handler(request);
-
-    // Assert
-    expect({ status: response.status, calls: imageTaskFailed.mock.calls }).toEqual({
-      status: 200,
-      calls: [[eventPayload, { request, deliveryId: DELIVERY_ID }]],
-    });
-  });
-
-  test("dispatches image rating completion events", async () => {
-    // Arrange
-    const eventPayload = payload("task.image.rate.completed");
-    const request = await createWebhookRequest(JSON.stringify(eventPayload), eventPayload.event);
-    const imageRateTaskCompleted = vi.fn();
-    const handler = mynthWebhookHandler({ imageRateTaskCompleted }, { webhookSecret: SECRET });
-
-    // Act
-    const response = await handler(request);
-
-    // Assert
-    expect({ status: response.status, calls: imageRateTaskCompleted.mock.calls }).toEqual({
-      status: 200,
-      calls: [[eventPayload, { request, deliveryId: DELIVERY_ID }]],
-    });
-  });
-
-  test("dispatches image rating failure events", async () => {
-    // Arrange
-    const eventPayload = payload("task.image.rate.failed");
-    const request = await createWebhookRequest(JSON.stringify(eventPayload), eventPayload.event);
-    const imageRateTaskFailed = vi.fn();
-    const handler = mynthWebhookHandler({ imageRateTaskFailed }, { webhookSecret: SECRET });
-
-    // Act
-    const response = await handler(request);
-
-    // Assert
-    expect({ status: response.status, calls: imageRateTaskFailed.mock.calls }).toEqual({
-      status: 200,
-      calls: [[eventPayload, { request, deliveryId: DELIVERY_ID }]],
-    });
-  });
-
-  test("dispatches image alt text completion events", async () => {
-    // Arrange
-    const eventPayload = payload("task.image.alt.completed");
-    const request = await createWebhookRequest(JSON.stringify(eventPayload), eventPayload.event);
-    const imageAltTaskCompleted = vi.fn();
-    const handler = mynthWebhookHandler({ imageAltTaskCompleted }, { webhookSecret: SECRET });
-
-    // Act
-    const response = await handler(request);
-
-    // Assert
-    expect({ status: response.status, calls: imageAltTaskCompleted.mock.calls }).toEqual({
-      status: 200,
-      calls: [[eventPayload, { request, deliveryId: DELIVERY_ID }]],
-    });
-  });
-
-  test("dispatches image alt text failure events", async () => {
-    // Arrange
-    const eventPayload = payload("task.image.alt.failed");
-    const request = await createWebhookRequest(JSON.stringify(eventPayload), eventPayload.event);
-    const imageAltTaskFailed = vi.fn();
-    const handler = mynthWebhookHandler({ imageAltTaskFailed }, { webhookSecret: SECRET });
-
-    // Act
-    const response = await handler(request);
-
-    // Assert
-    expect({ status: response.status, calls: imageAltTaskFailed.mock.calls }).toEqual({
-      status: 200,
-      calls: [[eventPayload, { request, deliveryId: DELIVERY_ID }]],
-    });
-  });
-
-  test("dispatches image review completion events", async () => {
-    // Arrange
-    const eventPayload = payload("task.image.review.completed");
-    const request = await createWebhookRequest(JSON.stringify(eventPayload), eventPayload.event);
-    const imageReviewTaskCompleted = vi.fn();
-    const handler = mynthWebhookHandler({ imageReviewTaskCompleted }, { webhookSecret: SECRET });
-
-    // Act
-    const response = await handler(request);
-
-    // Assert
-    expect({ status: response.status, calls: imageReviewTaskCompleted.mock.calls }).toEqual({
-      status: 200,
-      calls: [[eventPayload, { request, deliveryId: DELIVERY_ID }]],
-    });
-  });
-
-  test("dispatches image review failure events", async () => {
-    // Arrange
-    const eventPayload = payload("task.image.review.failed");
-    const request = await createWebhookRequest(JSON.stringify(eventPayload), eventPayload.event);
-    const imageReviewTaskFailed = vi.fn();
-    const handler = mynthWebhookHandler({ imageReviewTaskFailed }, { webhookSecret: SECRET });
-
-    // Act
-    const response = await handler(request);
-
-    // Assert
-    expect({ status: response.status, calls: imageReviewTaskFailed.mock.calls }).toEqual({
-      status: 200,
-      calls: [[eventPayload, { request, deliveryId: DELIVERY_ID }]],
-    });
-  });
-
-  test("dispatches image remove background completion events", async () => {
-    // Arrange
-    const eventPayload = payload("task.image.remove_background.completed");
-    const request = await createWebhookRequest(JSON.stringify(eventPayload), eventPayload.event);
-    const imageRemoveBackgroundTaskCompleted = vi.fn();
-    const handler = mynthWebhookHandler(
-      { imageRemoveBackgroundTaskCompleted },
-      { webhookSecret: SECRET },
-    );
-
-    // Act
-    const response = await handler(request);
-
-    // Assert
-    expect({
-      status: response.status,
-      calls: imageRemoveBackgroundTaskCompleted.mock.calls,
-    }).toEqual({
-      status: 200,
-      calls: [[eventPayload, { request, deliveryId: DELIVERY_ID }]],
-    });
-  });
-
-  test("dispatches image remove background failure events", async () => {
-    // Arrange
-    const eventPayload = payload("task.image.remove_background.failed");
-    const request = await createWebhookRequest(JSON.stringify(eventPayload), eventPayload.event);
-    const imageRemoveBackgroundTaskFailed = vi.fn();
-    const handler = mynthWebhookHandler(
-      { imageRemoveBackgroundTaskFailed },
-      { webhookSecret: SECRET },
-    );
-
-    // Act
-    const response = await handler(request);
-
-    // Assert
-    expect({
-      status: response.status,
-      calls: imageRemoveBackgroundTaskFailed.mock.calls,
-    }).toEqual({
-      status: 200,
-      calls: [[eventPayload, { request, deliveryId: DELIVERY_ID }]],
-    });
-  });
-
-  test("dispatches image upscale completion events", async () => {
-    // Arrange
-    const eventPayload = payload("task.image.upscale.completed");
-    const request = await createWebhookRequest(JSON.stringify(eventPayload), eventPayload.event);
-    const imageUpscaleTaskCompleted = vi.fn();
-    const handler = mynthWebhookHandler({ imageUpscaleTaskCompleted }, { webhookSecret: SECRET });
-
-    // Act
-    const response = await handler(request);
-
-    // Assert
-    expect({ status: response.status, calls: imageUpscaleTaskCompleted.mock.calls }).toEqual({
-      status: 200,
-      calls: [[eventPayload, { request, deliveryId: DELIVERY_ID }]],
-    });
-  });
-
-  test("dispatches image upscale failure events", async () => {
-    // Arrange
-    const eventPayload = payload("task.image.upscale.failed");
-    const request = await createWebhookRequest(JSON.stringify(eventPayload), eventPayload.event);
-    const imageUpscaleTaskFailed = vi.fn();
-    const handler = mynthWebhookHandler({ imageUpscaleTaskFailed }, { webhookSecret: SECRET });
-
-    // Act
-    const response = await handler(request);
-
-    // Assert
-    expect({ status: response.status, calls: imageUpscaleTaskFailed.mock.calls }).toEqual({
-      status: 200,
-      calls: [[eventPayload, { request, deliveryId: DELIVERY_ID }]],
-    });
-  });
+      // Assert
+      expect({ status: response.status, calls: callback.mock.calls }).toEqual({
+        status: 200,
+        calls: [
+          [
+            expect.objectContaining({ taskId: eventPayload.task.id }),
+            { request, deliveryId: DELIVERY_ID },
+          ],
+        ],
+      });
+    },
+  );
 
   test("reads the webhook secret when the request arrives", async () => {
     // Arrange

@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import type { MynthClient } from "./client.ts";
-import { ImageGenerationResult } from "./image-generation-result.ts";
+import { type ImageGenerationResult, toImageGenerationResult } from "./image-generation-result.ts";
 import type { TaskAsyncPolling } from "./task-async.ts";
+import { completedTaskFromData } from "./task-result.ts";
 import {
   TaskAsync,
   TaskAsyncFetchError,
@@ -37,7 +38,10 @@ function createMockTaskData(
     apiKeyId: "api-key-123",
     userId: "user-123",
     cost: "0.01",
-    result: null,
+    result: {
+      model: "black-forest-labs/flux.2-dev",
+      images: [],
+    },
     request: {
       prompt: "test prompt",
     },
@@ -54,7 +58,9 @@ function createTaskAsync(
   return new TaskAsync(id, {
     ...options,
     resultFactory: (data) =>
-      new ImageGenerationResult(data as MynthSDKTypes.ImageGenerationTaskData),
+      toImageGenerationResult(
+        completedTaskFromData(data as MynthSDKTypes.ImageGenerationTaskData, "Image generation"),
+      ),
   });
 }
 
@@ -294,7 +300,7 @@ describe("TaskAsync", () => {
       const result = await taskAsync.wait();
 
       // Assert
-      expect(result.id).toBe("immediate-complete-task");
+      expect(result.taskId).toBe("immediate-complete-task");
     });
 
     test("preserves magic prompt metadata on the completed result", async () => {
@@ -331,8 +337,8 @@ describe("TaskAsync", () => {
       const result = await resultPromise;
 
       // Assert
-      expect(result.result?.magic_prompt?.positive).toBe("enhanced prompt");
-      expect(result.result?.magic_prompt?.negative).toBe("enhanced negative prompt");
+      expect(result.magicPrompt?.positive).toBe("enhanced prompt");
+      expect(result.magicPrompt?.negative).toBe("enhanced negative prompt");
     });
 
     test("returns same result on multiple wait() calls (promise caching)", async () => {
@@ -400,7 +406,7 @@ describe("TaskAsync", () => {
       const result = await resultPromise;
 
       // Assert
-      expect(result.id).toBe("polling-task");
+      expect(result.taskId).toBe("polling-task");
     });
 
     test("throws TaskAsyncTaskFailedError when status is failed", async () => {
@@ -501,7 +507,7 @@ describe("TaskAsync", () => {
       const result = await resultPromise;
 
       // Assert
-      expect(result.id).toBe("rate-limited-task");
+      expect(result.taskId).toBe("rate-limited-task");
     });
 
     test("doubles the polling interval on each consecutive 429", async () => {
@@ -567,7 +573,7 @@ describe("TaskAsync", () => {
       const result = await resultPromise;
 
       // Assert
-      expect(result.id).toBe("notfound-then-ok-task");
+      expect(result.taskId).toBe("notfound-then-ok-task");
     });
 
     test("throws TaskAsyncFetchError after exceeding max retry count on persistent 404s", async () => {
@@ -631,7 +637,7 @@ describe("TaskAsync", () => {
       const result = await resultPromise;
 
       // Assert
-      expect(result.id).toBe("retry-success-task");
+      expect(result.taskId).toBe("retry-success-task");
     });
 
     test("throws TaskAsyncFetchError after exceeding max retry count on persistent 5xx errors", async () => {
@@ -685,7 +691,7 @@ describe("TaskAsync", () => {
       const result = await resultPromise;
 
       // Assert
-      expect(result.id).toBe("network-recovery-task");
+      expect(result.taskId).toBe("network-recovery-task");
     });
 
     test("falls back to API key when PAT returns unauthorized", async () => {
@@ -719,7 +725,7 @@ describe("TaskAsync", () => {
 
       // Assert - Check that the second call used API key (no accessToken)
       expect(mockGet).toHaveBeenCalledTimes(3);
-      expect(result.id).toBe("pat-fallback-task");
+      expect(result.taskId).toBe("pat-fallback-task");
     });
 
     test("falls back to API key when PAT returns 404", async () => {
@@ -754,7 +760,7 @@ describe("TaskAsync", () => {
 
       // Assert
       expect(mockGet).toHaveBeenCalledTimes(3);
-      expect(result.id).toBe("pat-404-fallback-task");
+      expect(result.taskId).toBe("pat-404-fallback-task");
     });
 
     test("throws TaskAsyncUnauthorizedError when both PAT and API key fail", async () => {
@@ -935,7 +941,7 @@ describe("TaskAsync", () => {
       const result = await resultPromise;
 
       // Assert
-      expect(result.id).toBe("fetch-recovery-task");
+      expect(result.taskId).toBe("fetch-recovery-task");
     });
 
     test("throws TaskAsyncUnauthorizedError when task fetch returns 403", async () => {
@@ -995,7 +1001,7 @@ describe("TaskAsync", () => {
       const result = await resultPromise;
 
       // Assert
-      expect(result.id).toBe("fetch-404-task");
+      expect(result.taskId).toBe("fetch-404-task");
     });
 
     test("retries a task fetch network error and succeeds after recovery", async () => {
@@ -1029,7 +1035,7 @@ describe("TaskAsync", () => {
       const result = await resultPromise;
 
       // Assert
-      expect(result.id).toBe("fetch-network-task");
+      expect(result.taskId).toBe("fetch-network-task");
     });
 
     test("retries a 429 task fetch and succeeds after backing off", async () => {
@@ -1067,7 +1073,7 @@ describe("TaskAsync", () => {
       const result = await resultPromise;
 
       // Assert
-      expect(result.id).toBe("fetch-429-task");
+      expect(result.taskId).toBe("fetch-429-task");
     });
   });
 
@@ -1175,7 +1181,7 @@ describe("TaskAsync", () => {
 
       // Assert - if retry count wasn't reset, we would have hit max retries
       // after 7 consecutive errors and thrown TaskAsyncFetchError
-      expect(result.id).toBe("retry-reset-task");
+      expect(result.taskId).toBe("retry-reset-task");
       expect(mockGet).toHaveBeenCalledTimes(13); // 12 polls + 1 fetch
     });
   });
@@ -1275,7 +1281,7 @@ describe("TaskAsync", () => {
 
       // Assert
       await abortableSettled;
-      expect((await unabortable).id).toBe("shared-task");
+      expect((await unabortable).taskId).toBe("shared-task");
     });
 
     test("keeps polling while another signalled waiter has not aborted", async () => {
@@ -1301,7 +1307,7 @@ describe("TaskAsync", () => {
 
       // Assert
       await firstSettled;
-      expect((await secondWait).id).toBe("two-waiters-task");
+      expect((await secondWait).taskId).toBe("two-waiters-task");
     });
 
     test("starts a fresh poll when waited on again after every waiter aborted", async () => {
@@ -1325,7 +1331,7 @@ describe("TaskAsync", () => {
       const result = await taskAsync.wait();
 
       // Assert
-      expect(result.id).toBe("restarted-task");
+      expect(result.taskId).toBe("restarted-task");
     });
   });
 });

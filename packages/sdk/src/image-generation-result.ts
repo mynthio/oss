@@ -1,104 +1,83 @@
+import { type MynthOutputImage, toOutputImage } from "./output-image.ts";
+import type { MynthCompletedTask } from "./task-result.ts";
 import type { MynthSDKTypes } from "./types.ts";
 
-type TypedImageResultImageSuccess<RatingT> = Omit<
-  MynthSDKTypes.ImageResultImageSuccess,
-  "rating"
-> & {
-  rating?: RatingT;
-};
-
-type TypedImageResultImageFailure = MynthSDKTypes.ImageResultImageFailure;
-
-type TypedImageResultImage<RatingT> =
-  | TypedImageResultImageSuccess<RatingT>
-  | TypedImageResultImageFailure;
-
-type TypedImageResult<RatingT> = Omit<MynthSDKTypes.ImageResult, "images"> & {
-  images: TypedImageResultImage<RatingT>[];
-};
+/**
+ * An image produced by image generation: an {@link MynthOutputImage} with its
+ * content rating.
+ *
+ * @template RatingT - Type of the rating, inferred from the request's `rating`
+ */
+export type MynthGeneratedImage<RatingT = MynthSDKTypes.ImageResultRating | undefined> =
+  MynthOutputImage<MynthSDKTypes.ImageGenerationRequestOutputFormat> & {
+    /** Content rating. `undefined` when the request did not ask for one. */
+    rating: RatingT;
+  };
 
 /**
- * Represents a completed image generation task.
+ * A completed image generation task.
  *
  * @template MetadataT - Type of the metadata attached to the request
  * @template RatingT - Type of the rating response
  */
-export class ImageGenerationResult<
+export type ImageGenerationResult<
   MetadataT = Record<string, unknown> | undefined,
   RatingT = MynthSDKTypes.ImageResultRating | undefined,
-> {
-  /** Raw task data from the API */
-  public readonly data: MynthSDKTypes.ImageGenerationTaskData;
-
-  constructor(data: MynthSDKTypes.ImageGenerationTaskData) {
-    this.data = data;
-  }
-
-  /** Unique identifier for this task */
-  get id(): string {
-    return this.data.id;
-  }
-
-  /** Current status of the task */
-  get status(): MynthSDKTypes.TaskStatus {
-    return this.data.status;
-  }
-
+> = {
+  /** The task ID created for this request */
+  taskId: string;
+  /** Cost charged for the completed task */
+  cost: string;
+  /** Model that generated the images. Resolved to a concrete model when the request used `auto`. */
+  model: MynthSDKTypes.ImageGenerationModelId;
+  /** Successfully generated images, in order */
+  images: MynthGeneratedImage<RatingT>[];
   /**
-   * The generation result: images, the format each one was delivered in, and the model.
-   * Returns `null` if the task hasn't completed yet.
+   * Why images failed. A completed task can hold failed images; they are not
+   * in `images`.
    */
-  get result(): TypedImageResult<RatingT> | null {
-    return this.data.result as TypedImageResult<RatingT> | null;
-  }
-
-  /** Whether the task completed successfully */
-  get isCompleted(): boolean {
-    return this.data.status === "completed";
-  }
-
-  /** Whether the task failed */
-  get isFailed(): boolean {
-    return this.data.status === "failed";
-  }
-
+  failures: MynthSDKTypes.TaskError[];
   /**
-   * Get all successfully generated image URLs.
-   * Convenience method that extracts just the URLs from successful images.
-   * Images delivered only to a user destination may have a `null` url and are omitted here;
-   * use `getImages()` and read `mynth_url` to access the CDN URL directly.
+   * The `url` of each successful image. Skips images whose `url` is `null`;
+   * read `images` to reach their `mynthUrl`.
    */
-  get urls(): string[] {
-    return (
-      this.data.result?.images
-        .filter((img): img is MynthSDKTypes.ImageResultImageSuccess => img.status === "success")
-        .map((img) => img.url)
-        .filter((url): url is string => url !== null) ?? []
-    );
+  urls: string[];
+  /** The prompt Mynth rewrote, when the request enabled `magic_prompt` */
+  magicPrompt: MynthSDKTypes.ImageResultMagicPrompt | undefined;
+  /** Metadata attached to the request */
+  metadata: MetadataT;
+  /** The request and result as the API returned them, for fields the SDK does not map yet */
+  raw: { request: MynthSDKTypes.ImageGenerationRequest; result: MynthSDKTypes.ImageResult };
+};
+
+/** Map a completed image generation task. */
+export function toImageGenerationResult<
+  MetadataT = Record<string, unknown> | undefined,
+  RatingT = MynthSDKTypes.ImageResultRating | undefined,
+>(
+  task: MynthCompletedTask<MynthSDKTypes.ImageGenerationRequest, MynthSDKTypes.ImageResult>,
+): ImageGenerationResult<MetadataT, RatingT> {
+  const images: MynthGeneratedImage<RatingT>[] = [];
+  const failures: MynthSDKTypes.TaskError[] = [];
+
+  for (const image of task.result.images) {
+    if (image.status === "success") {
+      // The request's `rating` config decides this type; the API honours it.
+      images.push({ ...toOutputImage(image), rating: image.rating as RatingT });
+    } else {
+      failures.push(image.error);
+    }
   }
 
-  /**
-   * Get generated images from the task result.
-   *
-   * @param options.includeFailed - If true, includes failed image results
-   * @returns Array of image results
-   */
-  getImages(options: { includeFailed: true }): TypedImageResultImage<RatingT>[];
-  getImages(options?: { includeFailed?: false }): TypedImageResultImageSuccess<RatingT>[];
-  getImages(
-    options: { includeFailed?: boolean } = {},
-  ): TypedImageResultImage<RatingT>[] | TypedImageResultImageSuccess<RatingT>[] {
-    if (options.includeFailed)
-      return (this.data.result?.images ?? []) as TypedImageResultImage<RatingT>[];
-
-    return (this.data.result?.images.filter((image) => image.status === "success") ??
-      []) as TypedImageResultImageSuccess<RatingT>[];
-  }
-
-  /**
-   * Get the metadata that was attached to the generation request.
-   */
-  getMetadata(): MetadataT {
-    return this.data.request?.metadata as MetadataT;
-  }
+  return {
+    taskId: task.taskId,
+    cost: task.cost,
+    model: task.result.model,
+    images,
+    failures,
+    urls: images.flatMap((image) => (image.url === null ? [] : [image.url])),
+    magicPrompt: task.result.magic_prompt,
+    metadata: task.request.metadata as MetadataT,
+    raw: { request: task.request, result: task.result },
+  };
 }

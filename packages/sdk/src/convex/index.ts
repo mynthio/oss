@@ -50,10 +50,10 @@ export type MynthWebhookActionOptions = WebhookHandlerOptions;
  *   path: "/mynth-webhook",
  *   method: "POST",
  *   handler: mynthWebhookAction({
- *     imageTaskCompleted: async (payload, { context }) => {
+ *     imageTaskCompleted: async (result, { context }) => {
  *       await context.runMutation(internal.images.save, {
- *         taskId: payload.task.id,
- *         images: payload.result.images,
+ *         taskId: result.taskId,
+ *         images: result.images,
  *       });
  *     },
  *   }),

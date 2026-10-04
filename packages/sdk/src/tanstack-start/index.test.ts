@@ -1,5 +1,6 @@
 import { expect, test, vi } from "vitest";
 
+import { WEBHOOK_PAYLOADS } from "../webhooks/payloads.fixture.ts";
 import { mynthWebhookHandler } from "./index.ts";
 
 const SECRET = "wbs_test";
@@ -33,7 +34,7 @@ async function createRequest(body: string) {
 
 test("dispatches events with the TanStack Start route context", async () => {
   // Arrange
-  const payload = { event: "task.image.generate.completed", task: { id: "tsk_test" } };
+  const payload = WEBHOOK_PAYLOADS["task.image.generate.completed"];
   const request = await createRequest(JSON.stringify(payload));
   const routeContext = {
     request,
@@ -53,7 +54,12 @@ test("dispatches events with the TanStack Start route context", async () => {
     requestBodyUsed: request.bodyUsed,
   }).toEqual({
     status: 200,
-    calls: [[payload, { ...routeContext, deliveryId: DELIVERY_ID }]],
+    calls: [
+      [
+        expect.objectContaining({ taskId: "tsk_generate" }),
+        { ...routeContext, deliveryId: DELIVERY_ID },
+      ],
+    ],
     requestBodyUsed: false,
   });
 });

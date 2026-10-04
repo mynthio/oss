@@ -2,6 +2,7 @@ import { httpRouter, type PublicHttpAction } from "convex/server";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import type { MynthSDKTypes } from "../types.ts";
+import { WEBHOOK_HANDLER_NAMES, WEBHOOK_PAYLOADS } from "../webhooks/payloads.fixture.ts";
 import { mynthWebhookAction } from "./index.ts";
 
 const SECRET = "whsec_test";
@@ -64,312 +65,32 @@ function invoke(action: PublicHttpAction, request: Request, ctx: object = {}) {
   return _handler(ctx, request);
 }
 
-const imageCompletedPayload: MynthSDKTypes.WebhookTaskImageCompletedPayload = {
-  event: "task.image.generate.completed",
-  task: { id: "tsk_image" },
-  request: { prompt: "A ceramic mug" } as MynthSDKTypes.WebhookTaskImageCompletedPayload["request"],
-  result: { images: [] } as unknown as MynthSDKTypes.WebhookTaskImageCompletedPayload["result"],
-};
+const imageCompletedPayload = WEBHOOK_PAYLOADS["task.image.generate.completed"];
 
 describe("mynthWebhookAction", () => {
-  test("dispatches image rating completion events", async () => {
-    // Arrange
-    const imageRateTaskCompleted = vi.fn();
-    const payload: MynthSDKTypes.WebhookTaskImageRateCompletedPayload = {
-      event: "task.image.rate.completed",
-      task: { id: "tsk_rate" },
-      request: {
-        mode: "nsfw_sfw",
-        url: "https://cdn.example.com/image.webp",
-      },
-      result: {
-        level: "sfw",
-      },
-    };
-    const action = mynthWebhookAction({ imageRateTaskCompleted }, { webhookSecret: SECRET });
+  test.each(WEBHOOK_HANDLER_NAMES)(
+    "dispatches %s to %s with the action context",
+    async (event, handlerName) => {
+      // Arrange
+      const payload = WEBHOOK_PAYLOADS[event];
+      const callback = vi.fn();
+      const action = mynthWebhookAction({ [handlerName]: callback }, { webhookSecret: SECRET });
 
-    // Act
-    const response = await invoke(action, await createWebhookRequest(payload));
+      // Act
+      const response = await invoke(action, await createWebhookRequest(payload));
 
-    // Assert
-    expect({
-      status: response.status,
-      calls: imageRateTaskCompleted.mock.calls,
-    }).toEqual({
-      status: 200,
-      calls: [[payload, { context: {}, request: expect.any(Request), deliveryId: DELIVERY_ID }]],
-    });
-  });
-
-  test("dispatches image rating failure events", async () => {
-    // Arrange
-    const imageRateTaskFailed = vi.fn();
-    const payload: MynthSDKTypes.WebhookTaskImageRateFailedPayload = {
-      event: "task.image.rate.failed",
-      task: { id: "tsk_rate" },
-      request: {
-        mode: "nsfw_sfw",
-        url: "https://cdn.example.com/image.webp",
-      },
-      errors: [
-        { code: "RESTRICTED_CONTENT", message: "The request was blocked by content moderation." },
-      ],
-    };
-    const action = mynthWebhookAction({ imageRateTaskFailed }, { webhookSecret: SECRET });
-
-    // Act
-    const response = await invoke(action, await createWebhookRequest(payload));
-
-    // Assert
-    expect({
-      status: response.status,
-      calls: imageRateTaskFailed.mock.calls,
-    }).toEqual({
-      status: 200,
-      calls: [[payload, { context: {}, request: expect.any(Request), deliveryId: DELIVERY_ID }]],
-    });
-  });
-
-  test("dispatches image alt text completion events", async () => {
-    // Arrange
-    const imageAltTaskCompleted = vi.fn();
-    const payload: MynthSDKTypes.WebhookTaskImageAltCompletedPayload = {
-      event: "task.image.alt.completed",
-      task: { id: "tsk_alt" },
-      request: {
-        url: "https://cdn.example.com/image.webp",
-      },
-      result: {
-        alt: "A studio product photo of a ceramic mug.",
-      },
-    };
-    const action = mynthWebhookAction({ imageAltTaskCompleted }, { webhookSecret: SECRET });
-
-    // Act
-    const response = await invoke(action, await createWebhookRequest(payload));
-
-    // Assert
-    expect({
-      status: response.status,
-      calls: imageAltTaskCompleted.mock.calls,
-    }).toEqual({
-      status: 200,
-      calls: [[payload, { context: {}, request: expect.any(Request), deliveryId: DELIVERY_ID }]],
-    });
-  });
-
-  test("dispatches image alt text failure events", async () => {
-    // Arrange
-    const imageAltTaskFailed = vi.fn();
-    const payload: MynthSDKTypes.WebhookTaskImageAltFailedPayload = {
-      event: "task.image.alt.failed",
-      task: { id: "tsk_alt" },
-      request: {
-        url: "https://cdn.example.com/image.webp",
-      },
-      errors: [
-        { code: "RESTRICTED_CONTENT", message: "The request was blocked by content moderation." },
-      ],
-    };
-    const action = mynthWebhookAction({ imageAltTaskFailed }, { webhookSecret: SECRET });
-
-    // Act
-    const response = await invoke(action, await createWebhookRequest(payload));
-
-    // Assert
-    expect({
-      status: response.status,
-      calls: imageAltTaskFailed.mock.calls,
-    }).toEqual({
-      status: 200,
-      calls: [[payload, { context: {}, request: expect.any(Request), deliveryId: DELIVERY_ID }]],
-    });
-  });
-
-  test("dispatches image review completion events", async () => {
-    // Arrange
-    const imageReviewTaskCompleted = vi.fn();
-    const payload: MynthSDKTypes.WebhookTaskImageReviewCompletedPayload = {
-      event: "task.image.review.completed",
-      task: { id: "tsk_review" },
-      request: {
-        url: "https://cdn.example.com/image.webp",
-        effort: "high",
-      },
-      result: {
-        score: 3,
-        summary: "Strong composition with one visible artifact.",
-        findings: [
-          {
-            finding: "The left hand has an extra finger.",
-            category: "anatomy",
-            severity: "major",
-            where: "Left side of the image",
-            confidence: "high",
-          },
+      // Assert
+      expect({ status: response.status, calls: callback.mock.calls }).toEqual({
+        status: 200,
+        calls: [
+          [
+            expect.objectContaining({ taskId: payload.task.id }),
+            { context: {}, request: expect.any(Request), deliveryId: DELIVERY_ID },
+          ],
         ],
-        strengths: [{ strength: "Balanced composition", confidence: "high" }],
-      },
-    };
-    const action = mynthWebhookAction({ imageReviewTaskCompleted }, { webhookSecret: SECRET });
-
-    // Act
-    const response = await invoke(action, await createWebhookRequest(payload));
-
-    // Assert
-    expect({
-      status: response.status,
-      calls: imageReviewTaskCompleted.mock.calls,
-    }).toEqual({
-      status: 200,
-      calls: [[payload, { context: {}, request: expect.any(Request), deliveryId: DELIVERY_ID }]],
-    });
-  });
-
-  test("dispatches image review failure events", async () => {
-    // Arrange
-    const imageReviewTaskFailed = vi.fn();
-    const payload: MynthSDKTypes.WebhookTaskImageReviewFailedPayload = {
-      event: "task.image.review.failed",
-      task: { id: "tsk_review" },
-      request: {
-        url: "https://cdn.example.com/image.webp",
-        effort: "low",
-      },
-      errors: [{ code: "REVIEW_FAILED", message: "Image review failed." }],
-    };
-    const action = mynthWebhookAction({ imageReviewTaskFailed }, { webhookSecret: SECRET });
-
-    // Act
-    const response = await invoke(action, await createWebhookRequest(payload));
-
-    // Assert
-    expect({
-      status: response.status,
-      calls: imageReviewTaskFailed.mock.calls,
-    }).toEqual({
-      status: 200,
-      calls: [[payload, { context: {}, request: expect.any(Request), deliveryId: DELIVERY_ID }]],
-    });
-  });
-
-  test("dispatches image remove background completion events", async () => {
-    // Arrange
-    const imageRemoveBackgroundTaskCompleted = vi.fn();
-    const payload: MynthSDKTypes.WebhookTaskImageRemoveBackgroundCompletedPayload = {
-      event: "task.image.remove_background.completed",
-      task: { id: "tsk_remove_background" },
-      request: { url: "https://cdn.example.com/image.jpg" },
-      result: {
-        image: {
-          id: "img_1",
-          url: "https://cdn.example.com/cutout.png",
-          mynth_url: "https://mynth.example.com/cutout.png",
-          size: "1024x768",
-          format: "png",
-        },
-      },
-    };
-    const action = mynthWebhookAction(
-      { imageRemoveBackgroundTaskCompleted },
-      { webhookSecret: SECRET },
-    );
-
-    // Act
-    const response = await invoke(action, await createWebhookRequest(payload));
-
-    // Assert
-    expect({
-      status: response.status,
-      calls: imageRemoveBackgroundTaskCompleted.mock.calls,
-    }).toEqual({
-      status: 200,
-      calls: [[payload, { context: {}, request: expect.any(Request), deliveryId: DELIVERY_ID }]],
-    });
-  });
-
-  test("dispatches image remove background failure events", async () => {
-    // Arrange
-    const imageRemoveBackgroundTaskFailed = vi.fn();
-    const payload: MynthSDKTypes.WebhookTaskImageRemoveBackgroundFailedPayload = {
-      event: "task.image.remove_background.failed",
-      task: { id: "tsk_remove_background" },
-      request: { url: "https://cdn.example.com/image.jpg" },
-      errors: [{ code: "PROVIDER_ERROR" }],
-    };
-    const action = mynthWebhookAction(
-      { imageRemoveBackgroundTaskFailed },
-      { webhookSecret: SECRET },
-    );
-
-    // Act
-    const response = await invoke(action, await createWebhookRequest(payload));
-
-    // Assert
-    expect({
-      status: response.status,
-      calls: imageRemoveBackgroundTaskFailed.mock.calls,
-    }).toEqual({
-      status: 200,
-      calls: [[payload, { context: {}, request: expect.any(Request), deliveryId: DELIVERY_ID }]],
-    });
-  });
-
-  test("dispatches image upscale completion events", async () => {
-    // Arrange
-    const imageUpscaleTaskCompleted = vi.fn();
-    const payload: MynthSDKTypes.WebhookTaskImageUpscaleCompletedPayload = {
-      event: "task.image.upscale.completed",
-      task: { id: "tsk_upscale" },
-      request: { url: "https://cdn.example.com/image.jpg", size: "2x", effort: "low" },
-      result: {
-        image: {
-          id: "img_1",
-          url: "https://cdn.example.com/upscaled.png",
-          mynth_url: "https://mynth.example.com/upscaled.png",
-          size: "2048x1536",
-          format: "png",
-        },
-      },
-    };
-    const action = mynthWebhookAction({ imageUpscaleTaskCompleted }, { webhookSecret: SECRET });
-
-    // Act
-    const response = await invoke(action, await createWebhookRequest(payload));
-
-    // Assert
-    expect({
-      status: response.status,
-      calls: imageUpscaleTaskCompleted.mock.calls,
-    }).toEqual({
-      status: 200,
-      calls: [[payload, { context: {}, request: expect.any(Request), deliveryId: DELIVERY_ID }]],
-    });
-  });
-
-  test("dispatches image upscale failure events", async () => {
-    // Arrange
-    const imageUpscaleTaskFailed = vi.fn();
-    const payload: MynthSDKTypes.WebhookTaskImageUpscaleFailedPayload = {
-      event: "task.image.upscale.failed",
-      task: { id: "tsk_upscale" },
-      request: { url: "https://cdn.example.com/image.jpg", size: "2x", effort: "low" },
-      errors: [{ code: "OUTPUT_TOO_LARGE" }],
-    };
-    const action = mynthWebhookAction({ imageUpscaleTaskFailed }, { webhookSecret: SECRET });
-
-    // Act
-    const response = await invoke(action, await createWebhookRequest(payload));
-
-    // Assert
-    expect({
-      status: response.status,
-      calls: imageUpscaleTaskFailed.mock.calls,
-    }).toEqual({
-      status: 200,
-      calls: [[payload, { context: {}, request: expect.any(Request), deliveryId: DELIVERY_ID }]],
-    });
-  });
+      });
+    },
+  );
 
   test("returns a Convex HTTP action that httpRouter accepts", () => {
     // Arrange
@@ -437,8 +158,14 @@ describe("mynthWebhookAction", () => {
     const ctx = { runMutation: vi.fn() };
     const action = mynthWebhookAction(
       {
-        imageTaskCompleted: async (payload, { context }) => {
-          await context.runMutation("images:save" as never, { taskId: payload.task.id } as never);
+        imageTaskCompleted: async (result, { context }) => {
+          await context.runMutation(
+            "images:save" as never,
+            {
+              taskId: result.taskId,
+              images: result.images,
+            } as never,
+          );
         },
       },
       { webhookSecret: SECRET },
@@ -450,7 +177,28 @@ describe("mynthWebhookAction", () => {
     // Assert
     expect({ status: response.status, calls: ctx.runMutation.mock.calls }).toEqual({
       status: 200,
-      calls: [["images:save", { taskId: "tsk_image" }]],
+      calls: [
+        [
+          "images:save",
+          {
+            taskId: "tsk_generate",
+            images: [
+              {
+                id: "img_1",
+                url: null,
+                mynthUrl: "https://mynth.test/1.png",
+                width: 1024,
+                height: 768,
+                size: "1024x768",
+                format: "png",
+                mimeType: "image/png",
+                destination: undefined,
+                rating: undefined,
+              },
+            ],
+          },
+        ],
+      ],
     });
   });
 });

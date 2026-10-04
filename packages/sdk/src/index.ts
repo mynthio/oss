@@ -17,13 +17,27 @@ import {
   UPSCALE_IMAGE_PATH,
   VIDEO_POLLING,
 } from "./constants.ts";
-import { ImageAltResult } from "./image-alt-result.ts";
-import { ImageGenerationResult } from "./image-generation-result.ts";
-import { ImageRateResult } from "./image-rate-result.ts";
-import { ImageRemoveBackgroundResult } from "./image-remove-background-result.ts";
-import { ImageReviewResult } from "./image-review-result.ts";
-import { ImageUpscaleResult } from "./image-upscale-result.ts";
+import { type ImageAltResult, toImageAltResult } from "./image-alt-result.ts";
+import {
+  type ImageGenerationResult,
+  type MynthGeneratedImage,
+  toImageGenerationResult,
+} from "./image-generation-result.ts";
+import { type ImageRateResult, toImageRateResult } from "./image-rate-result.ts";
+import {
+  type ImageRemoveBackgroundResult,
+  toImageRemoveBackgroundResult,
+} from "./image-remove-background-result.ts";
+import { type ImageReviewResult, toImageReviewResult } from "./image-review-result.ts";
+import { type ImageUpscaleResult, toImageUpscaleResult } from "./image-upscale-result.ts";
+import type { MynthOutputImage } from "./output-image.ts";
+import type { MynthOutputVideo } from "./output-video.ts";
 import type { TaskAsyncAccess, TaskAsyncWaitOptions } from "./task-async.ts";
+import {
+  completedTaskFromData,
+  type MynthCompletedTask,
+  type MynthTaskFailure,
+} from "./task-result.ts";
 import {
   TaskAsync,
   TaskAsyncFetchError,
@@ -34,7 +48,7 @@ import {
 } from "./task-async.ts";
 import type { MynthSDKTypes } from "./types.ts";
 import { resolveInputs, uploadImages } from "./uploads.ts";
-import { VideoGenerationResult } from "./video-generation-result.ts";
+import { toVideoGenerationResult, type VideoGenerationResult } from "./video-generation-result.ts";
 
 /**
  * Configuration options for the Mynth client.
@@ -298,7 +312,9 @@ class MynthImage {
       client: this.client,
       pat: data.access?.publicAccessToken,
       resultFactory: (data) =>
-        new ImageGenerationResult(data as MynthSDKTypes.ImageGenerationTaskData) as Result,
+        toImageGenerationResult(
+          completedTaskFromData(data as MynthSDKTypes.ImageGenerationTaskData, "Image generation"),
+        ) as Result,
     });
 
     return taskAsync;
@@ -391,7 +407,9 @@ class MynthImage {
     const taskAsync = new TaskAsync<Result>(data.taskId, {
       client: this.client,
       resultFactory: (taskData) =>
-        ImageRateResult.fromTaskData<LevelT>(taskData as MynthSDKTypes.ImageRateTaskData) as Result,
+        toImageRateResult<LevelT>(
+          completedTaskFromData(taskData as MynthSDKTypes.ImageRateTaskData, "Image rate"),
+        ),
     });
 
     return taskAsync;
@@ -451,7 +469,9 @@ class MynthImage {
     const taskAsync = new TaskAsync<ImageAltResult>(data.taskId, {
       client: this.client,
       resultFactory: (taskData) =>
-        ImageAltResult.fromTaskData(taskData as MynthSDKTypes.ImageAltTaskData),
+        toImageAltResult(
+          completedTaskFromData(taskData as MynthSDKTypes.ImageAltTaskData, "Image alt"),
+        ),
     });
 
     return taskAsync;
@@ -503,7 +523,9 @@ class MynthImage {
     return new TaskAsync<ImageReviewResult>(data.taskId, {
       client: this.client,
       resultFactory: (taskData) =>
-        ImageReviewResult.fromTaskData(taskData as MynthSDKTypes.ImageReviewTaskData),
+        toImageReviewResult(
+          completedTaskFromData(taskData as MynthSDKTypes.ImageReviewTaskData, "Image review"),
+        ),
     });
   }
 
@@ -575,8 +597,11 @@ class MynthImage {
       client: this.client,
       pat: data.access?.publicAccessToken,
       resultFactory: (taskData) =>
-        ImageRemoveBackgroundResult.fromTaskData<MetadataT>(
-          taskData as MynthSDKTypes.ImageRemoveBackgroundTaskData,
+        toImageRemoveBackgroundResult<MetadataT>(
+          completedTaskFromData(
+            taskData as MynthSDKTypes.ImageRemoveBackgroundTaskData,
+            "Image remove background",
+          ),
         ),
     });
   }
@@ -646,7 +671,9 @@ class MynthImage {
       client: this.client,
       pat: data.access?.publicAccessToken,
       resultFactory: (taskData) =>
-        ImageUpscaleResult.fromTaskData<MetadataT>(taskData as MynthSDKTypes.ImageUpscaleTaskData),
+        toImageUpscaleResult<MetadataT>(
+          completedTaskFromData(taskData as MynthSDKTypes.ImageUpscaleTaskData, "Image upscale"),
+        ),
     });
   }
 }
@@ -825,7 +852,12 @@ class MynthVideo {
       pat: data.access?.publicAccessToken,
       polling: VIDEO_POLLING,
       resultFactory: (taskData) =>
-        new VideoGenerationResult(taskData as MynthSDKTypes.VideoGenerationTaskData) as Result,
+        toVideoGenerationResult(
+          completedTaskFromData(
+            taskData as MynthSDKTypes.VideoGenerationTaskData,
+            "Video generation",
+          ),
+        ) as Result,
     });
   }
 }
@@ -921,18 +953,11 @@ class Mynth {
 export {
   AVAILABLE_MODELS,
   AVAILABLE_VIDEO_MODELS,
-  ImageAltResult,
-  ImageGenerationResult,
-  ImageRateResult,
-  ImageRemoveBackgroundResult,
-  ImageReviewResult,
-  ImageUpscaleResult,
   Mynth,
   MynthImage,
   MynthModels,
   MynthVideo,
   TaskAsync,
-  VideoGenerationResult,
   // Error classes
   MynthAPIError,
   TaskAsyncFetchError,
@@ -944,15 +969,27 @@ export {
 export type {
   AvailableModel,
   AvailableVideoModel,
+  ImageAltResult,
+  ImageGenerationResult,
+  ImageRateResult,
+  ImageRemoveBackgroundResult,
+  ImageReviewResult,
+  ImageUpscaleResult,
   ModelCapability,
   MynthAPIErrorIssue,
+  MynthCompletedTask,
+  MynthGeneratedImage,
   MynthModel,
   MynthModelPricing,
   MynthOptions,
+  MynthOutputImage,
+  MynthOutputVideo,
   MynthRequestOptions,
   MynthSDKTypes,
+  MynthTaskFailure,
   TaskAsyncAccess,
   TaskAsyncWaitOptions,
+  VideoGenerationResult,
   VideoInputRole,
   VideoResolutionTier,
 };

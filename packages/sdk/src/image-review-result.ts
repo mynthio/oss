@@ -1,56 +1,37 @@
+import type { MynthCompletedTask } from "./task-result.ts";
 import type { MynthSDKTypes } from "./types.ts";
 
 /**
- * Represents the result of a completed image quality review task.
+ * A completed image quality review task.
  */
-export class ImageReviewResult {
+export type ImageReviewResult = {
   /** The task ID created for this review request */
-  public readonly taskId: string;
-
+  taskId: string;
   /** Cost charged for the completed task */
-  public readonly cost: string;
-
+  cost: string;
   /** Median reviewer score from 1 to 4. Higher is better. */
-  public readonly score: number;
-
+  score: number;
   /** Review summary */
-  public readonly summary: string;
-
+  summary: string;
   /** Defects found by the reviewer panel */
-  public readonly findings: MynthSDKTypes.ImageReviewFinding[];
-
+  findings: MynthSDKTypes.ImageReviewFinding[];
   /** Strengths identified by the reviewer panel */
-  public readonly strengths: MynthSDKTypes.ImageReviewStrength[];
+  strengths: MynthSDKTypes.ImageReviewStrength[];
+  /** The request and result as the API returned them, for fields the SDK does not map yet */
+  raw: { request: MynthSDKTypes.ImageReviewRequest; result: MynthSDKTypes.ImageReviewTaskResult };
+};
 
-  constructor(data: {
-    taskId: string;
-    cost: string;
-    score: number;
-    summary: string;
-    findings: MynthSDKTypes.ImageReviewFinding[];
-    strengths: MynthSDKTypes.ImageReviewStrength[];
-  }) {
-    this.taskId = data.taskId;
-    this.cost = data.cost;
-    this.score = data.score;
-    this.summary = data.summary;
-    this.findings = data.findings;
-    this.strengths = data.strengths;
-  }
-
-  static fromTaskData(data: MynthSDKTypes.ImageReviewTaskData): ImageReviewResult {
-    if (data.status !== "completed" || data.result === null) {
-      throw new Error(`Image review task ${data.id} is not completed`);
-    }
-
-    if (data.cost === null) {
-      throw new Error(`Image review task ${data.id} is missing cost`);
-    }
-
-    return new ImageReviewResult({
-      taskId: data.id,
-      cost: data.cost,
-      ...data.result,
-    });
-  }
+/** Map a completed image quality review task. */
+export function toImageReviewResult(
+  task: MynthCompletedTask<MynthSDKTypes.ImageReviewRequest, MynthSDKTypes.ImageReviewTaskResult>,
+): ImageReviewResult {
+  return {
+    taskId: task.taskId,
+    cost: task.cost,
+    score: task.result.score,
+    summary: task.result.summary,
+    findings: task.result.findings,
+    strengths: task.result.strengths,
+    raw: { request: task.request, result: task.result },
+  };
 }

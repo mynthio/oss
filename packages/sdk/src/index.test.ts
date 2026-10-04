@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, expectTypeOf, test, vi } from "vitest";
 
 import { Mynth, MynthImage, MynthVideo, TaskAsync } from "./index.ts";
 import type { MynthSDKTypes } from "./types.ts";
@@ -255,8 +255,8 @@ describe("MynthImage", () => {
     const image = new MynthImage({ apiKey: "mak_test", baseUrl: "https://api.test" });
     const result = await image.generate({ prompt: "test prompt" });
 
-    expect(result.id).toBe("task-123");
-    expect(result.result?.model).toBe("black-forest-labs/flux.2-dev");
+    expect(result.taskId).toBe("task-123");
+    expect(result.model).toBe("black-forest-labs/flux.2-dev");
     expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
@@ -268,6 +268,62 @@ describe("MynthImage", () => {
       "https://api.test/tasks/task-123",
       expect.any(Object),
     );
+  });
+
+  test("generate returns image classes typed by the request's rating levels", async () => {
+    // Arrange
+    const taskData = createTaskData({
+      result: {
+        model: "black-forest-labs/flux.2-dev",
+        images: [
+          {
+            status: "success",
+            id: "img_1",
+            url: null,
+            mynth_url: "https://mynth.test/1.png",
+            size: "1024x768",
+            format: "png",
+            rating: { status: "success", level: "mature" },
+          },
+        ],
+      },
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse({ data: { taskId: "task-123" } }))
+        .mockResolvedValueOnce(jsonResponse({ data: { status: "completed" } }))
+        .mockResolvedValueOnce(jsonResponse({ data: taskData })),
+    );
+    const image = new MynthImage({ apiKey: "mak_test", baseUrl: "https://api.test" });
+
+    // Act
+    const result = await image.generate({
+      prompt: "test prompt",
+      rating: {
+        mode: "custom",
+        levels: [
+          { value: "safe", description: "No explicit content" },
+          { value: "mature", description: "Adult themes" },
+        ],
+      },
+    });
+    const [generated] = result.images;
+
+    // Assert
+    expectTypeOf(generated!.rating).toEqualTypeOf<
+      { status: "success"; level: "safe" | "mature" } | MynthSDKTypes.ImageResultRatingFailure
+    >();
+    expect({
+      width: generated?.width,
+      height: generated?.height,
+      rating: generated?.rating,
+    }).toEqual({
+      width: 1024,
+      height: 768,
+      rating: { status: "success", level: "mature" },
+    });
   });
 
   test("generate forwards the abort signal to the create request", async () => {
@@ -744,9 +800,13 @@ describe("MynthImage.removeBackground", () => {
       image: {
         id: "img_123",
         url: "https://cdn.test/cutout.png",
-        mynth_url: "https://mynth.test/cutout.png",
+        mynthUrl: "https://mynth.test/cutout.png",
+        width: 1024,
+        height: 768,
         size: "1024x768",
         format: "png",
+        mimeType: "image/png",
+        destination: undefined,
       },
       productId: "sku_1",
     });
@@ -836,9 +896,13 @@ describe("MynthImage.upscale", () => {
       image: {
         id: "img_123",
         url: "https://cdn.test/upscaled.png",
-        mynth_url: "https://mynth.test/upscaled.png",
+        mynthUrl: "https://mynth.test/upscaled.png",
+        width: 2048,
+        height: 1536,
         size: "2048x1536",
         format: "png",
+        mimeType: "image/png",
+        destination: undefined,
       },
       productId: "sku_1",
     });
@@ -1142,19 +1206,29 @@ describe("MynthVideo", () => {
 
     // Assert
     expect({
-      id: result.id,
-      isCompleted: result.isCompleted,
+      taskId: result.taskId,
+      cost: result.cost,
       urls: result.urls,
-      successCount: result.getVideos().length,
-      allCount: result.getVideos({ includeFailed: true }).length,
-      metadata: result.getMetadata(),
-      model: result.result?.model,
+      videos: result.videos,
+      failures: result.failures,
+      metadata: result.metadata,
+      model: result.model,
     }).toEqual({
-      id: "task-video-123",
-      isCompleted: true,
+      taskId: "task-video-123",
+      cost: "0.42",
       urls: ["https://cdn.test/video.mp4"],
-      successCount: 1,
-      allCount: 2,
+      videos: [
+        {
+          id: "vid_1",
+          url: "https://cdn.test/video.mp4",
+          mynthUrl: "https://mynthcdn.test/video.mp4",
+          cost: "0.42",
+          duration: 8,
+          resolution: "1080p",
+          audio: true,
+        },
+      ],
+      failures: [{ code: "PROVIDER_ERROR" }],
       metadata: { generationId: "gen_1" },
       model: "google/gemini-omni-flash-1.1",
     });

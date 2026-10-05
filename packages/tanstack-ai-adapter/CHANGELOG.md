@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.0.34](https://github.com/mynthio/oss/compare/tan-ai-v0.0.33...tan-ai-v0.0.34) (2026-10-05)
+
+
+### ⚠ BREAKING CHANGES
+
+* **tan-ai:** modelOptions.access is replaced by modelOptions.generatePublicAccessToken, and size objects take aspect_ratio instead of aspectRatio.
+
+### Features
+
+* **tan-ai:** support SDK 0.0.50 and the stable API ([b81c489](https://github.com/mynthio/oss/commit/b81c489f7cb090383ef13215a0ac2ca1f8ae9115))
+
 ## [0.0.33](https://github.com/mynthio/oss/compare/tan-ai-v0.0.32...tan-ai-v0.0.33) (2026-10-04)
 
 

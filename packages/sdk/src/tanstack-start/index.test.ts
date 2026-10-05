@@ -1,48 +1,15 @@
 import { expect, test, vi } from "vitest";
 
-import { WEBHOOK_PAYLOADS } from "../webhooks/payloads.fixture.ts";
+import { WEBHOOK_EVENTS, WEBHOOK_SECRET, webhookRequest } from "../webhooks/events.fixture.ts";
 import { mynthWebhookHandler } from "./index.ts";
 
-const SECRET = "wbs_test";
-const DELIVERY_ID = "tsk_test:dashboard:wbh_test:task.image.generate.completed";
-
-async function createRequest(body: string) {
-  const timestamp = Math.floor(Date.now() / 1000);
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(SECRET),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(`${timestamp}.${body}`));
-  const hex = Array.from(new Uint8Array(signature))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-
-  return new Request("https://example.com/api/webhooks/mynth/project_test", {
-    method: "POST",
-    headers: {
-      "X-Mynth-Event": "task.image.generate.completed",
-      "X-Mynth-Delivery": DELIVERY_ID,
-      "X-Mynth-Signature": `t=${timestamp},v1=${hex}`,
-    },
-    body,
-  });
-}
-
-test("dispatches events with the TanStack Start route context", async () => {
+test("dispatches events with the TanStack Start route context and the event", async () => {
   // Arrange
-  const payload = WEBHOOK_PAYLOADS["task.image.generate.completed"];
-  const request = await createRequest(JSON.stringify(payload));
-  const routeContext = {
-    request,
-    params: { projectId: "project_test" },
-    context: { requestId: "request_test" },
-  };
+  const event = WEBHOOK_EVENTS["task.image.generate.completed"];
+  const request = await webhookRequest(event);
+  const routeContext = { request, params: { id: "1" }, context: { userId: "user_1" } };
   const imageTaskCompleted = vi.fn();
-  const handler = mynthWebhookHandler({ imageTaskCompleted }, { webhookSecret: SECRET });
+  const handler = mynthWebhookHandler({ imageTaskCompleted }, { webhookSecret: WEBHOOK_SECRET });
 
   // Act
   const response = await handler(routeContext);
@@ -51,15 +18,10 @@ test("dispatches events with the TanStack Start route context", async () => {
   expect({
     status: response.status,
     calls: imageTaskCompleted.mock.calls,
-    requestBodyUsed: request.bodyUsed,
+    bodyUnread: request.bodyUsed === false,
   }).toEqual({
     status: 200,
-    calls: [
-      [
-        expect.objectContaining({ taskId: "tsk_generate" }),
-        { ...routeContext, deliveryId: DELIVERY_ID },
-      ],
-    ],
-    requestBodyUsed: false,
+    calls: [[expect.objectContaining({ taskId: "tsk_generate" }), { ...routeContext, event }]],
+    bodyUnread: true,
   });
 });

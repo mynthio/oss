@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
 import { MynthClient } from "./client.ts";
 import { API_URL } from "./constants.ts";
@@ -35,5 +35,62 @@ describe("MynthClient", () => {
 
     // Assert
     expect(headers).toEqual({});
+  });
+});
+
+describe("MynthClient errors", () => {
+  test("reads the code, message and issues from the error envelope", async () => {
+    // Arrange
+    const client = new MynthClient({ apiKey: "mak_test", baseUrl: "https://api.test" });
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json(
+        {
+          error: {
+            code: "validation_error",
+            message: "count: Unknown field.",
+            issues: [{ path: ["count"], message: "Unknown field." }],
+          },
+        },
+        { status: 400 },
+      ),
+    );
+
+    try {
+      // Act
+      const error: unknown = await client.post("/image/generate", {}).catch((caught) => caught);
+
+      // Assert
+      expect(error).toMatchObject({
+        name: "MynthAPIError",
+        status: 400,
+        code: "validation_error",
+        message: "count: Unknown field.",
+        issues: [{ path: ["count"], message: "Unknown field." }],
+      });
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
+
+  test("falls back to the status when the body is not the error envelope", async () => {
+    // Arrange
+    const client = new MynthClient({ apiKey: "mak_test", baseUrl: "https://api.test" });
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("<html>Bad gateway</html>", { status: 502 }));
+
+    try {
+      // Act
+      const error: unknown = await client.post("/image/generate", {}).catch((caught) => caught);
+
+      // Assert
+      expect(error).toMatchObject({
+        status: 502,
+        code: undefined,
+        message: "Request failed with status 502",
+      });
+    } finally {
+      fetchMock.mockRestore();
+    }
   });
 });

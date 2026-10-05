@@ -2,7 +2,7 @@ import type { MynthSDKTypes } from "./types.ts";
 
 /**
  * A completed task, as every result class is built from it. Polled task data
- * and webhook payloads both come down to this shape.
+ * and webhook events both come down to this shape.
  */
 export type MynthCompletedTask<RequestT, ResultT> = {
   taskId: string;
@@ -64,37 +64,30 @@ export function completedTaskFromData<RequestT, ResultT>(
 }
 
 /**
- * Read a completed task from a `...Completed` webhook payload.
+ * Read a completed task from a `...completed` webhook event. Its `data` is
+ * the task as `GET /tasks/{id}` returns it.
  *
- * @throws {Error} If the payload has no cost
+ * @throws {Error} If the event's task has not completed, or has no cost
  */
-export function completedTaskFromWebhook<RequestT, ResultT>(payload: {
-  task: MynthSDKTypes.WebhookTaskCompleted;
-  request: RequestT;
-  result: ResultT;
-}): MynthCompletedTask<RequestT, ResultT> {
-  // The type promises a cost, but deliveries signed before Mynth sent one do not
-  // carry it. Fail loudly rather than hand callbacks a result without a cost.
-  if (typeof payload.task.cost !== "string") {
-    throw new Error(`Webhook for task ${payload.task.id} is missing cost`);
-  }
-
-  return {
-    taskId: payload.task.id,
-    cost: payload.task.cost,
-    request: payload.request,
-    result: payload.result,
+export function completedTaskFromWebhook<RequestT, ResultT>(event: {
+  data: Pick<MynthSDKTypes.TaskBase, "id" | "status" | "cost"> & {
+    request: RequestT;
+    result: ResultT | null;
   };
+}): MynthCompletedTask<RequestT, ResultT> {
+  return completedTaskFromData(event.data, "Webhook");
 }
 
 /**
- * Read a failed task from a `...Failed` webhook payload. Callers add
+ * Read a failed task from a `...failed` webhook event. Callers add
  * `metadata` for task types whose request takes it.
  */
-export function taskFailureFromWebhook<RequestT>(payload: {
-  task: { id: string };
-  request: RequestT;
-  errors: MynthSDKTypes.TaskError[];
+export function taskFailureFromWebhook<RequestT>(event: {
+  data: { id: string; request: RequestT; errors: MynthSDKTypes.TaskError[] };
 }): TaskFailureBase<RequestT> {
-  return { taskId: payload.task.id, errors: payload.errors, raw: { request: payload.request } };
+  return {
+    taskId: event.data.id,
+    errors: event.data.errors,
+    raw: { request: event.data.request },
+  };
 }

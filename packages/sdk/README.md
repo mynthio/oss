@@ -88,6 +88,7 @@ Use `generateAsync()` when you want to trigger work now and fetch the final task
 const taskAsync = await mynth.image.generateAsync({
   prompt: "A cinematic fantasy castle on a cliff",
   model: "google/gemini-3.1-flash-image",
+  generate_public_access_token: true,
 });
 
 console.log(taskAsync.id);
@@ -97,7 +98,7 @@ const completedTask = await taskAsync.wait();
 console.log(completedTask.urls);
 ```
 
-`taskAsync.access.publicAccessToken` is safe to send to the client. It is scoped to that single task, so you can poll task state from the browser without exposing your API key or building your own polling proxy.
+`taskAsync.access.publicAccessToken` is set when the request asks for it with `generate_public_access_token: true`. It is safe to send to the client: it is scoped to that single task, so you can poll task state from the browser without exposing your API key or building your own polling proxy.
 
 You can use it as a Bearer token against:
 
@@ -110,6 +111,7 @@ Example:
 const taskAsync = await mynth.image.generateAsync({
   prompt: "A cinematic fantasy castle on a cliff",
   model: "google/gemini-3.1-flash-image",
+  generate_public_access_token: true,
 });
 
 const taskId = taskAsync.id;
@@ -172,21 +174,17 @@ const task = await mynth.image.generate({
   model: "google/gemini-3-pro-image-preview",
   size: {
     type: "aspect_ratio",
-    aspectRatio: "4:5",
+    aspect_ratio: "4:5",
   },
   count: 2,
   output: {
     format: "webp",
   },
   webhook: {
-    dashboard: false,
-    custom: [{ url: "https://your-app.com/api/mynth-webhook" }],
+    registered: false,
+    custom: [{ url: "https://your-app.com/api/mynth-webhook?token=your-secret-token" }],
   },
-  access: {
-    pat: {
-      enabled: true,
-    },
-  },
+  generate_public_access_token: true,
   rating: {
     mode: "custom",
     levels: [
@@ -211,7 +209,9 @@ const task = await mynth.image.generate({
 });
 ```
 
-`access.pat.enabled` controls whether the create-task response includes a short-lived Public Access Token for browser-side polling. It defaults to `true`.
+Request fields are the API's own, in snake_case, and the API rejects a field it does not know. `generate_public_access_token` asks for a short-lived Public Access Token for browser-side polling, as `taskAsync.access.publicAccessToken`. It defaults to `false`.
+
+`webhook.registered: false` skips the webhooks registered on your account for this task. `webhook.custom` sends this task's events to other URLs, unsigned: use https and a public host, and put a secret token in the URL so your handler can check it (see [Unsigned custom webhooks](#unsigned-custom-webhooks)). Mynth only ever shows `scheme://host` of a custom URL back.
 
 `output` is optional. Set `output.format` to `png`, `jpg`, or `webp`. When it is omitted, the result keeps the format the provider delivered.
 
@@ -280,8 +280,8 @@ Examples:
 ```ts
 size: "landscape";
 size: "auto";
-size: { type: "aspect_ratio", aspectRatio: "16:9" };
-size: { type: "aspect_ratio", aspectRatio: "4:5", scale: "4k" };
+size: { type: "aspect_ratio", aspect_ratio: "16:9" };
+size: { type: "aspect_ratio", aspect_ratio: "4:5", scale: "4k" };
 size: { type: "auto" };
 ```
 
@@ -471,11 +471,12 @@ const result = await mynth.image.removeBackground({
 console.log(result.metadata.productId);
 ```
 
-Use `removeBackgroundAsync()` to create the task without waiting. It returns a public access token, like `generateAsync()`:
+Use `removeBackgroundAsync()` to create the task without waiting. Like `generateAsync()`, it returns a public access token when you ask for one:
 
 ```ts
 const taskAsync = await mynth.image.removeBackgroundAsync({
   url: "https://example.com/product.jpg",
+  generate_public_access_token: true,
 });
 
 return { id: taskAsync.id, access: taskAsync.access };
@@ -496,7 +497,7 @@ console.log(result.image.url); // upscaled image
 console.log(result.image.width, result.image.height); // e.g. 2048 1536
 ```
 
-`effort` sets the price: `low` is fast and sharp, `high` rebuilds fine detail such as small text and faces. `size` is `"2x"` or `"4x"`, or `{ type: "scale", factor: 2 | 4 }`. The upscaled image can be at most 4096x4096 pixels; a larger request fails with `OUTPUT_TOO_LARGE` and is not charged.
+`effort` sets the price: `low` is fast and sharp, `high` rebuilds fine detail such as small text and faces. `size` is `"2x"` or `"4x"`, or `{ type: "scale", factor: 2 | 4 }`. The upscaled image can be at most 4096x4096 pixels; a larger request fails with `output_too_large` and is not charged.
 
 The result keeps the format the provider returned. Set `output.format` to always get `png`, `jpg`, or `webp`.
 `upscale()` also takes a local `file`, plus `destination`, `webhook`, and `metadata` like `generate()`:
@@ -514,13 +515,14 @@ const result = await mynth.image.upscale({
 console.log(result.metadata.productId);
 ```
 
-Use `upscaleAsync()` to create the task without waiting. It returns a public access token, like `generateAsync()`:
+Use `upscaleAsync()` to create the task without waiting. Like `generateAsync()`, it returns a public access token when you ask for one:
 
 ```ts
 const taskAsync = await mynth.image.upscaleAsync({
   url: "https://example.com/product.jpg",
   size: "2x",
   effort: "low",
+  generate_public_access_token: true,
 });
 
 return { id: taskAsync.id, access: taskAsync.access };
@@ -567,7 +569,7 @@ const src = image.url ?? image.mynthUrl;
 
 ```ts
 if (task.failures.length > 0) {
-  console.warn(task.failures); // [{ code: "PROVIDER_ERROR", message: "..." }]
+  console.warn(task.failures); // [{ code: "provider_error", message: "..." }]
 }
 ```
 
@@ -594,10 +596,10 @@ const models = await mynth.models.list();
 console.log(models[0]);
 // {
 //   id: "black-forest-labs/flux.2-pro",
-//   displayName: "FLUX.2 Pro",
+//   display_name: "FLUX.2 Pro",
 //   type: "image",
-//   modes: { "txt->img": {}, "img->img": { inputs: { rules: [...], maxTotal: 4 } } },
-//   pricing: { perImage: { base: "0.05" } }
+//   modes: { "txt->img": {}, "img->img": { inputs: { rules: [...], max_total: 4 } } },
+//   pricing: { per_image: { base: "0.05" } }
 // }
 ```
 
@@ -608,9 +610,9 @@ price per second of output, keyed by resolution tier.
 ```ts
 for (const model of models) {
   if (model.type === "video") {
-    console.log(model.id, model.pricing?.perSecond["720p"], Object.keys(model.modes));
+    console.log(model.id, model.pricing?.per_second["720p"], Object.keys(model.modes));
   } else {
-    console.log(model.id, model.pricing?.perImage.base, Object.keys(model.modes));
+    console.log(model.id, model.pricing?.per_image.base, Object.keys(model.modes));
   }
 }
 ```
@@ -710,12 +712,13 @@ Prefer `generateAsync()` on the server and let the browser (or a webhook) pick t
 const taskAsync = await mynth.video.generateAsync({
   model: "bytedance/seedance-2.0-mini",
   prompt: "A neon city street in the rain",
+  generate_public_access_token: true,
 });
 
 return { id: taskAsync.id, access: taskAsync.access };
 ```
 
-`taskAsync.access.publicAccessToken` works exactly as it does for images: scoped to that one task, safe to send to the client, and usable against `GET /tasks/:id/status` and `GET /tasks/:id/result`.
+`taskAsync.access.publicAccessToken` works exactly as it does for images: requested with `generate_public_access_token: true`, scoped to that one task, safe to send to the client, and usable against `GET /tasks/:id/status` and `GET /tasks/:id/result`.
 
 ### Duration, Resolution and Audio
 
@@ -752,7 +755,7 @@ Local files are uploaded to temporary input storage before the request, in a sin
 Video is priced per render, so you can price a request before running it. The endpoint validates the request the same way `generate()` does, which makes it a pre-flight check as well as a cost lookup:
 
 ```ts
-const { estimatedCost } = await mynth.video.estimate({
+const { estimated_cost } = await mynth.video.estimate({
   model: "google/gemini-omni-flash-1.1",
   prompt: "A timelapse of clouds over a canyon",
   duration: 10,
@@ -760,7 +763,7 @@ const { estimatedCost } = await mynth.video.estimate({
 });
 ```
 
-Because the model is always concrete, the estimate is exact.
+`estimate()` returns the API's own response, so its fields are snake_case. Because the model is always concrete, the estimate is exact.
 
 ### Working With Video Results
 
@@ -777,7 +780,7 @@ console.log(task.metadata);
 console.log(task.raw);
 ```
 
-Each video has `id`, `url`, `mynthUrl`, `cost`, `duration`, `resolution`, and `audio`.
+Each video has `id`, `url`, `mynthUrl`, `cost`, `duration`, `resolution`, and `audio`. `url` is `null` when the video could not be delivered there; `mynthUrl` is always set.
 
 ### Video Models
 
@@ -814,7 +817,7 @@ Each of these supports generated audio.
 
 ## TypeScript Types
 
-The SDK exports the request and payload types via `MynthSDKTypes`.
+The SDK exports the request, task and webhook event types via `MynthSDKTypes`. They describe the API's own data, so their fields are snake_case; the SDK's own surface (methods, options, result objects such as `task.taskId`) is camelCase.
 
 ```ts
 import type { MynthSDKTypes } from "@mynthio/sdk";
@@ -825,12 +828,64 @@ const request: MynthSDKTypes.ImageGenerationRequest = {
 };
 ```
 
-## Next.js Integration
+## Webhooks
+
+Mynth delivers webhooks the [Standard Webhooks](https://www.standardwebhooks.com) way. Every delivery is a `POST` with an event body and these headers:
+
+- `webhook-id`: the event ID, `evt_...`. The same for every delivery of the event, and the same as the body's `id`
+- `webhook-timestamp`: when this attempt was sent, in Unix seconds
+- `webhook-signature`: `v1,<base64>`, only on deliveries to a webhook registered in the dashboard or through the API
+
+```json
+{
+  "id": "evt_01KE7Y9M3R8T2QXN5BVC4WJ6HD",
+  "type": "task.image.generate.completed",
+  "timestamp": "2026-10-04T10:00:12.000Z",
+  "data": {
+    "id": "tsk_...",
+    "type": "image.generate",
+    "status": "completed",
+    "request": {},
+    "result": {}
+  }
+}
+```
+
+`data` is the task exactly as `GET /tasks/{id}` returns it. Deliveries are retried for about 72 hours, so the same event can arrive more than once: store `event.id` and skip IDs you have already handled.
+
+### Verify an event
+
+`verifyWebhook()` checks the signature against the raw body, rejects a timestamp more than five minutes off, checks that the body's `id` is the `webhook-id`, and returns the typed event. It runs on Web Crypto, so it works in Node, edge runtimes and Workers.
+
+```ts
+import { verifyWebhook } from "@mynthio/sdk";
+
+export async function POST(request: Request) {
+  const event = await verifyWebhook({ body: await request.text(), headers: request.headers });
+
+  switch (event.type) {
+    case "task.image.generate.completed":
+      await saveImages(event.data.id, event.data.result.images);
+      break;
+    case "task.image.generate.failed":
+      await markTaskFailed(event.data.id, event.data.errors);
+      break;
+  }
+
+  return new Response(null, { status: 204 });
+}
+```
+
+The secret defaults to `MYNTH_WEBHOOK_SECRET`; pass it as the second argument otherwise. A failed check throws `MynthWebhookVerificationError`, which your handler should answer with a `400`. Keep a `default` branch: an event type newer than your SDK version is returned as is.
+
+The framework helpers below do the same verification and hand each event to a typed callback.
+
+### Next.js Integration
 
 Use the App Router helper to verify and route registered Mynth webhooks. Add the signing secret shown when you create the webhook:
 
 ```env
-MYNTH_WEBHOOK_SECRET=wbs_...
+MYNTH_WEBHOOK_SECRET=whsec_...
 ```
 
 Create a Route Handler:
@@ -840,9 +895,8 @@ Create a Route Handler:
 import { mynthWebhookHandler } from "@mynthio/sdk/next";
 
 export const POST = mynthWebhookHandler({
-  imageTaskCompleted: async (result, { request }) => {
-    console.log("Completed task:", result.taskId);
-    console.log("Received at:", request.url);
+  imageTaskCompleted: async (result, { event, request }) => {
+    console.log("Event:", event.id, "received at:", request.url);
 
     await saveImages(result.taskId, result.images);
   },
@@ -855,13 +909,33 @@ export const POST = mynthWebhookHandler({
 });
 ```
 
-The helper reads the raw body, verifies `X-Mynth-Signature`, rejects signatures older than five minutes, and checks `X-Mynth-Event` before calling a typed handler. A completed callback receives the same result that `generate()`, `upscale()` and the other methods return, so `result.images`, `result.cost` and `result.metadata` work the same in both places. A failed callback receives `{ taskId, errors, metadata, raw }`; `metadata` is there for task types whose request takes it. The last handler argument contains the original `request` and `deliveryId`, the `X-Mynth-Delivery` value that every retry repeats.
+The helper reads the raw body, verifies the signature, rejects a timestamp more than five minutes off, and checks the event before calling a typed callback. A completed callback receives the same result that `generate()`, `upscale()` and the other methods return, so `result.images`, `result.cost` and `result.metadata` work the same in both places. A failed callback receives `{ taskId, errors, metadata, raw }`; `metadata` is there for task types whose request takes it. The last argument holds the original `request` and the verified `event`.
 
-The route must be publicly reachable, so exclude it from authentication middleware. Make callback side effects idempotent by storing `deliveryId` and skipping IDs you have already handled, and enqueue slow work before returning. Callback errors are propagated so Mynth can retry the delivery.
+`onEvent` receives every event, typed, before its callback runs, including event types newer than the SDK. Events without a callback are answered `200`, so Mynth does not retry them.
 
-Pass `{ webhookSecret: "wbs_..." }` as the second argument only when the application does not use `MYNTH_WEBHOOK_SECRET`. This helper accepts signed, registered webhooks; per-request custom webhooks are not signed.
+The route must be publicly reachable, so exclude it from authentication middleware. Make callback side effects idempotent by storing `event.id` and skipping IDs you have already handled, and enqueue slow work before returning. Callback errors are propagated so Mynth can retry the delivery.
 
-## TanStack Start Integration
+Pass `{ webhookSecret: "whsec_..." }` as the second argument only when the application does not use `MYNTH_WEBHOOK_SECRET`.
+
+### Unsigned custom webhooks
+
+A request can send its events to URLs of its own with `webhook.custom`. Those deliveries are not signed: put a secret token in the URL, and check it with the `unsigned` option. The helpers then skip signature verification and answer `401` when `verify` returns `false`. Without the option, an unsigned delivery is answered `400`.
+
+```ts
+export const POST = mynthWebhookHandler(
+  { imageTaskCompleted: async (result, { event }) => saveImages(result.taskId, result.images) },
+  {
+    unsigned: {
+      verify: (request) =>
+        new URL(request.url).searchParams.get("token") === process.env.MY_WEBHOOK_TOKEN,
+    },
+  },
+);
+```
+
+Compare the token in constant time if an attacker could time your endpoint. Mynth only ever shows `scheme://host` of a custom URL back, so a token in the path or query does not leak through the task.
+
+### TanStack Start Integration
 
 Mount the webhook helper directly on a TanStack Start server route:
 
@@ -874,9 +948,8 @@ export const Route = createFileRoute("/api/webhooks/mynth")({
   server: {
     handlers: {
       POST: mynthWebhookHandler({
-        imageTaskCompleted: async (result, { request, params, context }) => {
-          console.log("Completed task:", result.taskId);
-          console.log("Received at:", request.url);
+        imageTaskCompleted: async (result, { event, request, params, context }) => {
+          console.log("Event:", event.id, "received at:", request.url);
           await saveImages(result.taskId, result.images);
         },
         imageTaskFailed: async (failure) => {
@@ -888,9 +961,9 @@ export const Route = createFileRoute("/api/webhooks/mynth")({
 });
 ```
 
-Set `MYNTH_WEBHOOK_SECRET` in the server environment, or pass `webhookSecret` as the second argument. Event callbacks receive the original request, route params, TanStack Start middleware context, and `deliveryId`.
+Set `MYNTH_WEBHOOK_SECRET` in the server environment, or pass `webhookSecret` as the second argument. Event callbacks receive the original request, route params, TanStack Start middleware context, and the verified `event`.
 
-## Convex Integration
+### Convex Integration
 
 The package includes a Convex HTTP action helper for webhook verification and event routing.
 
@@ -898,8 +971,8 @@ The package includes a Convex HTTP action helper for webhook verification and ev
 import { mynthWebhookAction } from "@mynthio/sdk/convex";
 
 export const mynthWebhook = mynthWebhookAction({
-  imageTaskCompleted: async (result, { context }) => {
-    console.log("Completed task:", result.taskId);
+  imageTaskCompleted: async (result, { context, event }) => {
+    console.log("Completed task:", result.taskId, "event:", event.id);
     console.log(result.images);
   },
   imageTaskFailed: async (failure) => {
@@ -950,7 +1023,7 @@ export const mynthWebhook = mynthWebhookAction({
 });
 ```
 
-Set `MYNTH_WEBHOOK_SECRET` in your environment, or pass `webhookSecret` explicitly as the second argument to `mynthWebhookAction(...)`.
+Set `MYNTH_WEBHOOK_SECRET` in your environment, or pass `webhookSecret` explicitly as the second argument to `mynthWebhookAction(...)`. The `unsigned` option works the same as in the Next.js helper.
 
 ## Error Handling
 
@@ -975,7 +1048,7 @@ try {
   console.log(task.urls);
 } catch (error) {
   if (error instanceof MynthAPIError) {
-    // `message` says what to fix. On a VALIDATION_ERROR, `issues` lists each invalid field.
+    // `message` says what to fix. On a validation_error, `issues` lists each invalid field.
     console.error(error.status, error.code, error.message, error.issues);
   } else if (error instanceof TaskAsyncTimeoutError) {
     console.error("Task polling timed out");
@@ -990,6 +1063,21 @@ try {
   }
 }
 ```
+
+## Migrating from 0.0.49
+
+0.0.50 follows the stable API, which changed in one go. Nothing in it is backward compatible:
+
+- Request fields are snake_case, and the API now rejects a field it does not know. `size.aspectRatio` is `size.aspect_ratio`.
+- `access: { pat: { enabled } }` is `generate_public_access_token: true`, and it now defaults to `false`: pass it to get `taskAsync.access.publicAccessToken` from `generateAsync()`, `removeBackgroundAsync()`, `upscaleAsync()` and `video.generateAsync()`.
+- `webhook.dashboard` is `webhook.registered`.
+- `MynthAPIError.code` and every task error code are lowercase: `validation_error`, `insufficient_balance`, `provider_error`.
+- API data the SDK returns as is is snake_case: `MynthSDKTypes.TaskData` (`user_id`, `api_key_id`, `created_at`, `updated_at`), the model catalog (`display_name`, `per_image`, `per_second`, `max_total`) and `video.estimate()` (`estimated_cost`, `estimate_kind`).
+- A video's `url` can be `null`, like an image's. `result.urls` skips it.
+- Webhooks follow Standard Webhooks. Every registered webhook got a new `whsec_...` signing secret: copy it from the dashboard into `MYNTH_WEBHOOK_SECRET`. `X-Mynth-Event`, `X-Mynth-Delivery` and `X-Mynth-Signature` are gone; deliveries carry `webhook-id`, `webhook-timestamp` and `webhook-signature`.
+- The webhook body is an event, `{ id, type, timestamp, data }`, with the task in `data`. `MynthSDKTypes.WebhookPayload` and its variants are replaced by `MynthSDKTypes.WebhookEvent`, and `verifyWebhook()` returns one.
+- Webhook callbacks get `{ event }` in their last argument instead of `deliveryId`. Deduplicate on `event.id`.
+- Unsigned deliveries to a custom URL are refused unless the helper gets the `unsigned` option.
 
 ## Documentation
 

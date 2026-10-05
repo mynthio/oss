@@ -18,8 +18,8 @@ function createTaskData(
     id: "task-123",
     status: "completed",
     type: "image.generate",
-    apiKeyId: "api-key-123",
-    userId: "user-123",
+    api_key_id: "api-key-123",
+    user_id: "user-123",
     cost: "0.01",
     result: {
       model: "black-forest-labs/flux.2-dev",
@@ -28,8 +28,8 @@ function createTaskData(
     request: {
       prompt: "test prompt",
     },
-    createdAt: "2026-01-29T12:00:00Z",
-    updatedAt: "2026-01-29T12:00:00Z",
+    created_at: "2026-01-29T12:00:00Z",
+    updated_at: "2026-01-29T12:00:00Z",
     ...overrides,
   } as MynthSDKTypes.ImageGenerationTaskData;
 }
@@ -41,8 +41,8 @@ function createRateTaskData(
     id: "task-rate-123",
     status: "completed",
     type: "image.rate",
-    apiKeyId: "api-key-123",
-    userId: "user-123",
+    api_key_id: "api-key-123",
+    user_id: "user-123",
     cost: "0.01",
     result: {
       level: "sfw",
@@ -51,8 +51,8 @@ function createRateTaskData(
       url: "https://cdn.test/image.webp",
       mode: "nsfw_sfw",
     },
-    createdAt: "2026-01-29T12:00:00Z",
-    updatedAt: "2026-01-29T12:00:00Z",
+    created_at: "2026-01-29T12:00:00Z",
+    updated_at: "2026-01-29T12:00:00Z",
     ...overrides,
   } as MynthSDKTypes.ImageRateTaskData;
 }
@@ -64,8 +64,8 @@ function createAltTaskData(
     id: "task-alt-123",
     status: "completed",
     type: "image.alt",
-    apiKeyId: "api-key-123",
-    userId: "user-123",
+    api_key_id: "api-key-123",
+    user_id: "user-123",
     cost: "0.01",
     result: {
       alt: "A studio product photo of a ceramic mug.",
@@ -73,8 +73,8 @@ function createAltTaskData(
     request: {
       url: "https://cdn.test/image.webp",
     },
-    createdAt: "2026-01-29T12:00:00Z",
-    updatedAt: "2026-01-29T12:00:00Z",
+    created_at: "2026-01-29T12:00:00Z",
+    updated_at: "2026-01-29T12:00:00Z",
     ...overrides,
   } as MynthSDKTypes.ImageAltTaskData;
 }
@@ -86,8 +86,8 @@ function createReviewTaskData(
     id: "task-review-123",
     status: "completed",
     type: "image.review",
-    apiKeyId: "api-key-123",
-    userId: "user-123",
+    api_key_id: "api-key-123",
+    user_id: "user-123",
     cost: "0.02",
     result: {
       score: 3,
@@ -107,8 +107,8 @@ function createReviewTaskData(
       url: "https://cdn.test/image.webp",
       effort: "high",
     },
-    createdAt: "2026-01-29T12:00:00Z",
-    updatedAt: "2026-01-29T12:00:00Z",
+    created_at: "2026-01-29T12:00:00Z",
+    updated_at: "2026-01-29T12:00:00Z",
     ...overrides,
   } as MynthSDKTypes.ImageReviewTaskData;
 }
@@ -120,8 +120,8 @@ function createRemoveBackgroundTaskData(
     id: "task-remove-background-123",
     status: "completed",
     type: "image.remove_background",
-    apiKeyId: "api-key-123",
-    userId: "user-123",
+    api_key_id: "api-key-123",
+    user_id: "user-123",
     cost: "0.02",
     result: {
       image: {
@@ -136,8 +136,8 @@ function createRemoveBackgroundTaskData(
       url: "https://cdn.test/image.jpg",
       metadata: { productId: "sku_1" },
     },
-    createdAt: "2026-01-29T12:00:00Z",
-    updatedAt: "2026-01-29T12:00:00Z",
+    created_at: "2026-01-29T12:00:00Z",
+    updated_at: "2026-01-29T12:00:00Z",
     ...overrides,
   } as MynthSDKTypes.ImageRemoveBackgroundTaskData;
 }
@@ -149,8 +149,8 @@ function createUpscaleTaskData(
     id: "task-upscale-123",
     status: "completed",
     type: "image.upscale",
-    apiKeyId: "api-key-123",
-    userId: "user-123",
+    api_key_id: "api-key-123",
+    user_id: "user-123",
     cost: "0.03",
     result: {
       image: {
@@ -167,8 +167,8 @@ function createUpscaleTaskData(
       effort: "low",
       metadata: { productId: "sku_1" },
     },
-    createdAt: "2026-01-29T12:00:00Z",
-    updatedAt: "2026-01-29T12:00:00Z",
+    created_at: "2026-01-29T12:00:00Z",
+    updated_at: "2026-01-29T12:00:00Z",
     ...overrides,
   } as MynthSDKTypes.ImageUpscaleTaskData;
 }
@@ -182,7 +182,9 @@ describe("MynthImage", () => {
   test("reads the API key from MYNTH_API_KEY when none is passed", async () => {
     // Arrange
     vi.stubEnv("MYNTH_API_KEY", "mak_env");
-    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse({ data: { taskId: "task-123" } }));
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ data: { task_id: "task-123" } }));
     vi.stubGlobal("fetch", fetchMock);
     const image = new MynthImage({ baseUrl: "https://api.test" });
 
@@ -220,8 +222,8 @@ describe("MynthImage", () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(
       jsonResponse({
         data: {
-          taskId: "task-123",
-          access: { publicAccessToken: "pat-123" },
+          task_id: "task-123",
+          public_access_token: "pat-123",
         },
       }),
     );
@@ -247,7 +249,7 @@ describe("MynthImage", () => {
     const taskData = createTaskData();
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce(jsonResponse({ data: { taskId: "task-123" } }))
+      .mockResolvedValueOnce(jsonResponse({ data: { task_id: "task-123" } }))
       .mockResolvedValueOnce(jsonResponse({ data: { status: "completed" } }))
       .mockResolvedValueOnce(jsonResponse({ data: taskData }));
     vi.stubGlobal("fetch", fetchMock);
@@ -292,7 +294,7 @@ describe("MynthImage", () => {
       "fetch",
       vi
         .fn()
-        .mockResolvedValueOnce(jsonResponse({ data: { taskId: "task-123" } }))
+        .mockResolvedValueOnce(jsonResponse({ data: { task_id: "task-123" } }))
         .mockResolvedValueOnce(jsonResponse({ data: { status: "completed" } }))
         .mockResolvedValueOnce(jsonResponse({ data: taskData })),
     );
@@ -330,7 +332,7 @@ describe("MynthImage", () => {
     // Arrange
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce(jsonResponse({ data: { taskId: "task-123" } }))
+      .mockResolvedValueOnce(jsonResponse({ data: { task_id: "task-123" } }))
       .mockResolvedValueOnce(jsonResponse({ data: { status: "completed" } }))
       .mockResolvedValueOnce(jsonResponse({ data: createTaskData() }));
     vi.stubGlobal("fetch", fetchMock);
@@ -401,7 +403,7 @@ describe("MynthImage", () => {
       .mockResolvedValueOnce(
         jsonResponse({
           data: {
-            taskId: "task-123",
+            task_id: "task-123",
           },
         }),
       );
@@ -508,7 +510,7 @@ describe("MynthImage", () => {
       .fn()
       .mockResolvedValueOnce(jsonResponse({ data: { urls: ["https://cdn.test/uploaded.webp"] } }))
       .mockResolvedValueOnce(
-        jsonResponse({ data: { taskId, estimatedCost: "0.0002" } }, { status: 201 }),
+        jsonResponse({ data: { task_id: taskId, estimated_cost: "0.0002" } }, { status: 201 }),
       );
     vi.stubGlobal("fetch", fetchMock);
     const image = new MynthImage({ apiKey: "mak_test", baseUrl: "https://api.test" });
@@ -541,8 +543,8 @@ describe("MynthImage", () => {
       jsonResponse(
         {
           data: {
-            taskId: "task-rate-123",
-            estimatedCost: "0.0002",
+            task_id: "task-rate-123",
+            estimated_cost: "0.0002",
           },
         },
         { status: 201 },
@@ -588,8 +590,8 @@ describe("MynthImage", () => {
         jsonResponse(
           {
             data: {
-              taskId: "task-rate-123",
-              estimatedCost: "0.0002",
+              task_id: "task-rate-123",
+              estimated_cost: "0.0002",
             },
           },
           { status: 201 },
@@ -624,8 +626,8 @@ describe("MynthImage", () => {
       jsonResponse(
         {
           data: {
-            taskId: "task-alt-123",
-            estimatedCost: "0.0004",
+            task_id: "task-alt-123",
+            estimated_cost: "0.0004",
           },
         },
         { status: 201 },
@@ -671,8 +673,8 @@ describe("MynthImage", () => {
         jsonResponse(
           {
             data: {
-              taskId: "task-alt-123",
-              estimatedCost: "0.0004",
+              task_id: "task-alt-123",
+              estimated_cost: "0.0004",
             },
           },
           { status: 201 },
@@ -710,8 +712,8 @@ describe("MynthImage", () => {
         jsonResponse(
           {
             data: {
-              taskId: "task-review-123",
-              estimatedCost: "0.02",
+              task_id: "task-review-123",
+              estimated_cost: "0.02",
             },
           },
           { status: 201 },
@@ -768,9 +770,9 @@ describe("MynthImage.removeBackground", () => {
         jsonResponse(
           {
             data: {
-              taskId: "task-remove-background-123",
-              estimatedCost: "0.02",
-              access: { publicAccessToken: "pat_test" },
+              task_id: "task-remove-background-123",
+              estimated_cost: "0.02",
+              public_access_token: "pat_test",
             },
           },
           { status: 201 },
@@ -818,9 +820,9 @@ describe("MynthImage.removeBackground", () => {
       jsonResponse(
         {
           data: {
-            taskId: "task-remove-background-123",
-            estimatedCost: "0.02",
-            access: { publicAccessToken: "pat_test" },
+            task_id: "task-remove-background-123",
+            estimated_cost: "0.02",
+            public_access_token: "pat_test",
           },
         },
         { status: 201 },
@@ -862,9 +864,9 @@ describe("MynthImage.upscale", () => {
         jsonResponse(
           {
             data: {
-              taskId: "task-upscale-123",
-              estimatedCost: "0.03",
-              access: { publicAccessToken: "pat_test" },
+              task_id: "task-upscale-123",
+              estimated_cost: "0.03",
+              public_access_token: "pat_test",
             },
           },
           { status: 201 },
@@ -914,9 +916,9 @@ describe("MynthImage.upscale", () => {
       jsonResponse(
         {
           data: {
-            taskId: "task-upscale-123",
-            estimatedCost: "0.15",
-            access: { publicAccessToken: "pat_test" },
+            task_id: "task-upscale-123",
+            estimated_cost: "0.15",
+            public_access_token: "pat_test",
           },
         },
         { status: 201 },
@@ -964,17 +966,17 @@ describe("Mynth", () => {
     const models: MynthSDKTypes.Model[] = [
       {
         id: "black-forest-labs/flux.2-pro",
-        displayName: "FLUX.2 Pro",
+        display_name: "FLUX.2 Pro",
         type: "image",
         modes: {
           "txt->img": {},
-          "img->img": { inputs: { rules: [{ type: "image", max: 4 }], maxTotal: 4 } },
+          "img->img": { inputs: { rules: [{ type: "image", max: 4 }], max_total: 4 } },
         },
-        pricing: { perImage: { base: "0.05" } },
+        pricing: { per_image: { base: "0.05" } },
       },
       {
         id: "bytedance/seedance-2.0-mini",
-        displayName: "Seedance 2.0 Mini",
+        display_name: "Seedance 2.0 Mini",
         type: "video",
         modes: {
           "txt->vid": {},
@@ -982,7 +984,7 @@ describe("Mynth", () => {
             inputs: { rules: [{ type: "image", kind: "first_frame", min: 1, max: 1 }] },
           },
         },
-        pricing: { perSecond: { "480p": "0.036", "720p": "0.081" } },
+        pricing: { per_second: { "480p": "0.036", "720p": "0.081" } },
       },
     ];
     const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse({ data: models }));
@@ -1013,8 +1015,7 @@ describe("Mynth", () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(
       jsonResponse(
         {
-          error: "Models unavailable",
-          code: "models_unavailable",
+          error: { code: "models_unavailable", message: "Models unavailable" },
         },
         { status: 503 },
       ),
@@ -1042,14 +1043,18 @@ describe("MynthAPIError", () => {
     const issues = [{ path: ["size"], message: 'size "16:9_8k" is not supported.' }];
     vi.stubGlobal(
       "fetch",
-      vi
-        .fn()
-        .mockResolvedValueOnce(
-          jsonResponse(
-            { code: "VALIDATION_ERROR", message: 'size "16:9_8k" is not supported.', issues },
-            { status: 400 },
-          ),
+      vi.fn().mockResolvedValueOnce(
+        jsonResponse(
+          {
+            error: {
+              code: "validation_error",
+              message: 'size "16:9_8k" is not supported.',
+              issues,
+            },
+          },
+          { status: 400 },
         ),
+      ),
     );
     const mynth = new Mynth({ apiKey: "mak_test", baseUrl: "https://api.test" });
 
@@ -1061,7 +1066,7 @@ describe("MynthAPIError", () => {
       name: "MynthAPIError",
       message: 'size "16:9_8k" is not supported.',
       status: 400,
-      code: "VALIDATION_ERROR",
+      code: "validation_error",
       issues,
     });
   });
@@ -1093,8 +1098,8 @@ function createVideoTaskData(
     id: "task-video-123",
     status: "completed",
     type: "video.generate",
-    apiKeyId: "api-key-123",
-    userId: "user-123",
+    api_key_id: "api-key-123",
+    user_id: "user-123",
     cost: "0.42",
     result: {
       model: "google/gemini-omni-flash-1.1",
@@ -1111,7 +1116,7 @@ function createVideoTaskData(
         },
         {
           status: "failed",
-          error: { code: "PROVIDER_ERROR" },
+          error: { code: "provider_error" },
         },
       ],
     },
@@ -1120,8 +1125,8 @@ function createVideoTaskData(
       prompt: "test prompt",
       metadata: { generationId: "gen_1" },
     },
-    createdAt: "2026-01-29T12:00:00Z",
-    updatedAt: "2026-01-29T12:00:00Z",
+    created_at: "2026-01-29T12:00:00Z",
+    updated_at: "2026-01-29T12:00:00Z",
     ...overrides,
   } as MynthSDKTypes.VideoGenerationTaskData;
 }
@@ -1145,9 +1150,9 @@ describe("MynthVideo", () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(
       jsonResponse({
         data: {
-          taskId: "task-video-123",
-          estimatedCost: "0.42",
-          access: { publicAccessToken: "pat-video" },
+          task_id: "task-video-123",
+          estimated_cost: "0.42",
+          public_access_token: "pat-video",
         },
       }),
     );
@@ -1189,7 +1194,7 @@ describe("MynthVideo", () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(
-        jsonResponse({ data: { taskId: "task-video-123", estimatedCost: "0.42" } }),
+        jsonResponse({ data: { task_id: "task-video-123", estimated_cost: "0.42" } }),
       )
       .mockResolvedValueOnce(jsonResponse({ data: { status: "completed" } }))
       .mockResolvedValueOnce(jsonResponse({ data: taskData }));
@@ -1228,7 +1233,7 @@ describe("MynthVideo", () => {
           audio: true,
         },
       ],
-      failures: [{ code: "PROVIDER_ERROR" }],
+      failures: [{ code: "provider_error" }],
       metadata: { generationId: "gen_1" },
       model: "google/gemini-omni-flash-1.1",
     });
@@ -1249,7 +1254,7 @@ describe("MynthVideo", () => {
         }),
       )
       .mockResolvedValueOnce(
-        jsonResponse({ data: { taskId: "task-video-123", estimatedCost: "0.42" } }),
+        jsonResponse({ data: { task_id: "task-video-123", estimated_cost: "0.42" } }),
       );
     vi.stubGlobal("fetch", fetchMock);
 
@@ -1291,7 +1296,7 @@ describe("MynthVideo", () => {
     // Arrange
     const fetchMock = vi.fn().mockResolvedValueOnce(
       jsonResponse({
-        data: { estimatedCost: "0.42", currency: "usd", estimateKind: "exact" },
+        data: { estimated_cost: "0.42", currency: "usd", estimate_kind: "exact" },
       }),
     );
     vi.stubGlobal("fetch", fetchMock);
@@ -1305,7 +1310,7 @@ describe("MynthVideo", () => {
     });
 
     // Assert
-    expect(estimate).toEqual({ estimatedCost: "0.42", currency: "usd", estimateKind: "exact" });
+    expect(estimate).toEqual({ estimated_cost: "0.42", currency: "usd", estimate_kind: "exact" });
     expect(fetchMock.mock.calls[0]?.[0]).toBe("https://api.test/video/generate/estimate");
   });
 

@@ -20,20 +20,24 @@ export namespace MynthSDKTypes {
     | "image.upscale"
     | "video.generate";
 
+  /** A task as `GET /tasks/{id}` returns it, and as every webhook event carries it in `data`. */
   export type TaskBase = {
     id: string;
     status: TaskStatus;
-    apiKeyId: string | null;
-    userId: string;
+    /** USD charged. Set once the task completes. */
     cost: string | null;
-    createdAt: string;
-    updatedAt: string;
-    errors?: TaskError[];
+    /** Why the task failed. `null` unless `status` is `failed`. */
+    errors: TaskError[] | null;
+    user_id: string;
+    /** The API key that created the task. `null` for tasks created without one. */
+    api_key_id: string | null;
+    created_at: string;
+    updated_at: string;
   };
 
   /**
    * Task-level error entry.
-   * `code` is a stable SCREAMING_SNAKE_CASE identifier; `message` is optional
+   * `code` is a stable lowercase snake_case identifier; `message` is optional
    * human-readable prose and must not be parsed.
    */
   export type TaskError = {
@@ -110,30 +114,30 @@ export namespace MynthSDKTypes {
   export type ModelMode<Kind extends string = ImageModelInputKind | VideoModelInputKind> = {
     inputs?: {
       rules: ModelInputRule<Kind>[];
-      maxTotal?: number;
+      max_total?: number;
     };
   };
 
   export type ImageModelPricing = {
-    perImage: {
+    per_image: {
       base: string;
       "4k"?: string;
     };
-    perInput?: string;
+    per_input?: string;
   };
 
   export type VideoModelPricing = {
     /** USD per second, keyed by resolution tier. Tiers the model cannot produce are absent. */
-    perSecond: Partial<Record<VideoResolutionTier, string>>;
+    per_second: Partial<Record<VideoResolutionTier, string>>;
     /** Present only when audio is billed on top of the per-second video rate. */
-    audio?: { perSecond: string };
+    audio?: { per_second: string };
   };
 
   export type ModelPricing = ImageModelPricing | VideoModelPricing;
 
   export type ImageModel = {
     id: string;
-    displayName: string | null;
+    display_name: string | null;
     type: "image";
     modes: Partial<Record<"txt->img" | "img->img", ModelMode<ImageModelInputKind>>>;
     pricing: ImageModelPricing | null;
@@ -141,7 +145,7 @@ export namespace MynthSDKTypes {
 
   export type VideoModel = {
     id: string;
-    displayName: string | null;
+    display_name: string | null;
     type: "video";
     modes: Partial<Record<"txt->vid" | "img->vid", ModelMode<VideoModelInputKind>>>;
     pricing: VideoModelPricing | null;
@@ -229,20 +233,17 @@ export namespace MynthSDKTypes {
     format?: ImageGenerationRequestOutputFormat;
   };
 
+  /**
+   * Webhooks that receive this task's events unsigned. Use https and a public
+   * host, and put a secret token in the query string to verify deliveries.
+   */
   export type ImageGenerationRequestCustomWebhook = {
     url: string;
   }[];
 
-  export type ImageGenerationRequestAccessPat = {
-    enabled?: boolean;
-  };
-
-  export type ImageGenerationRequestAccess = {
-    pat: ImageGenerationRequestAccessPat;
-  };
-
   export type ImageGenerationRequestWebhook = {
-    dashboard?: boolean;
+    /** `false` skips the webhooks registered on the account for this task. */
+    registered?: boolean;
     custom?: ImageGenerationRequestCustomWebhook;
   };
 
@@ -311,7 +312,7 @@ export namespace MynthSDKTypes {
   /** Structured aspect ratio size configuration */
   export type ImageGenerationRequestSizeAspectRatio = {
     type: "aspect_ratio";
-    aspectRatio: ImageGenerationRequestAspectRatio;
+    aspect_ratio: ImageGenerationRequestAspectRatio;
     scale?: ImageGenerationRequestSizeScale;
   };
 
@@ -387,7 +388,8 @@ export namespace MynthSDKTypes {
     output?: ImageGenerationRequestOutput;
     webhook?: ImageGenerationRequestWebhook;
     rating?: ImageGenerationRequestRating;
-    access?: ImageGenerationRequestAccess;
+    /** Return a public access token for browser-side polling. Defaults to `false`. */
+    generate_public_access_token?: boolean;
     inputs?: (string | ImageGenerationRequestInput)[];
     metadata?: Record<string, unknown>;
     destination?: string;
@@ -515,8 +517,8 @@ export namespace MynthSDKTypes {
 
   /** Create-task response from the image rate endpoint */
   export type ImageRateCreatedResponse = {
-    taskId: string;
-    estimatedCost: string;
+    task_id: string;
+    estimated_cost: string;
   };
 
   export type ImageRateTaskResult<LevelT extends string = string> = {
@@ -541,8 +543,8 @@ export namespace MynthSDKTypes {
 
   /** Create-task response from the image alt endpoint */
   export type ImageAltCreatedResponse = {
-    taskId: string;
-    estimatedCost: string;
+    task_id: string;
+    estimated_cost: string;
   };
 
   export type ImageAltTaskResult = {
@@ -579,8 +581,8 @@ export namespace MynthSDKTypes {
 
   /** Create-task response from the image review endpoint. */
   export type ImageReviewCreatedResponse = {
-    taskId: string;
-    estimatedCost: string;
+    task_id: string;
+    estimated_cost: string;
   };
 
   export type ImageReviewFinding = {
@@ -625,7 +627,8 @@ export namespace MynthSDKTypes {
     url: string;
     output?: ImageRemoveBackgroundRequestOutput;
     webhook?: ImageGenerationRequestWebhook;
-    access?: ImageGenerationRequestAccess;
+    /** Return a public access token for browser-side polling. Defaults to `false`. */
+    generate_public_access_token?: boolean;
     metadata?: Record<string, unknown>;
     destination?: string;
   };
@@ -638,13 +641,7 @@ export namespace MynthSDKTypes {
     Omit<ImageRemoveBackgroundRequest, "url">;
 
   /** Create-task response from the image remove background endpoint. */
-  export type ImageRemoveBackgroundCreatedResponse = {
-    taskId: string;
-    estimatedCost: string;
-    access?: {
-      publicAccessToken: string;
-    };
-  };
+  export type ImageRemoveBackgroundCreatedResponse = TaskCreatedResponse;
 
   export type ImageRemoveBackgroundResultImage = {
     id: string;
@@ -696,7 +693,8 @@ export namespace MynthSDKTypes {
     effort: ImageUpscaleEffort;
     output?: ImageUpscaleRequestOutput;
     webhook?: ImageGenerationRequestWebhook;
-    access?: ImageGenerationRequestAccess;
+    /** Return a public access token for browser-side polling. Defaults to `false`. */
+    generate_public_access_token?: boolean;
     metadata?: Record<string, unknown>;
     destination?: string;
   };
@@ -708,13 +706,7 @@ export namespace MynthSDKTypes {
   export type ImageUpscaleClientRequest = ImageClientUrlOrFile & Omit<ImageUpscaleRequest, "url">;
 
   /** Create-task response from the image upscale endpoint. */
-  export type ImageUpscaleCreatedResponse = {
-    taskId: string;
-    estimatedCost: string;
-    access?: {
-      publicAccessToken: string;
-    };
-  };
+  export type ImageUpscaleCreatedResponse = TaskCreatedResponse;
 
   export type ImageUpscaleResultImage = {
     id: string;
@@ -751,9 +743,6 @@ export namespace MynthSDKTypes {
 
   /** Video webhook configuration (same shape as image generation). */
   export type VideoGenerationRequestWebhook = ImageGenerationRequestWebhook;
-
-  /** Video access configuration (same shape as image generation). */
-  export type VideoGenerationRequestAccess = ImageGenerationRequestAccess;
 
   /** Video input source (API wire format) */
   export type VideoGenerationRequestInputSource = {
@@ -796,7 +785,8 @@ export namespace MynthSDKTypes {
     audio?: boolean;
     inputs?: (string | VideoGenerationRequestInput)[];
     webhook?: VideoGenerationRequestWebhook;
-    access?: VideoGenerationRequestAccess;
+    /** Return a public access token for browser-side polling. Defaults to `false`. */
+    generate_public_access_token?: boolean;
     metadata?: Record<string, unknown>;
   };
 
@@ -809,28 +799,22 @@ export namespace MynthSDKTypes {
   };
 
   /** Create-task response from the video generate endpoint */
-  export type VideoGenerationCreatedResponse = {
-    taskId: string;
-    /** Cost reserved for the task. Failed videos are refunded. */
-    estimatedCost: string;
-    access?: {
-      publicAccessToken: string;
-    };
-  };
+  export type VideoGenerationCreatedResponse = TaskCreatedResponse;
 
   /** Response from the video generation cost estimate endpoint */
   export type VideoGenerationEstimate = {
     /** Estimated cost in USD. Nothing is generated or charged. */
-    estimatedCost: string;
+    estimated_cost: string;
     currency: "usd";
     /** Video generation always pins a model, so the estimate is exact. */
-    estimateKind: "exact";
+    estimate_kind: "exact";
   };
 
   export type VideoResultVideoSuccess = {
     status: "success";
     id: string;
-    url: string;
+    /** Public URL of the video. `null` when it could not be delivered there. */
+    url: string | null;
     mynth_url: string;
     cost: string;
     /** Duration of the generated video in seconds */
@@ -856,172 +840,65 @@ export namespace MynthSDKTypes {
   };
 
   // ============================================================
+  // Task creation
+  // ============================================================
+
+  /** What the endpoints that create a task answer with. */
+  export type TaskCreatedResponse = {
+    task_id: string;
+    /** Cost reserved for the task. Failed media is refunded. */
+    estimated_cost: string;
+    /** Present when the request set `generate_public_access_token: true`. */
+    public_access_token?: string;
+  };
+
+  // ============================================================
   // Webhooks
   // ============================================================
 
-  /** The `task` object on a completed webhook payload. */
-  export type WebhookTaskCompleted = {
+  /** A task that finished with results. Items in the result can still have failed. */
+  export type CompletedTaskData<TypeT extends TaskType = TaskType> =
+    Extract<TaskData, { type: TypeT }> extends infer DataT extends TaskData
+      ? DataT & {
+          status: "completed";
+          result: NonNullable<DataT["result"]>;
+          cost: string;
+          errors: null;
+        }
+      : never;
+
+  /** A task that failed as a whole, without results. */
+  export type FailedTaskData<TypeT extends TaskType = TaskType> =
+    Extract<TaskData, { type: TypeT }> extends infer DataT extends TaskData
+      ? DataT & {
+          status: "failed";
+          result: null;
+          errors: TaskError[];
+        }
+      : never;
+
+  /**
+   * One webhook event, for one task type and status.
+   *
+   * `id` is the `webhook-id` header: the same for every delivery of the event,
+   * so deduplicate on it. `timestamp` is when the event happened. `data` is
+   * the task exactly as `GET /tasks/{id}` returns it.
+   */
+  export type WebhookEventOf<TypeT extends TaskType, StatusT extends "completed" | "failed"> = {
     id: string;
-    /** USD charged for the task */
-    cost: string;
+    type: `task.${TypeT}.${StatusT}`;
+    timestamp: string;
+    data: StatusT extends "completed" ? CompletedTaskData<TypeT> : FailedTaskData<TypeT>;
   };
 
   /**
-   * Webhook payload for image generation task completion.
+   * Every webhook event, discriminated on `type`. An event added after this SDK
+   * version is still returned by `verifyWebhook`, so keep a `default` branch.
    */
-  export type WebhookTaskImageCompletedPayload = {
-    task: WebhookTaskCompleted;
-    event: "task.image.generate.completed";
-    result: ImageResult;
-    request: ImageGenerationRequest;
-  };
+  export type WebhookEvent = {
+    [TypeT in TaskType]: WebhookEventOf<TypeT, "completed"> | WebhookEventOf<TypeT, "failed">;
+  }[TaskType];
 
-  /**
-   * Webhook payload for image generation task failure.
-   */
-  export type WebhookTaskImageFailedPayload = {
-    task: { id: string };
-    event: "task.image.generate.failed";
-    request: ImageGenerationRequest;
-    errors: TaskError[];
-  };
-
-  /**
-   * Webhook payload for image rating task completion.
-   */
-  export type WebhookTaskImageRateCompletedPayload<LevelT extends string = string> = {
-    task: WebhookTaskCompleted;
-    event: "task.image.rate.completed";
-    result: ImageRateTaskResult<LevelT>;
-    request: ImageRateRequest;
-  };
-
-  /**
-   * Webhook payload for image rating task failure.
-   */
-  export type WebhookTaskImageRateFailedPayload = {
-    task: { id: string };
-    event: "task.image.rate.failed";
-    request: ImageRateRequest;
-    errors: TaskError[];
-  };
-
-  /**
-   * Webhook payload for image alt text task completion.
-   */
-  export type WebhookTaskImageAltCompletedPayload = {
-    task: WebhookTaskCompleted;
-    event: "task.image.alt.completed";
-    result: ImageAltTaskResult;
-    request: ImageAltRequest;
-  };
-
-  /**
-   * Webhook payload for image alt text task failure.
-   */
-  export type WebhookTaskImageAltFailedPayload = {
-    task: { id: string };
-    event: "task.image.alt.failed";
-    request: ImageAltRequest;
-    errors: TaskError[];
-  };
-
-  /**
-   * Webhook payload for image review task completion.
-   */
-  export type WebhookTaskImageReviewCompletedPayload = {
-    task: WebhookTaskCompleted;
-    event: "task.image.review.completed";
-    result: ImageReviewTaskResult;
-    request: ImageReviewRequest;
-  };
-
-  /**
-   * Webhook payload for image review task failure.
-   */
-  export type WebhookTaskImageReviewFailedPayload = {
-    task: { id: string };
-    event: "task.image.review.failed";
-    request: ImageReviewRequest;
-    errors: TaskError[];
-  };
-
-  /**
-   * Webhook payload for image remove background task completion.
-   */
-  export type WebhookTaskImageRemoveBackgroundCompletedPayload = {
-    task: WebhookTaskCompleted;
-    event: "task.image.remove_background.completed";
-    result: ImageRemoveBackgroundTaskResult;
-    request: ImageRemoveBackgroundRequest;
-  };
-
-  /**
-   * Webhook payload for image remove background task failure.
-   */
-  export type WebhookTaskImageRemoveBackgroundFailedPayload = {
-    task: { id: string };
-    event: "task.image.remove_background.failed";
-    request: ImageRemoveBackgroundRequest;
-    errors: TaskError[];
-  };
-
-  /**
-   * Webhook payload for image upscale task completion.
-   */
-  export type WebhookTaskImageUpscaleCompletedPayload = {
-    task: WebhookTaskCompleted;
-    event: "task.image.upscale.completed";
-    result: ImageUpscaleTaskResult;
-    request: ImageUpscaleRequest;
-  };
-
-  /**
-   * Webhook payload for image upscale task failure.
-   */
-  export type WebhookTaskImageUpscaleFailedPayload = {
-    task: { id: string };
-    event: "task.image.upscale.failed";
-    request: ImageUpscaleRequest;
-    errors: TaskError[];
-  };
-
-  /**
-   * Webhook payload for video generation task completion.
-   */
-  export type WebhookTaskVideoCompletedPayload = {
-    task: WebhookTaskCompleted;
-    event: "task.video.generate.completed";
-    result: VideoResult;
-    request: VideoGenerationRequest;
-  };
-
-  /**
-   * Webhook payload for video generation task failure.
-   */
-  export type WebhookTaskVideoFailedPayload = {
-    task: { id: string };
-    event: "task.video.generate.failed";
-    request: VideoGenerationRequest;
-    errors: TaskError[];
-  };
-
-  /**
-   * Webhook payload union.
-   */
-  export type WebhookPayload =
-    | WebhookTaskImageCompletedPayload
-    | WebhookTaskImageFailedPayload
-    | WebhookTaskImageRateCompletedPayload
-    | WebhookTaskImageRateFailedPayload
-    | WebhookTaskImageAltCompletedPayload
-    | WebhookTaskImageAltFailedPayload
-    | WebhookTaskImageReviewCompletedPayload
-    | WebhookTaskImageReviewFailedPayload
-    | WebhookTaskImageRemoveBackgroundCompletedPayload
-    | WebhookTaskImageRemoveBackgroundFailedPayload
-    | WebhookTaskImageUpscaleCompletedPayload
-    | WebhookTaskImageUpscaleFailedPayload
-    | WebhookTaskVideoCompletedPayload
-    | WebhookTaskVideoFailedPayload;
+  /** The `type` of every webhook event this SDK version knows. */
+  export type WebhookEventType = WebhookEvent["type"];
 }

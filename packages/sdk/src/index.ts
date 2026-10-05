@@ -49,6 +49,11 @@ import {
 import type { MynthSDKTypes } from "./types.ts";
 import { resolveInputs, uploadImages } from "./uploads.ts";
 import { toVideoGenerationResult, type VideoGenerationResult } from "./video-generation-result.ts";
+import {
+  type MynthWebhookRequest,
+  MynthWebhookVerificationError,
+  verifyWebhook,
+} from "./webhooks/verify.ts";
 
 /**
  * Configuration options for the Mynth client.
@@ -266,6 +271,7 @@ class MynthImage {
    * ```typescript
    * const taskAsync = await image.generateAsync({
    *   prompt: "A futuristic cityscape",
+   *   generate_public_access_token: true,
    * });
    *
    * return { id: taskAsync.id, access: taskAsync.access };
@@ -289,12 +295,7 @@ class MynthImage {
     );
 
     const json = await this.client.post<
-      MynthSDKTypes.ApiResponse<{
-        taskId: string;
-        access?: {
-          publicAccessToken: string;
-        };
-      }>
+      MynthSDKTypes.ApiResponse<MynthSDKTypes.TaskCreatedResponse>
     >(
       GENERATE_IMAGE_PATH,
       {
@@ -308,9 +309,9 @@ class MynthImage {
     const data = json.data;
     type Result = ImageGenerationResult<ExtractMetadata<T>, ExtractRatingResponse<T>>;
 
-    const taskAsync = new TaskAsync<Result>(data.taskId, {
+    const taskAsync = new TaskAsync<Result>(data.task_id, {
       client: this.client,
-      pat: data.access?.publicAccessToken,
+      pat: data.public_access_token,
       resultFactory: (data) =>
         toImageGenerationResult(
           completedTaskFromData(data as MynthSDKTypes.ImageGenerationTaskData, "Image generation"),
@@ -404,7 +405,7 @@ class MynthImage {
     const data = json.data;
     type Result = ImageRateResult<LevelT>;
 
-    const taskAsync = new TaskAsync<Result>(data.taskId, {
+    const taskAsync = new TaskAsync<Result>(data.task_id, {
       client: this.client,
       resultFactory: (taskData) =>
         toImageRateResult<LevelT>(
@@ -466,7 +467,7 @@ class MynthImage {
 
     const data = json.data;
 
-    const taskAsync = new TaskAsync<ImageAltResult>(data.taskId, {
+    const taskAsync = new TaskAsync<ImageAltResult>(data.task_id, {
       client: this.client,
       resultFactory: (taskData) =>
         toImageAltResult(
@@ -520,7 +521,7 @@ class MynthImage {
 
     const data = json.data;
 
-    return new TaskAsync<ImageReviewResult>(data.taskId, {
+    return new TaskAsync<ImageReviewResult>(data.task_id, {
       client: this.client,
       resultFactory: (taskData) =>
         toImageReviewResult(
@@ -560,7 +561,10 @@ class MynthImage {
    *
    * @example
    * ```typescript
-   * const taskAsync = await image.removeBackgroundAsync({ url: "https://..." });
+   * const taskAsync = await image.removeBackgroundAsync({
+   *   url: "https://...",
+   *   generate_public_access_token: true,
+   * });
    *
    * return { id: taskAsync.id, access: taskAsync.access };
    * ```
@@ -593,9 +597,9 @@ class MynthImage {
 
     const data = json.data;
 
-    return new TaskAsync<ImageRemoveBackgroundResult<MetadataT>>(data.taskId, {
+    return new TaskAsync<ImageRemoveBackgroundResult<MetadataT>>(data.task_id, {
       client: this.client,
-      pat: data.access?.publicAccessToken,
+      pat: data.public_access_token,
       resultFactory: (taskData) =>
         toImageRemoveBackgroundResult<MetadataT>(
           completedTaskFromData(
@@ -611,7 +615,7 @@ class MynthImage {
    *
    * Mynth picks the model. `effort` sets the price, so it has no default. The
    * upscaled image can be at most 4096x4096 pixels; a larger request fails
-   * with `OUTPUT_TOO_LARGE` and is not charged.
+   * with `output_too_large` and is not charged.
    *
    * @param request - Image URL or local file, size, and effort, plus optional output, destination, webhook, and metadata
    * @returns An ImageUpscaleResult with the enlarged image
@@ -638,7 +642,12 @@ class MynthImage {
    *
    * @example
    * ```typescript
-   * const taskAsync = await image.upscaleAsync({ url: "https://...", size: "2x", effort: "low" });
+   * const taskAsync = await image.upscaleAsync({
+   *   url: "https://...",
+   *   size: "2x",
+   *   effort: "low",
+   *   generate_public_access_token: true,
+   * });
    *
    * return { id: taskAsync.id, access: taskAsync.access };
    * ```
@@ -667,9 +676,9 @@ class MynthImage {
 
     const data = json.data;
 
-    return new TaskAsync<ImageUpscaleResult<MetadataT>>(data.taskId, {
+    return new TaskAsync<ImageUpscaleResult<MetadataT>>(data.task_id, {
       client: this.client,
-      pat: data.access?.publicAccessToken,
+      pat: data.public_access_token,
       resultFactory: (taskData) =>
         toImageUpscaleResult<MetadataT>(
           completedTaskFromData(taskData as MynthSDKTypes.ImageUpscaleTaskData, "Image upscale"),
@@ -756,7 +765,8 @@ class MynthVideo {
    * Start video generation without waiting for completion.
    *
    * The preferred entry point for server code: hand `taskAsync.id` and
-   * `taskAsync.access.publicAccessToken` to the browser, or register a webhook,
+   * `taskAsync.access.publicAccessToken` to the browser (pass
+   * `generate_public_access_token: true` to get one), or register a webhook,
    * instead of holding a connection open for the length of a render.
    *
    * @param request - Video generation request parameters
@@ -767,6 +777,7 @@ class MynthVideo {
    * const taskAsync = await video.generateAsync({
    *   model: "prunaai/p-video",
    *   prompt: "A neon city street in the rain",
+   *   generate_public_access_token: true,
    * });
    *
    * return { id: taskAsync.id, access: taskAsync.access };
@@ -803,11 +814,11 @@ class MynthVideo {
    * video pins a concrete model, the returned estimate is exact.
    *
    * @param request - The same request you would pass to `generate()`
-   * @returns The estimated cost in USD
+   * @returns The estimated cost in USD, as the API returns it
    *
    * @example
    * ```typescript
-   * const { estimatedCost } = await video.estimate({
+   * const { estimated_cost } = await video.estimate({
    *   model: "google/gemini-omni-flash-1.1",
    *   prompt: "A timelapse of clouds over a canyon",
    *   duration: 10,
@@ -847,9 +858,9 @@ class MynthVideo {
     const data = json.data;
     type Result = VideoGenerationResult<ExtractVideoMetadata<T>>;
 
-    return new TaskAsync<Result>(data.taskId, {
+    return new TaskAsync<Result>(data.task_id, {
       client: this.client,
-      pat: data.access?.publicAccessToken,
+      pat: data.public_access_token,
       polling: VIDEO_POLLING,
       resultFactory: (taskData) =>
         toVideoGenerationResult(
@@ -965,6 +976,9 @@ export {
   TaskAsyncTaskFetchError,
   TaskAsyncTimeoutError,
   TaskAsyncUnauthorizedError,
+  MynthWebhookVerificationError,
+  // Webhooks
+  verifyWebhook,
 };
 export type {
   AvailableModel,
@@ -987,6 +1001,7 @@ export type {
   MynthRequestOptions,
   MynthSDKTypes,
   MynthTaskFailure,
+  MynthWebhookRequest,
   TaskAsyncAccess,
   TaskAsyncWaitOptions,
   VideoGenerationResult,

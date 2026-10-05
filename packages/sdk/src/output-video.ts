@@ -6,8 +6,11 @@ import type { MynthSDKTypes } from "./types.ts";
 export type MynthOutputVideo = {
   /** Video ID */
   id: string;
-  /** Public URL of the video */
-  url: string;
+  /**
+   * Public URL of the video. `null` when it could not be delivered there.
+   * Write `url ?? mynthUrl` where any URL will do.
+   */
+  url: string | null;
   /** Mynth CDN URL. Always set, and served for 7 days. */
   mynthUrl: string;
   /** Cost charged for this video */

@@ -1,117 +1,302 @@
-import { describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
 import type { ImageGenerationResult } from "../image-generation-result.ts";
 import type { ImageUpscaleResult } from "../image-upscale-result.ts";
 import type { MynthSDKTypes } from "../types.ts";
+import { signWebhook, WEBHOOK_EVENTS, WEBHOOK_SECRET, webhookRequest } from "./events.fixture.ts";
 import { handleWebhookRequest, type WebhookEventHandlers } from "./handler.ts";
-import { WEBHOOK_PAYLOADS } from "./payloads.fixture.ts";
 
-const SECRET = "wbs_test";
-const DELIVERY_ID = "tsk_test:dashboard:wbh_test:task.image.generate.completed";
+type Context = { event: MynthSDKTypes.WebhookEvent };
+
+const createContext = (event: MynthSDKTypes.WebhookEvent): Context => ({ event });
+const signed = { webhookSecret: WEBHOOK_SECRET };
+const event = WEBHOOK_EVENTS["task.image.generate.completed"];
 
 function currentTimestamp() {
   return Math.floor(Date.now() / 1000);
 }
 
-async function sign(body: Uint8Array | string, secret = SECRET, timestamp = currentTimestamp()) {
-  const encoder = new TextEncoder();
-  const bodyBytes = typeof body === "string" ? encoder.encode(body) : body;
-  const prefix = encoder.encode(`${timestamp}.`);
-  const message = new Uint8Array(prefix.length + bodyBytes.length);
-  message.set(prefix);
-  message.set(bodyBytes, prefix.length);
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  const signed = await crypto.subtle.sign("HMAC", key, message);
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
-  return Array.from(new Uint8Array(signed))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-function createRequest(body: BodyInit, event: string, signature: string) {
-  return new Request("https://example.com/mynth-webhook", {
-    method: "POST",
-    headers: {
-      "X-Mynth-Event": event,
-      "X-Mynth-Delivery": DELIVERY_ID,
-      "X-Mynth-Signature": signature,
-    },
-    body,
-  });
-}
-
-const event = "task.image.generate.completed";
-const createContext = (deliveryId: string) => ({ deliveryId });
-const body = JSON.stringify(WEBHOOK_PAYLOADS[event]);
-
-describe("handleWebhookRequest", () => {
-  test("passes the delivery ID to the context factory", async () => {
+describe("handleWebhookRequest with a signed delivery", () => {
+  test("hands the callback the verified event in its context", async () => {
     // Arrange
-    const timestamp = currentTimestamp();
-    const request = createRequest(
-      body,
-      event,
-      `t=${timestamp},v1=${await sign(body, SECRET, timestamp)}`,
-    );
     const imageTaskCompleted = vi.fn();
 
     // Act
-    const response = await handleWebhookRequest(request, { imageTaskCompleted }, createContext, {
-      webhookSecret: SECRET,
-    });
+    const response = await handleWebhookRequest(
+      await webhookRequest(event),
+      { imageTaskCompleted },
+      createContext,
+      signed,
+    );
 
     // Assert
     expect({ status: response.status, calls: imageTaskCompleted.mock.calls }).toEqual({
       status: 200,
-      calls: [[expect.objectContaining({ taskId: "tsk_generate" }), { deliveryId: DELIVERY_ID }]],
+      calls: [[expect.objectContaining({ taskId: "tsk_generate" }), { event }]],
     });
   });
 
-  test("rejects signed requests without a delivery ID", async () => {
+  test("reads the secret from MYNTH_WEBHOOK_SECRET when it is not passed", async () => {
     // Arrange
-    const timestamp = currentTimestamp();
-    const request = createRequest(
-      body,
-      event,
-      `t=${timestamp},v1=${await sign(body, SECRET, timestamp)}`,
-    );
-    request.headers.delete("X-Mynth-Delivery");
-    const imageTaskCompleted = vi.fn();
+    vi.stubEnv("MYNTH_WEBHOOK_SECRET", WEBHOOK_SECRET);
 
     // Act
-    const response = await handleWebhookRequest(request, { imageTaskCompleted }, createContext, {
-      webhookSecret: SECRET,
-    });
+    const response = await handleWebhookRequest(await webhookRequest(event), {}, createContext, {});
 
     // Assert
-    expect({ status: response.status, calls: imageTaskCompleted.mock.calls }).toEqual({
-      status: 400,
-      calls: [],
-    });
+    expect(response.status).toBe(200);
   });
 
-  test("accepts any matching v1 signature so secrets can rotate", async () => {
+  test.each(["webhook-id", "webhook-timestamp", "webhook-signature"])(
+    "rejects a delivery without %s",
+    async (header) => {
+      // Arrange
+      const request = await webhookRequest(event);
+      request.headers.delete(header);
+      const imageTaskCompleted = vi.fn();
+
+      // Act
+      const response = await handleWebhookRequest(
+        request,
+        { imageTaskCompleted },
+        createContext,
+        signed,
+      );
+
+      // Assert
+      expect({ status: response.status, calls: imageTaskCompleted.mock.calls }).toEqual({
+        status: 400,
+        calls: [],
+      });
+    },
+  );
+
+  test("rejects a replay that keeps the body and signature but changes the webhook-id", async () => {
+    // Arrange: a delivery ID the receiver has not seen yet, to slip past its dedup.
+    const original = await webhookRequest(event);
+    const replay = new Request(original.url, {
+      method: "POST",
+      headers: { ...Object.fromEntries(original.headers), "webhook-id": "evt_replayed" },
+      body: JSON.stringify(event),
+    });
+
+    // Act
+    const response = await handleWebhookRequest(replay, {}, createContext, signed);
+
+    // Assert
+    expect(response.status).toBe(400);
+  });
+
+  test("rejects a body whose id is not the webhook-id", async () => {
+    // Arrange
+    const request = await webhookRequest(
+      { id: event.id },
+      { body: JSON.stringify({ ...event, id: "evt_other" }) },
+    );
+
+    // Act
+    const response = await handleWebhookRequest(request, {}, createContext, signed);
+
+    // Assert
+    expect(response.status).toBe(400);
+  });
+
+  test("accepts any matching v1 signature, so a list of them verifies", async () => {
     // Arrange
     const timestamp = currentTimestamp();
-    const oldSignature = await sign(body, "wbs_old", timestamp);
-    const newSignature = await sign(body, SECRET, timestamp);
-    const request = createRequest(
+    const body = JSON.stringify(event);
+    const other = await signWebhook(
       body,
-      event,
-      `t=${timestamp},v1=${oldSignature},v1=${newSignature}`,
+      event.id,
+      timestamp,
+      "whsec_dGhpcyBpcyBhbm90aGVyIHNlY3JldCBlbnRpcmVseQ==",
     );
+    const request = new Request("https://example.com/mynth-webhook", {
+      method: "POST",
+      headers: {
+        "webhook-id": event.id,
+        "webhook-timestamp": String(timestamp),
+        "webhook-signature": `v2,ignored ${other} ${await signWebhook(body, event.id, timestamp)}`,
+      },
+      body,
+    });
+
+    // Act
+    const response = await handleWebhookRequest(request, {}, createContext, signed);
+
+    // Assert
+    expect(response.status).toBe(200);
+  });
+
+  test.each([
+    ["more than five minutes old", -301],
+    ["more than five minutes in the future", 301],
+  ])("rejects a timestamp %s", async (_, offset) => {
+    // Arrange
+    const request = await webhookRequest(event, { timestamp: currentTimestamp() + offset });
+
+    // Act
+    const response = await handleWebhookRequest(request, {}, createContext, signed);
+
+    // Assert
+    expect(response.status).toBe(400);
+  });
+
+  test("rejects a signature made with another secret", async () => {
+    // Arrange
+    const request = await webhookRequest(event, {
+      secret: "whsec_dGhpcyBpcyBhbm90aGVyIHNlY3JldCBlbnRpcmVseQ==",
+    });
+
+    // Act
+    const response = await handleWebhookRequest(request, {}, createContext, signed);
+
+    // Assert
+    expect(response.status).toBe(400);
+  });
+
+  test("verifies the raw body bytes and rejects a body that is not UTF-8", async () => {
+    // Arrange
+    const timestamp = currentTimestamp();
+    const body = new Uint8Array([0xff, 0xfe, 0xfd]);
+    const key = await crypto.subtle.importKey(
+      "raw",
+      Uint8Array.from(atob(WEBHOOK_SECRET.slice(6)), (char) => char.charCodeAt(0)),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    const prefix = new TextEncoder().encode(`${event.id}.${timestamp}.`);
+    const message = new Uint8Array([...prefix, ...body]);
+    const signature = new Uint8Array(await crypto.subtle.sign("HMAC", key, message));
+    const request = new Request("https://example.com/mynth-webhook", {
+      method: "POST",
+      headers: {
+        "webhook-id": event.id,
+        "webhook-timestamp": String(timestamp),
+        "webhook-signature": `v1,${btoa(String.fromCharCode(...signature))}`,
+      },
+      body,
+    });
+
+    // Act
+    const response = await handleWebhookRequest(request, {}, createContext, signed);
+
+    // Assert
+    expect(response.status).toBe(400);
+  });
+
+  test("throws without a secret, so the misconfiguration is not answered as a bad request", async () => {
+    // Arrange
+    vi.stubEnv("MYNTH_WEBHOOK_SECRET", "");
+
+    // Act
+    const handle = handleWebhookRequest(await webhookRequest(event), {}, createContext, {});
+
+    // Assert
+    await expect(handle).rejects.toThrow("MYNTH_WEBHOOK_SECRET is required");
+  });
+
+  test("acknowledges an event type newer than this SDK", async () => {
+    // Arrange
+    const newer = { ...event, id: "evt_newer", type: "task.audio.generate.completed" };
+    const imageTaskCompleted = vi.fn();
+    const onEvent = vi.fn();
+
+    // Act
+    const response = await handleWebhookRequest(
+      await webhookRequest(newer),
+      { imageTaskCompleted, onEvent },
+      createContext,
+      signed,
+    );
+
+    // Assert
+    expect({
+      status: response.status,
+      typed: imageTaskCompleted.mock.calls.length,
+      generic: onEvent.mock.calls.map(([received]) => received.type),
+    }).toEqual({ status: 200, typed: 0, generic: ["task.audio.generate.completed"] });
+  });
+
+  test("acknowledges an event type named after an Object.prototype member without dispatching", async () => {
+    // Arrange
+    const prototypeEvent = { ...event, id: "evt_constructor", type: "constructor" };
+
+    // Act
+    const response = await handleWebhookRequest(
+      await webhookRequest(prototypeEvent),
+      {},
+      createContext,
+      signed,
+    );
+
+    // Assert
+    expect(response.status).toBe(200);
+  });
+
+  test("hands onEvent the event before the typed callback runs", async () => {
+    // Arrange
+    const order: string[] = [];
+    const onEvent = vi.fn(() => {
+      order.push("onEvent");
+    });
+    const imageTaskCompleted = vi.fn(() => {
+      order.push("imageTaskCompleted");
+    });
+
+    // Act
+    await handleWebhookRequest(
+      await webhookRequest(event),
+      { onEvent, imageTaskCompleted },
+      createContext,
+      signed,
+    );
+
+    // Assert
+    expect({ order, onEvent: onEvent.mock.calls[0] }).toEqual({
+      order: ["onEvent", "imageTaskCompleted"],
+      onEvent: [event, { event }],
+    });
+  });
+});
+
+describe("handleWebhookRequest with an unsigned delivery", () => {
+  const url = "https://example.com/mynth-webhook?token=secret-token";
+  const unsigned = {
+    unsigned: {
+      verify: (request: Request) =>
+        new URL(request.url).searchParams.get("token") === "secret-token",
+    },
+  };
+
+  test("rejects it with 400 unless unsigned deliveries are accepted", async () => {
+    // Arrange
+    const request = await webhookRequest(event, { url, signed: false });
+
+    // Act
+    const response = await handleWebhookRequest(request, {}, createContext, signed);
+
+    // Assert
+    expect(response.status).toBe(400);
+  });
+
+  test("dispatches it when verify accepts the request", async () => {
+    // Arrange
+    const request = await webhookRequest(event, { url, signed: false });
     const imageTaskCompleted = vi.fn();
 
     // Act
-    const response = await handleWebhookRequest(request, { imageTaskCompleted }, createContext, {
-      webhookSecret: SECRET,
-    });
+    const response = await handleWebhookRequest(
+      request,
+      { imageTaskCompleted },
+      createContext,
+      unsigned,
+    );
 
     // Assert
     expect({ status: response.status, calls: imageTaskCompleted.mock.calls.length }).toEqual({
@@ -120,109 +305,64 @@ describe("handleWebhookRequest", () => {
     });
   });
 
-  test("rejects signatures more than five minutes in the future", async () => {
+  test("answers 401 when verify refuses the request", async () => {
     // Arrange
-    const timestamp = currentTimestamp() + 301;
-    const request = createRequest(
-      body,
-      event,
-      `t=${timestamp},v1=${await sign(body, SECRET, timestamp)}`,
+    const request = await webhookRequest(event, {
+      url: "https://example.com/mynth-webhook?token=guess",
+      signed: false,
+    });
+    const imageTaskCompleted = vi.fn();
+
+    // Act
+    const response = await handleWebhookRequest(
+      request,
+      { imageTaskCompleted },
+      createContext,
+      unsigned,
+    );
+
+    // Assert
+    expect({ status: response.status, calls: imageTaskCompleted.mock.calls }).toEqual({
+      status: 401,
+      calls: [],
+    });
+  });
+
+  test("still needs the webhook-id and a body that matches it", async () => {
+    // Arrange
+    const request = await webhookRequest(
+      { id: event.id },
+      { url, signed: false, body: JSON.stringify({ ...event, id: "evt_other" }) },
     );
 
     // Act
-    const response = await handleWebhookRequest(request, {}, createContext, {
-      webhookSecret: SECRET,
-    });
+    const response = await handleWebhookRequest(request, {}, createContext, unsigned);
 
     // Assert
     expect(response.status).toBe(400);
   });
 
-  test("rejects signatures made with another secret", async () => {
+  test("needs no secret", async () => {
     // Arrange
-    const timestamp = currentTimestamp();
-    const request = createRequest(
-      body,
-      event,
-      `t=${timestamp},v1=${await sign(body, "wbs_other", timestamp)}`,
-    );
+    vi.stubEnv("MYNTH_WEBHOOK_SECRET", "");
+    const request = await webhookRequest(event, { url, signed: false });
 
     // Act
-    const response = await handleWebhookRequest(request, {}, createContext, {
-      webhookSecret: SECRET,
-    });
-
-    // Assert
-    expect(response.status).toBe(400);
-  });
-
-  test("rejects signatures that are not 32-byte hex digests", async () => {
-    // Arrange
-    const request = createRequest(body, event, `t=${currentTimestamp()},v1=zz`);
-
-    // Act
-    const response = await handleWebhookRequest(request, {}, createContext, {
-      webhookSecret: SECRET,
-    });
-
-    // Assert
-    expect(response.status).toBe(400);
-  });
-
-  test("verifies the raw body bytes and rejects bodies that are not UTF-8", async () => {
-    // Arrange
-    const rawBody = new Uint8Array([0xff, 0xfe, 0x7b, 0x7d]);
-    const timestamp = currentTimestamp();
-    const request = createRequest(
-      rawBody,
-      event,
-      `t=${timestamp},v1=${await sign(rawBody, SECRET, timestamp)}`,
-    );
-
-    // Act
-    const response = await handleWebhookRequest(request, {}, createContext, {
-      webhookSecret: SECRET,
-    });
-
-    // Assert
-    expect(response.status).toBe(400);
-  });
-
-  test("acknowledges signed events named after Object.prototype members without dispatching", async () => {
-    // Arrange
-    const prototypeEvent = "constructor";
-    const prototypeBody = JSON.stringify({ event: prototypeEvent, task: { id: "tsk_test" } });
-    const timestamp = currentTimestamp();
-    const request = createRequest(
-      prototypeBody,
-      prototypeEvent,
-      `t=${timestamp},v1=${await sign(prototypeBody, SECRET, timestamp)}`,
-    );
-
-    // Act
-    const response = await handleWebhookRequest(request, {}, createContext, {
-      webhookSecret: SECRET,
-    });
+    const response = await handleWebhookRequest(request, {}, createContext, unsigned);
 
     // Assert
     expect(response.status).toBe(200);
   });
 });
 
-/** Signs `payload` and runs it through the handler, the way Mynth delivers it. */
-async function deliver(
-  payload: { event: string },
-  eventHandlers: WebhookEventHandlers<{ deliveryId: string }>,
-) {
-  const payloadBody = JSON.stringify(payload);
-  const timestamp = currentTimestamp();
-  const request = createRequest(
-    payloadBody,
-    payload.event,
-    `t=${timestamp},v1=${await sign(payloadBody, SECRET, timestamp)}`,
+/** Signs `event` and runs it through the handler, the way Mynth delivers it. */
+async function deliver(delivered: { id: string }, eventHandlers: WebhookEventHandlers<Context>) {
+  return handleWebhookRequest(
+    await webhookRequest(delivered),
+    eventHandlers,
+    createContext,
+    signed,
   );
-
-  return handleWebhookRequest(request, eventHandlers, createContext, { webhookSecret: SECRET });
 }
 
 describe("handleWebhookRequest callback arguments", () => {
@@ -234,13 +374,13 @@ describe("handleWebhookRequest callback arguments", () => {
     ["task.image.remove_background.completed", "imageRemoveBackgroundTaskCompleted"],
     ["task.image.upscale.completed", "imageUpscaleTaskCompleted"],
     ["task.video.generate.completed", "videoTaskCompleted"],
-  ] as const)("%s hands %s the result polling returns", async (event, handlerName) => {
+  ] as const)("%s hands %s the result polling returns", async (type, handlerName) => {
     // Arrange
-    const payload = WEBHOOK_PAYLOADS[event];
+    const completed = WEBHOOK_EVENTS[type];
     const callback = vi.fn();
 
     // Act
-    await deliver(payload, { [handlerName]: callback });
+    await deliver(completed, { [handlerName]: callback });
     const [result] = callback.mock.calls[0] ?? [];
 
     // Assert
@@ -249,9 +389,9 @@ describe("handleWebhookRequest callback arguments", () => {
       cost: result.cost,
       raw: result.raw,
     }).toEqual({
-      taskId: payload.task.id,
-      cost: payload.task.cost,
-      raw: { request: payload.request, result: payload.result },
+      taskId: completed.data.id,
+      cost: completed.data.cost,
+      raw: { request: completed.data.request, result: completed.data.result },
     });
   });
 
@@ -260,7 +400,7 @@ describe("handleWebhookRequest callback arguments", () => {
     const imageTaskCompleted = vi.fn();
 
     // Act
-    await deliver(WEBHOOK_PAYLOADS["task.image.generate.completed"], { imageTaskCompleted });
+    await deliver(WEBHOOK_EVENTS["task.image.generate.completed"], { imageTaskCompleted });
     const result: ImageGenerationResult = imageTaskCompleted.mock.calls[0]?.[0];
 
     // Assert
@@ -281,7 +421,7 @@ describe("handleWebhookRequest callback arguments", () => {
         destination: undefined,
         rating: undefined,
       },
-      failures: [{ code: "PROVIDER_ERROR", message: "The provider failed." }],
+      failures: [{ code: "provider_error", message: "The provider failed." }],
       metadata: { productId: "sku_1" },
     });
   });
@@ -291,7 +431,7 @@ describe("handleWebhookRequest callback arguments", () => {
     const imageUpscaleTaskCompleted = vi.fn();
 
     // Act
-    await deliver(WEBHOOK_PAYLOADS["task.image.upscale.completed"], { imageUpscaleTaskCompleted });
+    await deliver(WEBHOOK_EVENTS["task.image.upscale.completed"], { imageUpscaleTaskCompleted });
     const result: ImageUpscaleResult = imageUpscaleTaskCompleted.mock.calls[0]?.[0];
 
     // Assert
@@ -306,20 +446,20 @@ describe("handleWebhookRequest callback arguments", () => {
     ["task.image.remove_background.failed", "imageRemoveBackgroundTaskFailed"],
     ["task.image.upscale.failed", "imageUpscaleTaskFailed"],
     ["task.video.generate.failed", "videoTaskFailed"],
-  ] as const)("%s hands %s the failure with its metadata", async (event, handlerName) => {
+  ] as const)("%s hands %s the failure with its metadata", async (type, handlerName) => {
     // Arrange
-    const payload = WEBHOOK_PAYLOADS[event];
+    const failed = WEBHOOK_EVENTS[type];
     const callback = vi.fn();
 
     // Act
-    await deliver(payload, { [handlerName]: callback });
+    await deliver(failed, { [handlerName]: callback });
 
     // Assert
     expect(callback.mock.calls[0]?.[0]).toEqual({
-      taskId: payload.task.id,
-      errors: payload.errors,
+      taskId: failed.data.id,
+      errors: failed.data.errors,
       metadata: { productId: "sku_1" },
-      raw: { request: payload.request },
+      raw: { request: failed.data.request },
     });
   });
 
@@ -327,44 +467,42 @@ describe("handleWebhookRequest callback arguments", () => {
     ["task.image.rate.failed", "imageRateTaskFailed"],
     ["task.image.alt.failed", "imageAltTaskFailed"],
     ["task.image.review.failed", "imageReviewTaskFailed"],
-  ] as const)("%s hands %s the failure", async (event, handlerName) => {
+  ] as const)("%s hands %s the failure", async (type, handlerName) => {
     // Arrange
-    const payload = WEBHOOK_PAYLOADS[event];
+    const failed = WEBHOOK_EVENTS[type];
     const callback = vi.fn();
 
     // Act
-    await deliver(payload, { [handlerName]: callback });
+    await deliver(failed, { [handlerName]: callback });
 
     // Assert
     expect(callback.mock.calls[0]?.[0]).toStrictEqual({
-      taskId: payload.task.id,
-      errors: payload.errors,
-      raw: { request: payload.request },
+      taskId: failed.data.id,
+      errors: failed.data.errors,
+      raw: { request: failed.data.request },
     });
   });
 
-  test("rejects a completed payload without a cost so Mynth retries it", async () => {
+  test("rejects a completed event without a cost so Mynth retries it", async () => {
     // Arrange
-    const { task, ...rest } = WEBHOOK_PAYLOADS["task.image.alt.completed"];
-    const payload = { ...rest, task: { id: task.id } };
+    const completed = WEBHOOK_EVENTS["task.image.alt.completed"];
+    const withoutCost = { ...completed, data: { ...completed.data, cost: null } };
     const imageAltTaskCompleted = vi.fn();
 
     // Act
-    const delivery = deliver(payload, { imageAltTaskCompleted });
+    const delivery = deliver(withoutCost, { imageAltTaskCompleted });
 
     // Assert
-    await expect(delivery).rejects.toThrow("Webhook for task tsk_alt is missing cost");
+    await expect(delivery).rejects.toThrow("Webhook task tsk_alt is missing cost");
   });
 
-  test("acknowledges a payload it cannot build when no callback handles the event", async () => {
+  test("acknowledges an event it cannot build when no callback handles the event", async () => {
     // Arrange
-    const { task, ...rest } = WEBHOOK_PAYLOADS["task.image.alt.completed"];
-    const payload: Omit<MynthSDKTypes.WebhookTaskImageAltCompletedPayload, "task"> & {
-      task: { id: string };
-    } = { ...rest, task: { id: task.id } };
+    const completed = WEBHOOK_EVENTS["task.image.alt.completed"];
+    const withoutCost = { ...completed, data: { ...completed.data, cost: null } };
 
     // Act
-    const response = await deliver(payload, { imageTaskCompleted: vi.fn() });
+    const response = await deliver(withoutCost, { imageTaskCompleted: vi.fn() });
 
     // Assert
     expect(response.status).toBe(200);

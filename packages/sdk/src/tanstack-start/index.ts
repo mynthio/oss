@@ -1,3 +1,4 @@
+import type { MynthSDKTypes } from "../types.ts";
 import {
   handleWebhookRequest,
   type WebhookEventHandlers,
@@ -16,16 +17,16 @@ export type MynthTanStackStartHandlerContext<
   context: TContext;
 };
 
-/** What event callbacks receive: the route context plus the delivery ID. */
+/** What event callbacks receive: the route context plus the verified event. */
 export type MynthTanStackStartEventContext<
   TContext = unknown,
   TParams extends Record<string, string> = Record<string, string>,
 > = MynthTanStackStartHandlerContext<TContext, TParams> & {
   /**
-   * The `X-Mynth-Delivery` ID. Every retry of a delivery repeats it, so store
-   * it and skip IDs you have already handled.
+   * The verified event. `event.id` is the `webhook-id`: every delivery of the
+   * event repeats it, so store it and skip IDs you have already handled.
    */
-  deliveryId: string;
+  event: MynthSDKTypes.WebhookEvent;
 };
 
 export type MynthTanStackStartEventHandlers<
@@ -35,7 +36,7 @@ export type MynthTanStackStartEventHandlers<
 
 export type MynthTanStackStartHandlerOptions = WebhookHandlerOptions;
 
-/** Create a TanStack Start server route handler for signed Mynth webhooks. */
+/** Create a TanStack Start server route handler for Mynth webhooks. */
 export function mynthWebhookHandler<
   TContext = unknown,
   TParams extends Record<string, string> = Record<string, string>,
@@ -48,7 +49,7 @@ export function mynthWebhookHandler<
     handleWebhookRequest(
       context.request.clone(),
       eventHandlers,
-      (deliveryId) => ({ ...context, deliveryId }),
+      (event) => ({ ...context, event }),
       options,
     );
 }

@@ -1,5 +1,6 @@
 import { httpActionGeneric, type GenericActionCtx, type PublicHttpAction } from "convex/server";
 
+import type { MynthSDKTypes } from "../types.ts";
 import {
   handleWebhookRequest,
   type WebhookEventHandlers,
@@ -15,10 +16,10 @@ export type MynthWebhookActionContext<T extends AnyActionCtx = AnyActionCtx> = {
   /** The request received by the Convex HTTP action. Its body has already been read. */
   request: Request;
   /**
-   * The `X-Mynth-Delivery` ID. Every retry of a delivery repeats it, so store
-   * it and skip IDs you have already handled.
+   * The verified event. `event.id` is the `webhook-id`: every delivery of the
+   * event repeats it, so store it and skip IDs you have already handled.
    */
-  deliveryId: string;
+  event: MynthSDKTypes.WebhookEvent;
 };
 
 /**
@@ -34,7 +35,7 @@ export type EventHandlers<T extends AnyActionCtx = AnyActionCtx> = WebhookEventH
 export type MynthWebhookActionOptions = WebhookHandlerOptions;
 
 /**
- * Create a Convex HTTP action for signed Mynth webhooks.
+ * Create a Convex HTTP action for Mynth webhooks.
  *
  * @example
  * ```typescript
@@ -67,11 +68,6 @@ export function mynthWebhookAction(
   options: MynthWebhookActionOptions = {},
 ): PublicHttpAction {
   return httpActionGeneric((context, request) =>
-    handleWebhookRequest(
-      request,
-      eventHandlers,
-      (deliveryId) => ({ context, request, deliveryId }),
-      options,
-    ),
+    handleWebhookRequest(request, eventHandlers, (event) => ({ context, request, event }), options),
   );
 }

@@ -1,3 +1,4 @@
+import type { MynthSDKTypes } from "../types.ts";
 import {
   handleWebhookRequest,
   type WebhookEventHandlers,
@@ -8,10 +9,10 @@ export type MynthWebhookHandlerContext = {
   /** The original request received by the Next.js Route Handler. */
   request: Request;
   /**
-   * The `X-Mynth-Delivery` ID. Every retry of a delivery repeats it, so store
-   * it and skip IDs you have already handled.
+   * The verified event. `event.id` is the `webhook-id`: every delivery of the
+   * event repeats it, so store it and skip IDs you have already handled.
    */
-  deliveryId: string;
+  event: MynthSDKTypes.WebhookEvent;
 };
 
 export type MynthWebhookEventHandlers = WebhookEventHandlers<MynthWebhookHandlerContext>;
@@ -19,7 +20,7 @@ export type MynthWebhookEventHandlers = WebhookEventHandlers<MynthWebhookHandler
 export type MynthWebhookHandlerOptions = WebhookHandlerOptions;
 
 /**
- * Create a Next.js App Router handler for signed Mynth webhooks.
+ * Create a Next.js App Router handler for Mynth webhooks.
  *
  * @example
  * ```ts
@@ -27,8 +28,8 @@ export type MynthWebhookHandlerOptions = WebhookHandlerOptions;
  * import { mynthWebhookHandler } from "@mynthio/sdk/next";
  *
  * export const POST = mynthWebhookHandler({
- *   imageTaskCompleted: async (result, { deliveryId }) => {
- *     console.log(deliveryId, result.taskId);
+ *   imageTaskCompleted: async (result, { event }) => {
+ *     console.log(event.id, result.taskId);
  *   },
  * });
  * ```
@@ -38,10 +39,5 @@ export function mynthWebhookHandler(
   options: MynthWebhookHandlerOptions = {},
 ): (request: Request) => Promise<Response> {
   return (request) =>
-    handleWebhookRequest(
-      request,
-      eventHandlers,
-      (deliveryId) => ({ request, deliveryId }),
-      options,
-    );
+    handleWebhookRequest(request, eventHandlers, (event) => ({ request, event }), options);
 }

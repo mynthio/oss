@@ -6,11 +6,11 @@ import { API_URL } from "./constants.ts";
 export class MynthAPIError extends Error {
   /** HTTP status code of the failed request */
   public readonly status: number;
-  /** Error code from the API response, if available */
+  /** Error code from the API response, if available, e.g. `insufficient_balance` */
   public readonly code?: string | undefined;
   /**
-   * One entry per invalid field when `code` is `VALIDATION_ERROR` and the
-   * request failed its schema. `message` already states all of them.
+   * One entry per invalid or unknown field when `code` is `validation_error`.
+   * `message` already states all of them.
    */
   public readonly issues?: ReadonlyArray<MynthAPIErrorIssue> | undefined;
 
@@ -34,11 +34,13 @@ export type MynthAPIErrorIssue = {
   message: string;
 };
 
+/** Every API error answers `{ "error": { code, message?, issues? } }`. */
 type APIErrorResponse = {
-  error?: unknown;
-  message?: unknown;
-  code?: unknown;
-  issues?: unknown;
+  error?: {
+    code?: unknown;
+    message?: unknown;
+    issues?: unknown;
+  };
 };
 
 type MynthClientRequestOptions = {
@@ -49,15 +51,12 @@ type MynthClientRequestOptions = {
 };
 
 function createApiError(data: unknown, status: number) {
-  const errorResponse = (typeof data === "object" && data !== null ? data : {}) as APIErrorResponse;
+  const body = (typeof data === "object" && data !== null ? data : {}) as APIErrorResponse;
+  const error = typeof body.error === "object" && body.error !== null ? body.error : {};
   const message =
-    (typeof errorResponse.message === "string" && errorResponse.message) ||
-    (typeof errorResponse.error === "string" && errorResponse.error) ||
-    `Request failed with status ${status}`;
-  const code = typeof errorResponse.code === "string" ? errorResponse.code : undefined;
-  const issues = Array.isArray(errorResponse.issues)
-    ? (errorResponse.issues as MynthAPIErrorIssue[])
-    : undefined;
+    (typeof error.message === "string" && error.message) || `Request failed with status ${status}`;
+  const code = typeof error.code === "string" ? error.code : undefined;
+  const issues = Array.isArray(error.issues) ? (error.issues as MynthAPIErrorIssue[]) : undefined;
 
   return new MynthAPIError(message, status, code, issues);
 }

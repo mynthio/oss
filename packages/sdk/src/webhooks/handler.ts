@@ -14,11 +14,14 @@ import {
 } from "../task-result.ts";
 import type { MynthSDKTypes } from "../types.ts";
 import { toVideoGenerationResult, type VideoGenerationResult } from "../video-generation-result.ts";
-import { getWebhookSecretFromEnv, verifySignature } from "./utils.ts";
-
-const WEBHOOK_EVENT_HEADER = "X-Mynth-Event";
-const WEBHOOK_DELIVERY_HEADER = "X-Mynth-Delivery";
-const WEBHOOK_SIGNATURE_HEADER = "X-Mynth-Signature";
+import {
+  getWebhookSecretFromEnv,
+  parseWebhookEvent,
+  verifySignature,
+  WEBHOOK_ID_HEADER,
+  WEBHOOK_SIGNATURE_HEADER,
+  WEBHOOK_TIMESTAMP_HEADER,
+} from "./utils.ts";
 
 /** Maps every webhook event to the callback name the framework helpers accept. */
 const EVENT_HANDLER_NAMES = {
@@ -38,13 +41,13 @@ const EVENT_HANDLER_NAMES = {
   "task.video.generate.failed": "videoTaskFailed",
 } as const;
 
-// Indexing EVENT_HANDLER_NAMES and WebhookEventArguments with every payload
-// event below is what fails to compile when a new event is not wired up.
-type WebhookEvent = MynthSDKTypes.WebhookPayload["event"];
+// Indexing EVENT_HANDLER_NAMES and WebhookEventArguments with every event type
+// below is what fails to compile when a new event is not wired up.
+type WebhookEventType = MynthSDKTypes.WebhookEventType;
 
-type WebhookEventPayload<TEvent extends WebhookEvent> = Extract<
-  MynthSDKTypes.WebhookPayload,
-  { event: TEvent }
+type WebhookEventOfType<TType extends WebhookEventType> = Extract<
+  MynthSDKTypes.WebhookEvent,
+  { type: TType }
 >;
 
 /**
@@ -68,55 +71,69 @@ type WebhookEventArguments = {
   "task.video.generate.failed": MynthTaskFailure<MynthSDKTypes.VideoGenerationRequest>;
 };
 
-/** Builds each event's callback argument from its payload. */
+/** Builds each event's callback argument from the event. */
 const EVENT_ARGUMENTS: {
-  [TEvent in WebhookEvent]: (payload: WebhookEventPayload<TEvent>) => WebhookEventArguments[TEvent];
+  [TType in WebhookEventType]: (event: WebhookEventOfType<TType>) => WebhookEventArguments[TType];
 } = {
-  "task.image.generate.completed": (payload) =>
-    toImageGenerationResult(completedTaskFromWebhook(payload)),
-  "task.image.generate.failed": (payload) => ({
-    ...taskFailureFromWebhook(payload),
-    metadata: payload.request.metadata,
+  "task.image.generate.completed": (event) =>
+    toImageGenerationResult(completedTaskFromWebhook(event)),
+  "task.image.generate.failed": (event) => ({
+    ...taskFailureFromWebhook(event),
+    metadata: event.data.request.metadata,
   }),
-  "task.image.rate.completed": (payload) =>
-    toImageRateResult<string>(completedTaskFromWebhook(payload)),
+  "task.image.rate.completed": (event) =>
+    toImageRateResult<string>(completedTaskFromWebhook(event)),
   "task.image.rate.failed": taskFailureFromWebhook,
-  "task.image.alt.completed": (payload) => toImageAltResult(completedTaskFromWebhook(payload)),
+  "task.image.alt.completed": (event) => toImageAltResult(completedTaskFromWebhook(event)),
   "task.image.alt.failed": taskFailureFromWebhook,
-  "task.image.review.completed": (payload) =>
-    toImageReviewResult(completedTaskFromWebhook(payload)),
+  "task.image.review.completed": (event) => toImageReviewResult(completedTaskFromWebhook(event)),
   "task.image.review.failed": taskFailureFromWebhook,
-  "task.image.remove_background.completed": (payload) =>
-    toImageRemoveBackgroundResult(completedTaskFromWebhook(payload)),
-  "task.image.remove_background.failed": (payload) => ({
-    ...taskFailureFromWebhook(payload),
-    metadata: payload.request.metadata,
+  "task.image.remove_background.completed": (event) =>
+    toImageRemoveBackgroundResult(completedTaskFromWebhook(event)),
+  "task.image.remove_background.failed": (event) => ({
+    ...taskFailureFromWebhook(event),
+    metadata: event.data.request.metadata,
   }),
-  "task.image.upscale.completed": (payload) =>
-    toImageUpscaleResult(completedTaskFromWebhook(payload)),
-  "task.image.upscale.failed": (payload) => ({
-    ...taskFailureFromWebhook(payload),
-    metadata: payload.request.metadata,
+  "task.image.upscale.completed": (event) => toImageUpscaleResult(completedTaskFromWebhook(event)),
+  "task.image.upscale.failed": (event) => ({
+    ...taskFailureFromWebhook(event),
+    metadata: event.data.request.metadata,
   }),
-  "task.video.generate.completed": (payload) =>
-    toVideoGenerationResult(completedTaskFromWebhook(payload)),
-  "task.video.generate.failed": (payload) => ({
-    ...taskFailureFromWebhook(payload),
-    metadata: payload.request.metadata,
+  "task.video.generate.completed": (event) =>
+    toVideoGenerationResult(completedTaskFromWebhook(event)),
+  "task.video.generate.failed": (event) => ({
+    ...taskFailureFromWebhook(event),
+    metadata: event.data.request.metadata,
   }),
 };
 
-/** Event callbacks shared by every framework helper, keyed by handler name. */
+/**
+ * Event callbacks shared by every framework helper, keyed by handler name,
+ * and `onEvent`, which receives every event, including types newer than this
+ * SDK, before its typed callback runs. `TContext` carries the verified event:
+ * deduplicate on `event.id`, which every delivery repeats.
+ */
 export type WebhookEventHandlers<TContext> = {
-  [TEvent in WebhookEvent as (typeof EVENT_HANDLER_NAMES)[TEvent]]?: (
-    argument: WebhookEventArguments[TEvent],
+  [TType in WebhookEventType as (typeof EVENT_HANDLER_NAMES)[TType]]?: (
+    argument: WebhookEventArguments[TType],
     context: TContext,
   ) => void | Promise<void>;
+} & {
+  onEvent?: (event: MynthSDKTypes.WebhookEvent, context: TContext) => void | Promise<void>;
 };
 
 export type WebhookHandlerOptions = {
   /** Defaults to MYNTH_WEBHOOK_SECRET, read when each request arrives. */
   webhookSecret?: string;
+  /**
+   * Accept unsigned deliveries: a custom webhook URL set on the request.
+   * Signatures are not checked at all; `verify` decides instead, usually by
+   * checking a secret token you put in the URL. Answers `401` when it returns
+   * `false`. Without this, an unsigned delivery answers `400`.
+   */
+  unsigned?: {
+    verify: (request: Request) => boolean | Promise<boolean>;
+  };
 };
 
 type AnyWebhookEventHandler<TContext> = (
@@ -125,81 +142,69 @@ type AnyWebhookEventHandler<TContext> = (
 ) => void | Promise<void>;
 
 /**
- * Verify a signed Mynth webhook request and dispatch it to the matching callback.
+ * Verify a Mynth webhook request and dispatch its event to the matching callback.
  *
- * Answers `400` for a missing delivery ID, a missing or invalid signature, a
- * stale timestamp, a malformed body, or an `X-Mynth-Event` header that does
- * not match the body.
- * Answers `200` for signed events without a callback. Callback errors, and
- * payloads that do not build into a result, propagate, so the framework
- * answers `5xx` and Mynth retries the delivery.
+ * Signed deliveries (registered webhooks) answer `400` for a missing header, a
+ * missing or invalid signature, a timestamp more than five minutes off, a
+ * malformed body, or a body `id` other than `webhook-id`. Unsigned deliveries
+ * (custom URLs) are accepted only with the `unsigned` option, and answer `401`
+ * when its `verify` refuses them.
+ *
+ * Answers `200` for events without a callback, including event types newer
+ * than this SDK. Callback errors, and events that do not build into a result,
+ * propagate, so the framework answers `5xx` and Mynth retries the delivery.
  */
 export async function handleWebhookRequest<TContext>(
   request: Request,
   eventHandlers: WebhookEventHandlers<TContext>,
-  createContext: (deliveryId: string) => TContext,
+  createContext: (event: MynthSDKTypes.WebhookEvent) => TContext,
   options: WebhookHandlerOptions,
 ): Promise<Response> {
-  // Resolve the secret per request: build steps and deploy-time analysis run without runtime secrets.
-  const webhookSecret = options.webhookSecret ?? getWebhookSecretFromEnv();
-  if (!webhookSecret) {
-    throw new Error(
-      "MYNTH_WEBHOOK_SECRET is required. Either pass it as an option or set the environment variable.",
-    );
-  }
-
-  const event = request.headers.get(WEBHOOK_EVENT_HEADER);
-  const deliveryId = request.headers.get(WEBHOOK_DELIVERY_HEADER);
-  const signature = request.headers.get(WEBHOOK_SIGNATURE_HEADER);
-  if (!event || !deliveryId || !signature) return badRequest();
+  const id = request.headers.get(WEBHOOK_ID_HEADER);
+  const timestamp = request.headers.get(WEBHOOK_TIMESTAMP_HEADER);
+  if (!id || !timestamp) return badRequest();
 
   // Verify the exact bytes that were signed; decoding to a string first could alter them.
   const body = new Uint8Array(await request.arrayBuffer());
-  const isValid = await verifySignature(body, signature, webhookSecret);
-  if (!isValid) return badRequest();
 
-  const payload = parsePayload(body);
-  if (!payload || payload.event !== event) return badRequest();
+  if (options.unsigned) {
+    if (!(await options.unsigned.verify(request))) return unauthorized();
+  } else {
+    // Resolve the secret per request: build steps and deploy-time analysis run without runtime secrets.
+    const secret = options.webhookSecret ?? getWebhookSecretFromEnv();
+    if (!secret) {
+      throw new Error(
+        "MYNTH_WEBHOOK_SECRET is required. Either pass it as an option or set the environment variable.",
+      );
+    }
 
-  // Signed events newer than this SDK are acknowledged so Mynth does not retry them.
-  if (!Object.hasOwn(EVENT_HANDLER_NAMES, payload.event)) return ok();
+    const signature = request.headers.get(WEBHOOK_SIGNATURE_HEADER);
+    if (!signature) return badRequest();
 
-  const handlerName = EVENT_HANDLER_NAMES[payload.event];
+    if (!(await verifySignature({ id, timestamp, signature, body, secret }))) {
+      return badRequest();
+    }
+  }
+
+  const event = parseWebhookEvent(body, id);
+  if (!event) return badRequest();
+
+  const context = createContext(event);
+
+  await eventHandlers.onEvent?.(event, context);
+
+  // Events newer than this SDK are acknowledged so Mynth does not retry them.
+  if (!Object.hasOwn(EVENT_HANDLER_NAMES, event.type)) return ok();
+
+  const handlerName = EVENT_HANDLER_NAMES[event.type];
   const handler = eventHandlers[handlerName] as AnyWebhookEventHandler<TContext> | undefined;
   if (!handler) return ok();
 
   // Built only for events with a callback, so an event nobody handles cannot fail the delivery.
-  const toArgument = EVENT_ARGUMENTS[payload.event] as (
-    payload: MynthSDKTypes.WebhookPayload,
-  ) => unknown;
-  await handler(toArgument(payload), createContext(deliveryId));
+  const toArgument = EVENT_ARGUMENTS[event.type] as (event: MynthSDKTypes.WebhookEvent) => unknown;
+  await handler(toArgument(event), context);
 
   return ok();
-}
-
-function parsePayload(body: Uint8Array): MynthSDKTypes.WebhookPayload | null {
-  let payload: unknown;
-  try {
-    payload = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(body));
-  } catch {
-    return null;
-  }
-
-  if (
-    typeof payload !== "object" ||
-    payload === null ||
-    !("event" in payload) ||
-    typeof payload.event !== "string" ||
-    !("task" in payload) ||
-    typeof payload.task !== "object" ||
-    payload.task === null ||
-    !("id" in payload.task) ||
-    typeof payload.task.id !== "string"
-  ) {
-    return null;
-  }
-
-  return payload as MynthSDKTypes.WebhookPayload;
 }
 
 function ok(): Response {
@@ -208,4 +213,8 @@ function ok(): Response {
 
 function badRequest(): Response {
   return new Response("Bad Request", { status: 400 });
+}
+
+function unauthorized(): Response {
+  return new Response("Unauthorized", { status: 401 });
 }

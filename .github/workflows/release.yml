@@ -3,6 +3,14 @@ name: Release
 on:
   push:
     branches: [main]
+  # Publishes a package Release Please already tagged, when its publish job
+  # never ran (for example, runners were unavailable and the run can no longer
+  # be retried).
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish, e.g. cli-v0.0.26"
+        required: true
 
 permissions:
   contents: read
@@ -19,7 +27,7 @@ jobs:
     name: Verify Main
     runs-on: ubuntu-latest
     # Skip verification on release-please commits (version bumps, changelog updates)
-    if: "!startsWith(github.event.head_commit.message, 'chore(main): release')"
+    if: "github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'chore(main): release')"
     permissions:
       contents: read
       id-token: write # Codecov upload over OIDC
@@ -62,7 +70,7 @@ jobs:
     # Release Please release commits intentionally skip `verify`.
     # `always()` keeps this job runnable after a skipped dependency so tags,
     # releases, and publish fan-out still happen on merged release PRs.
-    if: ${{ always() && !failure() && !cancelled() }}
+    if: ${{ github.event_name == 'push' && always() && !failure() && !cancelled() }}
     permissions:
       contents: write
       pull-requests: write
@@ -125,4 +133,49 @@ jobs:
       - name: Publish package to npm
         run: |
           pnpm --dir ${{ matrix.path }} pack --pack-destination "$RUNNER_TEMP/pack"
+          npm publish "$RUNNER_TEMP"/pack/*.tgz --provenance --access public
+
+  republish:
+    name: Publish ${{ inputs.tag }}
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Resolve package
+        id: package
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          case "$TAG" in
+            sdk-v*) echo "path=packages/sdk" >> "$GITHUB_OUTPUT" ;;
+            cli-v*) echo "path=packages/cli" >> "$GITHUB_OUTPUT" ;;
+            tan-ai-v*) echo "path=packages/tanstack-ai-adapter" >> "$GITHUB_OUTPUT" ;;
+            *) echo "Unknown release tag: $TAG" >&2; exit 1 ;;
+          esac
+
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+
+      - name: Setup pnpm and Node
+        uses: pnpm/setup@v2
+        with:
+          cache: true
+
+      - name: Setup Node.js for npm publish
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Build
+        run: pnpm exec turbo run build --filter=./${{ steps.package.outputs.path }}
+
+      - name: Publish package to npm
+        run: |
+          pnpm --dir ${{ steps.package.outputs.path }} pack --pack-destination "$RUNNER_TEMP/pack"
           npm publish "$RUNNER_TEMP"/pack/*.tgz --provenance --access public

@@ -30,24 +30,26 @@ const result = await mynth.image.removeBackground({
 result.metadata.productId;
 ```
 
-Use `removeBackgroundAsync()` to create the task now and wait later. It returns a Public Access Token for browser polling:
+Use `removeBackgroundAsync()` to create the task now and wait later. With `generate_public_access_token: true` it also returns a Public Access Token for browser polling:
 
 ```ts
 const taskAsync = await mynth.image.removeBackgroundAsync({
   url: "https://example.com/product.jpg",
+  generate_public_access_token: true,
 });
 
-return { id: taskAsync.id, access: taskAsync.access };
+return { id: taskAsync.id, token: taskAsync.access.publicAccessToken };
 ```
 
 ## Remove Background (REST)
 
-`POST /image/remove-background` — async only. Returns `201` with `taskId`, `estimatedCost`, and a PAT unless `access.pat.enabled` is `false`.
+`POST /image/remove-background` — async only. Returns `201` with `task_id`, `estimated_cost`, and `public_access_token` when the request sets `generate_public_access_token: true`.
 
 ```json
 {
   "url": "https://example.com/product.jpg",
-  "output": { "format": "png" }
+  "output": { "format": "png" },
+  "generate_public_access_token": true
 }
 ```
 
@@ -56,9 +58,9 @@ Response (201):
 ```json
 {
   "data": {
-    "taskId": "tsk_...",
-    "estimatedCost": "0.02",
-    "access": { "publicAccessToken": "pat_..." }
+    "task_id": "tsk_...",
+    "estimated_cost": "0.02",
+    "public_access_token": "pat_..."
   }
 }
 ```

@@ -56,7 +56,7 @@ const result = await generateImage({
   numberOfImages: 2,
   modelOptions: {
     output: { format: "png" },
-    size: { type: "aspect_ratio", aspectRatio: "16:9" }, // overrides top-level size
+    size: { type: "aspect_ratio", aspect_ratio: "16:9" }, // overrides top-level size
     inputs: ["https://example.com/ref.jpg"],
     negativePrompt: "text, watermark", // maps to negative_prompt
     magicPrompt: true, // maps to magic_prompt

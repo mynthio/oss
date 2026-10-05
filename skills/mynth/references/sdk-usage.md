@@ -33,6 +33,7 @@ console.log(task.images[0]?.width, task.images[0]?.height);
 const taskAsync = await mynth.image.generateAsync({
   model: "black-forest-labs/flux.2-pro",
   prompt: "A sunset over mountains",
+  generate_public_access_token: true, // only when browser code will poll
 });
 
 console.log(taskAsync.id);
@@ -47,7 +48,7 @@ const task = await taskAsync.wait(); // optional: still wait server-side
 await mynth.image.generate({
   model: "black-forest-labs/flux.2-pro", // always pass a catalog id; omitted means experimental "auto"
   prompt: "A neon cityscape at night", // required, max 8192 chars
-  size: { type: "aspect_ratio", aspectRatio: "16:9" },
+  size: { type: "aspect_ratio", aspect_ratio: "16:9" },
   count: 2, // 1-20, default 1
   output: { format: "webp" }, // png | jpg | webp; default: the provider's format
   negative_prompt: "text, watermark",
@@ -64,7 +65,7 @@ Size values:
 - `"auto"`
 - Presets: `"square"`, `"portrait"`, `"landscape"`, `"portrait_tall"`, `"landscape_wide"`
 - Ratios: `"1:1"`, `"2:3"`, `"3:2"`, `"3:4"`, `"4:3"`, `"4:5"`, `"5:4"`, `"9:16"`, `"16:9"`, `"21:9"`, `"2:1"`, `"1:2"` — append `_4k` for 4k (e.g. `"16:9_4k"`)
-- Structured: `{ type: "aspect_ratio", aspectRatio: "4:5", scale: "4k" }`
+- Structured: `{ type: "aspect_ratio", aspect_ratio: "4:5", scale: "4k" }`
 
 Inputs accept URL strings or structured objects:
 

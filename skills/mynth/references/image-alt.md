@@ -26,7 +26,7 @@ console.log(result.alt);
 
 ## Generate Alt Text (REST)
 
-`POST /image/alt` — async only. Returns `201` with `taskId` and `estimatedCost`.
+`POST /image/alt` — async only. Returns `201` with `task_id` and `estimated_cost`.
 
 ```json
 {
@@ -39,8 +39,8 @@ Response (201):
 ```json
 {
   "data": {
-    "taskId": "tsk_...",
-    "estimatedCost": "0.0004"
+    "task_id": "tsk_...",
+    "estimated_cost": "0.0004"
   }
 }
 ```

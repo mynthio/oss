@@ -24,7 +24,7 @@ result.cost;
 - `size`: `"2x"` or `"4x"`, or `{ type: "scale", factor: 2 | 4 }`.
 - `effort`: `"low"` is fast and sharp, for product shots and images that are already clean. `"high"` rebuilds fine detail such as small text, skin, and fur. It sets the price, so there is no default. Do not pick it for the user; `high` can also change a person's likeness on old or damaged photos.
 
-The upscaled image can be at most 4096x4096 pixels. A larger request is accepted at create, then the task fails with `OUTPUT_TOO_LARGE` and is not charged. Read `result.image.size` for the real dimensions; they can be a few pixels off the source times the factor.
+The upscaled image can be at most 4096x4096 pixels. A larger request is accepted at create, then the task fails with `output_too_large` and is not charged. Read `result.image.size` for the real dimensions; they can be a few pixels off the source times the factor.
 
 The result keeps the format the provider returned. Set `output.format` to always get `png`, `jpg`, or `webp`. The request also takes a local `file`, `destination`, `webhook`, and `metadata`, the same as `generate()`:
 
@@ -41,28 +41,30 @@ const result = await mynth.image.upscale({
 result.metadata.productId;
 ```
 
-Use `upscaleAsync()` to create the task now and wait later. It returns a Public Access Token for browser polling:
+Use `upscaleAsync()` to create the task now and wait later. With `generate_public_access_token: true` it also returns a Public Access Token for browser polling:
 
 ```ts
 const taskAsync = await mynth.image.upscaleAsync({
   url: "https://example.com/product.jpg",
   size: "2x",
   effort: "low",
+  generate_public_access_token: true,
 });
 
-return { id: taskAsync.id, access: taskAsync.access };
+return { id: taskAsync.id, token: taskAsync.access.publicAccessToken };
 ```
 
 ## Upscale (REST)
 
-`POST /image/upscale` — async only. Returns `201` with `taskId`, `estimatedCost`, and a PAT unless `access.pat.enabled` is `false`.
+`POST /image/upscale` — async only. Returns `201` with `task_id`, `estimated_cost`, and `public_access_token` when the request sets `generate_public_access_token: true`.
 
 ```json
 {
   "url": "https://example.com/product.jpg",
   "size": "2x",
   "effort": "low",
-  "output": { "format": "png" }
+  "output": { "format": "png" },
+  "generate_public_access_token": true
 }
 ```
 
@@ -71,9 +73,9 @@ Response (201):
 ```json
 {
   "data": {
-    "taskId": "tsk_...",
-    "estimatedCost": "0.03",
-    "access": { "publicAccessToken": "pat_..." }
+    "task_id": "tsk_...",
+    "estimated_cost": "0.03",
+    "public_access_token": "pat_..."
   }
 }
 ```

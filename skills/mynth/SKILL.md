@@ -37,7 +37,7 @@ const task = await mynth.image.generate({
 console.log(task.urls); // ["https://cdn.mynth.io/images/img_....webp"]
 ```
 
-Pass `{ apiKey, baseUrl }` only when the project already centralizes secrets or needs a proxy/test base URL. Never expose the API key to browser code: start the task on the server with `generateAsync()` and return the task ID plus `task.access.publicAccessToken` for browser polling.
+Pass `{ apiKey, baseUrl }` only when the project already centralizes secrets or needs a proxy/test base URL. Never expose the API key to browser code: start the task on the server with `generateAsync({ ..., generate_public_access_token: true })` and return the task ID plus `task.access.publicAccessToken` for browser polling.
 
 ## Choose a Model
 
@@ -56,7 +56,7 @@ npx @mynthio/cli models list --search flux --json
 
 Or `GET https://api.mynth.io/models` (modes, input rules, pricing) or `https://mynth.io/models.json`.
 
-1. Filter by what the feature needs: `img->img` in `modes` for edits and reference images, a `4k` price for `_4k` sizes, `pricing.perImage.base` (or `perSecond` for video) for budget.
+1. Filter by what the feature needs: `img->img` in `modes` for edits and reference images, a `4k` price for `_4k` sizes, `pricing.per_image.base` (or `per_second` for video) for budget.
 2. If the user has not named a model, show two or three candidates with their price and what they support, and let the user choose. The catalog does not rank models; quality depends on the user's prompts.
 3. Use the chosen id in the code you write. Ask the user whether they want it saved for later generations, and where, rather than deciding that yourself.
 

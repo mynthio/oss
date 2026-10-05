@@ -16,7 +16,7 @@ await mynth.image.generate({
 
 Or set a default for all requests via `new Mynth({ destination: "my-bucket" })` or the `MYNTH_DESTINATION` env var. REST: `"destination": "my-bucket"` in the generate body.
 
-Only `image.generate`, `image.remove_background`, and `image.upscale` accept `destination`; video drops it silently. A name the user does not own fails at create with `400 VALIDATION_ERROR`.
+Only `image.generate`, `image.remove_background`, and `image.upscale` accept `destination`; video rejects it with `400 validation_error`. A name the user does not own fails at create with `400 validation_error`.
 
 Each delivered image has:
 
@@ -56,7 +56,7 @@ All `/destinations` endpoints need an API key with the `manage` scope, or OAuth:
 - `GET /destinations`, `GET /destinations/:id`
 - `PUT /destinations/:id` — update `provider`, `config`, and optionally `secret` (slug cannot change)
 - `DELETE /destinations/:id`
-- `POST /destinations/:id/test` with `{ "path": "test/probe" }` — uploads a small WEBP probe to that exact path (no tokens, no extension) and answers `204`, or `502 DESTINATION_TEST_FAILED`
+- `POST /destinations/:id/test` with `{ "path": "test/probe" }` — uploads a small WEBP probe to that exact path (no tokens, no extension) and answers `204`, or `502 destination_test_failed`
 
 ## CLI
 

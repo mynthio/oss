@@ -56,11 +56,11 @@ export const mynthWebhook = mynthWebhookAction(
       /* ... */
     },
   },
-  { webhookSecret: "wbs_..." },
+  { webhookSecret: "whsec_..." },
 );
 ```
 
-The helper verifies `X-Mynth-Signature` and routes:
+The helper verifies the Standard Webhooks signature (`webhook-id`, `webhook-timestamp`, `webhook-signature`) and routes:
 
 - `task.image.generate.completed` to `imageTaskCompleted`
 - `task.image.generate.failed` to `imageTaskFailed`
@@ -75,4 +75,29 @@ The helper verifies `X-Mynth-Signature` and routes:
 - `task.image.review.completed` / `.failed` to `imageReviewTaskCompleted` / `imageReviewTaskFailed`
 - `task.video.generate.completed` / `.failed` to `videoTaskCompleted` / `videoTaskFailed`
 
-`mynthWebhookAction` returns a Convex HTTP action; pass it to `http.route` directly, without `httpAction`. It answers `400` for a missing or bad signature, a timestamp more than five minutes off, or an `X-Mynth-Event` header that does not match the body, and `200` for a signed event without a handler. A handler that throws fails the request, so Mynth retries. The secret is read when each request arrives, and a missing one throws.
+`mynthWebhookAction` returns a Convex HTTP action; pass it to `http.route` directly, without `httpAction`. It answers `400` for a missing or bad signature, a timestamp more than five minutes off, or a body whose `id` is not the `webhook-id`, and `200` for a signed event without a handler. A handler that throws fails the request, so Mynth retries. The secret is read when each request arrives, and a missing one throws.
+
+Each handler's last argument is `{ context, request, event }`. `event.id` is the `webhook-id`, the same on every retry: store it to skip events already handled.
+
+For a per-request custom webhook (unsigned), pass `{ unsigned: { verify } }` instead of a secret, and check a token you put in the URL's query string with a constant-time comparison:
+
+```ts
+export const mynthWebhook = mynthWebhookAction(
+  {
+    imageTaskCompleted: async (result, { context }) => {
+      /* ... */
+    },
+  },
+  {
+    unsigned: {
+      verify: (request) =>
+        safeEqual(
+          new URL(request.url).searchParams.get("token") ?? "",
+          process.env.MYNTH_CUSTOM_WEBHOOK_TOKEN!,
+        ),
+    },
+  },
+);
+```
+
+`verify` returning `false` answers `401`.

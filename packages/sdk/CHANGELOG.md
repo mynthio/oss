@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.0.50](https://github.com/mynthio/oss/compare/sdk-v0.0.49...sdk-v0.0.50) (2026-10-05)
+
+
+### ⚠ BREAKING CHANGES
+
+* **sdk:** Requires the stable API. Request fields are snake_case (size.aspect_ratio), access: { pat } is generate_public_access_token (off by default), webhook.dashboard is webhook.registered, and error codes are lowercase. MynthSDKTypes.WebhookPayload is replaced by WebhookEvent, callbacks receive { event } instead of deliveryId, MYNTH_WEBHOOK_SECRET must be the new whsec_ secret, and a video's url can be null.
+
+### Features
+
+* **sdk:** follow the stable API and Standard Webhooks ([6dcd6e0](https://github.com/mynthio/oss/commit/6dcd6e0c832df4f9a42849132f3eb0745722d2b4))
+
 ## [0.0.49](https://github.com/mynthio/oss/compare/sdk-v0.0.48...sdk-v0.0.49) (2026-10-04)
 
 

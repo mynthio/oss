@@ -125,7 +125,7 @@ const login = (app: App): Command =>
         // Only the key and its id are stored. Name and scopes live on the
         // server and can be changed there, so a local copy would silently go
         // stale — `whoami` reads them live instead.
-        await app.session.save({ kind: "api_key", api_key: created.raw, id: created.apiKey.id });
+        await app.session.save({ kind: "api_key", api_key: created.raw, id: created.api_key.id });
 
         const who = session.user?.email ?? session.user?.id ?? "unknown user";
 
@@ -133,10 +133,10 @@ const login = (app: App): Command =>
           printJson({
             user: session.user?.id ?? null,
             apiKey: {
-              id: created.apiKey.id,
-              name: created.apiKey.name ?? name,
-              keyPreview: created.apiKey.keyPreview,
-              scopes: created.apiKey.scopes,
+              id: created.api_key.id,
+              name: created.api_key.name ?? name,
+              keyPreview: created.api_key.key_preview,
+              scopes: created.api_key.scopes,
             },
             storedAt: app.session.store.filePath,
           });
@@ -144,9 +144,9 @@ const login = (app: App): Command =>
         }
 
         print(`${glyph.ok} Logged in as ${who}`);
-        print(`  Created API key "${name}" with scopes: ${created.apiKey.scopes.join(", ")}`);
+        print(`  Created API key "${name}" with scopes: ${created.api_key.scopes.join(", ")}`);
         print(`  Stored in ${app.session.store.filePath}`);
-        print(`  Set a spending limit or change scopes: ${keyUrl(created.apiKey.id)}`);
+        print(`  Set a spending limit or change scopes: ${keyUrl(created.api_key.id)}`);
       },
     );
 
@@ -237,12 +237,12 @@ export const whoamiCommand = (app: App): Command =>
       }
 
       print(current.kind === "env" ? "env:MYNTH_API_KEY" : "api-key");
-      print(`  user:   ${me.userId}`);
+      print(`  user:   ${me.user_id}`);
       print(`  method: ${me.auth.method}`);
 
-      const key = me.auth.apiKey;
+      const key = me.auth.api_key;
       if (key === undefined) return;
-      print(`  key:    ${key.name ?? "unnamed"} (${key.keyPreview})`);
+      print(`  key:    ${key.name ?? "unnamed"} (${key.key_preview})`);
       if (key.scopes !== undefined && key.scopes.length > 0) {
         print(`  scopes: ${key.scopes.join(", ")}`);
       }

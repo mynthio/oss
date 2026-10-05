@@ -196,8 +196,8 @@ const renderOne = (destination: Destination): void => {
   if (destination.config.url_template !== undefined) {
     print(`  URL:      ${destination.config.url_template}`);
   }
-  print(`  Created:  ${destination.createdAt}`);
-  print(`  Updated:  ${destination.updatedAt}`);
+  print(`  Created:  ${destination.created_at}`);
+  print(`  Updated:  ${destination.updated_at}`);
 };
 
 export const destinationCommand = (app: App): Command => {
@@ -221,7 +221,7 @@ export const destinationCommand = (app: App): Command => {
           { header: "ID", value: (item) => item.id },
           { header: "Name", value: (item) => item.name },
           { header: "Provider", value: (item) => item.provider.id },
-          { header: "Created", value: (item) => item.createdAt },
+          { header: "Created", value: (item) => item.created_at },
         ],
         "No destinations found.",
       );

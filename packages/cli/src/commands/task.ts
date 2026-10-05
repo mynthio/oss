@@ -115,7 +115,7 @@ export const taskCommand = (app: App): Command => {
           { header: "Type", value: (item) => item.type },
           { header: "Status", value: (item) => item.status },
           { header: "Cost", value: (item) => item.cost ?? "-" },
-          { header: "Created", value: (item) => item.createdAt },
+          { header: "Created", value: (item) => item.created_at },
         ],
         "No tasks found.",
       );

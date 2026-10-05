@@ -135,8 +135,8 @@ export const renderTask = (task: Task): void => {
   print(`  Type:    ${task.type}`);
   print(`  Status:  ${task.status}`);
   if (task.cost !== null) print(`  Cost:    ${task.cost}`);
-  print(`  Created: ${task.createdAt}`);
-  print(`  Updated: ${task.updatedAt}`);
+  print(`  Created: ${task.created_at}`);
+  print(`  Updated: ${task.updated_at}`);
 
   if (task.errors !== null && task.errors !== undefined && task.errors.length > 0) {
     print("");

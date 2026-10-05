@@ -62,22 +62,22 @@ mynth image generate -p "A watercolor city skyline" --size 16:9 --count 2 -o ./o
 mynth image generate -p "A neon koi pond" --magic-prompt --format png
 ```
 
-| Flag                      | Purpose                                                                                |
-| ------------------------- | -------------------------------------------------------------------------------------- |
-| `-p, --prompt`            | Prompt.                                                                                |
-| `-n, --negative`          | Negative prompt.                                                                       |
-| `--magic-prompt`          | Let Mynth expand the prompt before generating. Off by default.                         |
-| `-m, --model`             | Model ID. Defaults to `auto`. See `mynth models list`.                                 |
-| `-s, --size`              | Preset or aspect ratio: `square`, `landscape`, `16:9`, `16:9_4k`, `auto`, …            |
-| `-c, --count`             | Images per request.                                                                    |
-| `-f, --format`            | `png`, `jpg`, or `webp`.                                                               |
-| `-i, --input`             | Input image as `[role:]path-or-url`, repeatable. Roles: `auto`, `source`, `reference`. |
-| `-o, --output-dir`        | Download the results into this directory.                                              |
-| `--destination`           | Deliver to a configured storage destination. Defaults to `MYNTH_DESTINATION`.          |
-| `--content-rating`        | Classify each image `sfw`/`nsfw`. Use `--level` for custom levels.                     |
-| `--webhook-url`           | Deliver this task's events to a URL (repeatable).                                      |
-| `--no-dashboard-webhooks` | Skip dashboard-configured webhooks for this task.                                      |
-| `--metadata`              | Inline JSON attached to the task.                                                      |
+| Flag                       | Purpose                                                                                |
+| -------------------------- | -------------------------------------------------------------------------------------- |
+| `-p, --prompt`             | Prompt.                                                                                |
+| `-n, --negative`           | Negative prompt.                                                                       |
+| `--magic-prompt`           | Let Mynth expand the prompt before generating. Off by default.                         |
+| `-m, --model`              | Model ID. Defaults to `auto`. See `mynth models list`.                                 |
+| `-s, --size`               | Preset or aspect ratio: `square`, `landscape`, `16:9`, `16:9_4k`, `auto`, …            |
+| `-c, --count`              | Images per request.                                                                    |
+| `-f, --format`             | `png`, `jpg`, or `webp`.                                                               |
+| `-i, --input`              | Input image as `[role:]path-or-url`, repeatable. Roles: `auto`, `source`, `reference`. |
+| `-o, --output-dir`         | Download the results into this directory.                                              |
+| `--destination`            | Deliver to a configured storage destination. Defaults to `MYNTH_DESTINATION`.          |
+| `--content-rating`         | Classify each image `sfw`/`nsfw`. Use `--level` for custom levels.                     |
+| `--webhook-url`            | Deliver this task's events to a URL (repeatable).                                      |
+| `--no-registered-webhooks` | Skip the webhooks registered on the account for this task.                             |
+| `--metadata`               | Inline JSON attached to the task.                                                      |
 
 Local paths passed to `-i` are uploaded first; `https://` inputs are used as-is.
 
@@ -133,15 +133,15 @@ mynth image remove-background ./shot.jpg --format webp -o ./out
 mynth image remove-background ./shot.jpg --destination bunny-prod --async --json
 ```
 
-| Flag                      | Purpose                                                                       |
-| ------------------------- | ----------------------------------------------------------------------------- |
-| `-f, --format`            | `png` or `webp`. Defaults to whatever the provider returns.                   |
-| `-o, --output-dir`        | Download the result into this directory.                                      |
-| `--destination`           | Deliver to a configured storage destination. Defaults to `MYNTH_DESTINATION`. |
-| `--webhook-url`           | Deliver this task's events to a URL (repeatable).                             |
-| `--no-dashboard-webhooks` | Skip dashboard-configured webhooks for this task.                             |
-| `--metadata`              | Inline JSON attached to the task.                                             |
-| `--async`                 | Print the task ID and a public access token instead of waiting.               |
+| Flag                       | Purpose                                                                       |
+| -------------------------- | ----------------------------------------------------------------------------- |
+| `-f, --format`             | `png` or `webp`. Defaults to whatever the provider returns.                   |
+| `-o, --output-dir`         | Download the result into this directory.                                      |
+| `--destination`            | Deliver to a configured storage destination. Defaults to `MYNTH_DESTINATION`. |
+| `--webhook-url`            | Deliver this task's events to a URL (repeatable).                             |
+| `--no-registered-webhooks` | Skip the webhooks registered on the account for this task.                    |
+| `--metadata`               | Inline JSON attached to the task.                                             |
+| `--async`                  | Print the task ID and a public access token instead of waiting.               |
 
 ## Upscaling images
 
@@ -153,19 +153,19 @@ mynth image upscale ./shot.jpg --size 4x --effort high --format webp -o ./out
 mynth image upscale ./shot.jpg -s 2x --effort low --destination bunny-prod --async --json
 ```
 
-| Flag                      | Purpose                                                                            |
-| ------------------------- | ---------------------------------------------------------------------------------- |
-| `-s, --size`              | Required. `2x` or `4x`.                                                            |
-| `--effort`                | Required. `low` is fast and sharp, `high` rebuilds fine detail. It sets the price. |
-| `-f, --format`            | `png`, `jpg`, or `webp`. Defaults to whatever the provider returns.                |
-| `-o, --output-dir`        | Download the result into this directory.                                           |
-| `--destination`           | Deliver to a configured storage destination. Defaults to `MYNTH_DESTINATION`.      |
-| `--webhook-url`           | Deliver this task's events to a URL (repeatable).                                  |
-| `--no-dashboard-webhooks` | Skip dashboard-configured webhooks for this task.                                  |
-| `--metadata`              | Inline JSON attached to the task.                                                  |
-| `--async`                 | Print the task ID and a public access token instead of waiting.                    |
+| Flag                       | Purpose                                                                            |
+| -------------------------- | ---------------------------------------------------------------------------------- |
+| `-s, --size`               | Required. `2x` or `4x`.                                                            |
+| `--effort`                 | Required. `low` is fast and sharp, `high` rebuilds fine detail. It sets the price. |
+| `-f, --format`             | `png`, `jpg`, or `webp`. Defaults to whatever the provider returns.                |
+| `-o, --output-dir`         | Download the result into this directory.                                           |
+| `--destination`            | Deliver to a configured storage destination. Defaults to `MYNTH_DESTINATION`.      |
+| `--webhook-url`            | Deliver this task's events to a URL (repeatable).                                  |
+| `--no-registered-webhooks` | Skip the webhooks registered on the account for this task.                         |
+| `--metadata`               | Inline JSON attached to the task.                                                  |
+| `--async`                  | Print the task ID and a public access token instead of waiting.                    |
 
-A result larger than 4096x4096 fails the task with `OUTPUT_TOO_LARGE` and is not charged.
+A result larger than 4096x4096 fails the task with `output_too_large` and is not charged.
 
 ## Analyzing images
 
@@ -255,15 +255,17 @@ Then use it: `mynth image generate -p "..." --destination bunny-prod`.
 ```bash
 mynth webhook create --url https://example.com/hooks/mynth -e task.completed -e task.failed
 mynth webhook create --url https://example.com/hooks/mynth -e all --api-key-id key_...
-mynth webhook delete whk_... --yes
+mynth webhook delete wbh_... --yes
 ```
 
-The signing secret is printed once, on create, and cannot be retrieved again.
+The `whsec_...` signing secret is printed once, on create, and cannot be retrieved again. Verify
+deliveries with it the [Standard Webhooks](https://www.standardwebhooks.com) way, for example with
+`verifyWebhook()` from `@mynthio/sdk`.
 
 By default a webhook only receives tasks created with an **API key** — that matches where webhooks
 are actually consumed, on a server. Tasks from this CLI carry the key from `auth login`, so they
-deliver on the default. Pass `--oauth-events` to also receive tasks that have no API key, such as
-playground runs.
+deliver on the default. Pass `--include-session-tasks` to also receive tasks created without an API
+key, such as playground runs.
 
 ## Documentation
 

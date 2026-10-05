@@ -9,13 +9,13 @@ const balance = {
 };
 
 const meWithLimit = {
-  userId: "user_1",
+  user_id: "user_1",
   auth: {
     method: "api-key",
-    apiKey: {
+    api_key: {
       id: "key_1",
       name: "ci",
-      keyPreview: "mak_abc...xyz",
+      key_preview: "mak_abc...xyz",
       scopes: ["generate", "manage"],
       spending: {
         mode: "limited",
@@ -31,7 +31,7 @@ const meWithLimit = {
 const route = (request: { url: string }, response: Parameters<typeof json>[0]) => {
   if (request.url === "/balance") return json(response, 200, { data: balance });
   if (request.url === "/me") return json(response, 200, { data: meWithLimit });
-  return json(response, 404, { code: "NOT_FOUND" });
+  return json(response, 404, { error: { code: "not_found" } });
 };
 
 describe("balance", () => {
@@ -85,13 +85,13 @@ describe("models", () => {
           data: [
             {
               id: "black-forest-labs/flux.2-pro",
-              displayName: "FLUX.2 Pro",
+              display_name: "FLUX.2 Pro",
               type: "image",
               modes: {
                 "txt->img": {},
                 "img->img": { inputs: { rules: [{ type: "image", max: 4 }] } },
               },
-              pricing: { perImage: { base: "0.04", "4k": "0.08" }, perInput: "0.002" },
+              pricing: { per_image: { base: "0.04", "4k": "0.08" }, per_input: "0.002" },
             },
           ],
         }),

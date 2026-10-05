@@ -70,48 +70,48 @@ describe("help", () => {
 describe("exit codes", () => {
   const failing = (status: number, code: string) =>
     withApi(
-      (request, response) => json(response, status, { code, message: "nope" }),
+      (request, response) => json(response, status, { error: { code, message: "nope" } }),
       (env) => runCli(["balance"], env),
     );
 
-  it("exits 3 on UNAUTHORIZED", async () => {
-    expect((await failing(401, "UNAUTHORIZED")).status).toBe(3);
+  it("exits 3 on unauthorized", async () => {
+    expect((await failing(401, "unauthorized")).status).toBe(3);
   });
 
-  it("exits 3 on INSUFFICIENT_SCOPE", async () => {
-    expect((await failing(403, "INSUFFICIENT_SCOPE")).status).toBe(3);
+  it("exits 3 on insufficient_scope", async () => {
+    expect((await failing(403, "insufficient_scope")).status).toBe(3);
   });
 
-  it("exits 4 on INSUFFICIENT_BALANCE", async () => {
-    expect((await failing(402, "INSUFFICIENT_BALANCE")).status).toBe(4);
+  it("exits 4 on insufficient_balance", async () => {
+    expect((await failing(402, "insufficient_balance")).status).toBe(4);
   });
 
-  it("exits 4 on SPENDING_LIMIT_EXCEEDED", async () => {
-    expect((await failing(402, "SPENDING_LIMIT_EXCEEDED")).status).toBe(4);
+  it("exits 4 on spending_limit_exceeded", async () => {
+    expect((await failing(402, "spending_limit_exceeded")).status).toBe(4);
   });
 
   it("exits 4 on a 402 with an unknown code", async () => {
-    expect((await failing(402, "SOMETHING_NEW")).status).toBe(4);
+    expect((await failing(402, "something_new")).status).toBe(4);
   });
 
   it("exits 6 when plainly rate limited", async () => {
-    expect((await failing(429, "RATE_LIMITED")).status).toBe(6);
+    expect((await failing(429, "rate_limited")).status).toBe(6);
   });
 
-  it("exits 2 on VALIDATION_ERROR", async () => {
-    expect((await failing(400, "VALIDATION_ERROR")).status).toBe(2);
+  it("exits 2 on validation_error", async () => {
+    expect((await failing(400, "validation_error")).status).toBe(2);
   });
 
-  it("exits 2 on INVALID_JSON", async () => {
-    expect((await failing(400, "INVALID_JSON")).status).toBe(2);
+  it("exits 2 on invalid_json", async () => {
+    expect((await failing(400, "invalid_json")).status).toBe(2);
   });
 
-  it("exits 2 on UNSUPPORTED_MEDIA_TYPE", async () => {
-    expect((await failing(415, "UNSUPPORTED_MEDIA_TYPE")).status).toBe(2);
+  it("exits 2 on unsupported_media_type", async () => {
+    expect((await failing(415, "unsupported_media_type")).status).toBe(2);
   });
 
   it("exits 1 on a server error", async () => {
-    expect((await failing(500, "INTERNAL_SERVER_ERROR")).status).toBe(1);
+    expect((await failing(500, "internal_server_error")).status).toBe(1);
   });
 });
 

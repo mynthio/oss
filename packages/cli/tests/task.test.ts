@@ -7,13 +7,13 @@ describe("task", () => {
       id: "tsk_get",
       type: "image.generate",
       status: "completed",
-      userId: "user_1",
-      apiKeyId: "key_1",
+      user_id: "user_1",
+      api_key_id: "key_1",
       cost: "0.0125",
       request: { prompt: "x" },
       result: { model: "m", images: [] },
-      createdAt: "2026-01-01T00:00:00.000Z",
-      updatedAt: "2026-01-01T00:00:01.000Z",
+      created_at: "2026-01-01T00:00:00.000Z",
+      updated_at: "2026-01-01T00:00:01.000Z",
     };
 
     await withApi(
@@ -37,8 +37,8 @@ describe("task", () => {
             status: "completed",
             cost: "0.5",
             result: { model: "bytedance/seedance-2.0-mini", videos: [] },
-            createdAt: "2026-01-01T00:00:00.000Z",
-            updatedAt: "2026-01-01T00:00:01.000Z",
+            created_at: "2026-01-01T00:00:00.000Z",
+            updated_at: "2026-01-01T00:00:01.000Z",
           },
         }),
       async (env) => {
@@ -103,13 +103,13 @@ describe("task", () => {
       taskRoutes({
         taskId: "tsk_failed",
         createPath: "/never",
-        task: { type: "image.generate", status: "failed", errors: [{ code: "ENQUEUE_FAILED" }] },
+        task: { type: "image.generate", status: "failed", errors: [{ code: "enqueue_failed" }] },
       }),
       async (env) => {
         const result = await runCli(["task", "wait", "tsk_failed"], env);
 
         expect(result.status).toBe(1);
-        expect(result.stdout).toContain("ENQUEUE_FAILED");
+        expect(result.stdout).toContain("enqueue_failed");
       },
     );
   });
@@ -122,7 +122,7 @@ describe("task", () => {
         task: {
           type: "image.generate",
           status: "failed",
-          errors: [{ code: "RESTRICTED_CONTENT" }],
+          errors: [{ code: "restricted_content" }],
         },
       }),
       async (env) => {
@@ -143,7 +143,7 @@ describe("task", () => {
         if (request.url === "/tasks/tsk_flaky/status") {
           statusCalls++;
           if (statusCalls === 1) {
-            json(response, 404, { code: "NOT_FOUND", message: "task not found" });
+            json(response, 404, { error: { code: "not_found", message: "task not found" } });
             return;
           }
           json(response, 200, { data: { status: "completed" } });
@@ -152,7 +152,7 @@ describe("task", () => {
 
         taskCalls++;
         if (taskCalls === 1) {
-          json(response, 503, { code: "UNAVAILABLE" });
+          json(response, 503, { error: { code: "unavailable" } });
           return;
         }
         json(response, 200, {
@@ -162,8 +162,8 @@ describe("task", () => {
             status: "completed",
             cost: "0.02",
             result: { model: "m", images: [{ status: "success", id: "img_1" }] },
-            createdAt: "2026-01-01T00:00:00.000Z",
-            updatedAt: "2026-01-01T00:00:01.000Z",
+            created_at: "2026-01-01T00:00:00.000Z",
+            updated_at: "2026-01-01T00:00:01.000Z",
           },
         });
       },
@@ -183,7 +183,7 @@ describe("task", () => {
 
   it("gives up immediately on a failure that cannot self-heal", async () => {
     await withApi(
-      (request, response) => json(response, 403, { code: "INSUFFICIENT_SCOPE" }),
+      (request, response) => json(response, 403, { error: { code: "insufficient_scope" } }),
       async (env, requests) => {
         const result = await runCli(["task", "wait", "tsk_denied"], env);
 
@@ -210,8 +210,8 @@ describe("task", () => {
               type: "image.generate",
               status: "completed",
               cost: "0.01",
-              createdAt: "2026-01-01T00:00:00.000Z",
-              updatedAt: "2026-01-01T00:00:01.000Z",
+              created_at: "2026-01-01T00:00:00.000Z",
+              updated_at: "2026-01-01T00:00:01.000Z",
             },
           ],
         }),

@@ -118,20 +118,20 @@ export const taskRoutes = (args: {
 }): Route => {
   const task: Record<string, unknown> & { status?: string } = {
     id: args.taskId,
-    userId: "user_test",
-    apiKeyId: null,
+    user_id: "user_test",
+    api_key_id: null,
     cost: null,
     request: {},
     result: null,
-    createdAt: "2026-01-01T00:00:00.000Z",
-    updatedAt: "2026-01-01T00:00:01.000Z",
+    created_at: "2026-01-01T00:00:00.000Z",
+    updated_at: "2026-01-01T00:00:01.000Z",
     ...args.task,
   };
 
   return (request, response) => {
     if (request.url === args.createPath) {
       json(response, args.createStatus ?? 201, {
-        data: { taskId: args.taskId, estimatedCost: "0.01" },
+        data: { task_id: args.taskId, estimated_cost: "0.01" },
       });
       return;
     }
@@ -143,6 +143,6 @@ export const taskRoutes = (args: {
       json(response, 200, { data: task });
       return;
     }
-    json(response, 404, { code: "NOT_FOUND" });
+    json(response, 404, { error: { code: "not_found" } });
   };
 };

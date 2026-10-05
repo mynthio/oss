@@ -15,7 +15,7 @@ export const balanceCommand = (app: App): Command =>
     .action(async (options: JsonFlag) => {
       const balance = await getBalance(app.api);
       const me = await getMe(app.api).catch(() => undefined);
-      const spending = me?.auth.apiKey?.spending;
+      const spending = me?.auth.api_key?.spending;
 
       if (options.json) {
         printJson({ ...balance, ...(spending !== undefined ? { spending } : {}) });

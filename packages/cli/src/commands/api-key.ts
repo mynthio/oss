@@ -47,13 +47,13 @@ export const apiKeyCommand = (app: App): Command => {
       });
 
       if (options.json) {
-        printJson({ key: created.raw, ...created.apiKey });
+        printJson({ key: created.raw, ...created.api_key });
         return;
       }
 
-      print(`${glyph.ok} Created API key "${created.apiKey.name ?? name}"`);
-      print(`  ID:     ${created.apiKey.id}`);
-      print(`  Scopes: ${created.apiKey.scopes.join(", ")}`);
+      print(`${glyph.ok} Created API key "${created.api_key.name ?? name}"`);
+      print(`  ID:     ${created.api_key.id}`);
+      print(`  Scopes: ${created.api_key.scopes.join(", ")}`);
       print("");
       print(`  ${created.raw}`);
       print("  Save this now — it is shown only once and cannot be retrieved again.");
@@ -75,16 +75,16 @@ export const apiKeyCommand = (app: App): Command => {
         [
           { header: "ID", value: (key) => key.id },
           { header: "Name", value: (key) => key.name ?? "-" },
-          { header: "Preview", value: (key) => key.keyPreview },
+          { header: "Preview", value: (key) => key.key_preview },
           { header: "Scopes", value: (key) => key.scopes.join(",") },
           {
             header: "Limit",
             value: (key) =>
-              key.spendingLimit === null || key.spendingLimit === undefined
+              key.spending_limit === null || key.spending_limit === undefined
                 ? "-"
-                : `$${key.spendingLimit}/${key.spendingLimitPeriod ?? "period"}`,
+                : `$${key.spending_limit}/${key.spending_limit_period ?? "period"}`,
           },
-          { header: "Created", value: (key) => key.createdAt },
+          { header: "Created", value: (key) => key.created_at },
         ],
         "No API keys found.",
       );

@@ -11,7 +11,7 @@ export const createApiKey = (
   client: ApiClient,
   args: { readonly name: string; readonly scopes: ReadonlyArray<string>; readonly token: string },
 ): Promise<CreatedApiKey> =>
-  client.fetch("api key create", "/api-key", createdApiKey, {
+  client.fetch("api key create", "/api-keys", createdApiKey, {
     body: { name: args.name, scopes: args.scopes },
     token: args.token,
   });
@@ -19,18 +19,18 @@ export const createApiKey = (
 /**
  * Creates a key with the current session's credentials. An API-key session can
  * only ever mint `generate` keys; the API rejects anything wider with
- * SCOPE_ESCALATION and explains why.
+ * `scope_escalation` and explains why.
  */
 export const createApiKeyAsSelf = (
   client: ApiClient,
   args: { readonly name: string; readonly scopes: ReadonlyArray<string> },
 ): Promise<CreatedApiKey> =>
-  client.fetch("api key create", "/api-key", createdApiKey, {
+  client.fetch("api key create", "/api-keys", createdApiKey, {
     body: { name: args.name, scopes: args.scopes },
   });
 
 export const listApiKeys = (client: ApiClient): Promise<ReadonlyArray<ApiKey>> =>
-  client.fetch("api key list", "/api-key", z.array(apiKey));
+  client.fetch("api key list", "/api-keys", z.array(apiKey));
 
 export const deleteApiKey = (client: ApiClient, id: string): Promise<void> =>
-  client.call("api key delete", `/api-key/${id}`, { method: "DELETE" });
+  client.call("api key delete", `/api-keys/${id}`, { method: "DELETE" });

@@ -38,17 +38,17 @@ type WebhookOptions = JsonFlag & {
   readonly apiKeyId?: ReadonlyArray<string>;
   readonly enabled?: boolean;
   readonly disabled?: boolean;
-  readonly oauthEvents?: boolean;
+  readonly includeSessionTasks?: boolean;
 };
 
 /**
- * `all` is a server-side shorthand and must be the whole subscription; every
- * other value is checked here so a typo fails before the request.
+ * `all` covers every event and must be the whole subscription; every other
+ * value is checked here so a typo fails before the request.
  */
 const resolveEvents = (raw: ReadonlyArray<string> | undefined): WebhookEvents => {
   if (raw === undefined || raw.length === 0)
     throw new UsageError("at least one --event is required");
-  if (raw.includes("all")) return "all";
+  if (raw.includes("all")) return ["all"];
 
   for (const event of raw) {
     if (!(SUBSCRIBABLE_EVENTS as ReadonlyArray<string>).includes(event)) {
@@ -71,14 +71,13 @@ const toBody = (options: WebhookOptions): WebhookBody => ({
   enabled: resolveEnabled(options),
   url: options.url,
   events: resolveEvents(options.event),
-  ...(options.apiKeyId !== undefined ? { apiKeyIds: options.apiKeyId } : {}),
+  ...(options.apiKeyId !== undefined ? { api_key_ids: options.apiKeyId } : {}),
   // Left off by default, matching the API: webhooks are almost always consumed
   // by a server whose tasks are created with an API key, not by this session.
-  ...(options.oauthEvents === true ? { oauthEnabled: true } : {}),
+  ...(options.includeSessionTasks === true ? { include_session_tasks: true } : {}),
 });
 
-const eventsLabel = (events: WebhookEvents): string =>
-  Array.isArray(events) ? events.join(", ") : String(events);
+const eventsLabel = (events: WebhookEvents): string => events.join(", ");
 
 const addSharedOptions = (command: Command) =>
   command
@@ -94,8 +93,8 @@ const addSharedOptions = (command: Command) =>
       collect,
     )
     .option(
-      "--oauth-events",
-      "Also deliver tasks that have no API key, such as playground runs. Off by default.",
+      "--include-session-tasks",
+      "Also deliver tasks created without an API key, such as playground runs. Off by default.",
     )
     .addOption(jsonOption());
 
@@ -104,7 +103,7 @@ export const webhookCommand = (app: App): Command => {
 
   const create = webhook
     .command("create")
-    .description("Register a webhook. The signing secret is shown once, on success.")
+    .description("Register a webhook. The whsec_ signing secret is shown once, on success.")
     .option("--disabled", "Create the webhook disabled (default: enabled)");
   addSharedOptions(create).action(async (options: WebhookOptions) => {
     const data = await createWebhook(app.api, toBody(options));
@@ -118,7 +117,9 @@ export const webhookCommand = (app: App): Command => {
     print(`  URL:     ${data.url}`);
     print(`  Enabled: ${data.enabled}`);
     print(`  Events:  ${eventsLabel(data.events)}`);
-    if (data.oauthEnabled !== undefined) print(`  OAuth:   ${data.oauthEnabled}`);
+    if (data.include_session_tasks !== undefined) {
+      print(`  Session tasks: ${data.include_session_tasks}`);
+    }
     print("");
     print(`  Signing secret: ${data.secret}`);
     print("  Save this now — it is shown only once and cannot be retrieved again.");
@@ -142,7 +143,9 @@ export const webhookCommand = (app: App): Command => {
     print(`  URL:     ${data.url}`);
     if (data.enabled !== undefined) print(`  Enabled: ${data.enabled}`);
     print(`  Events:  ${eventsLabel(data.events)}`);
-    if (data.oauthEnabled !== undefined) print(`  OAuth:   ${data.oauthEnabled}`);
+    if (data.include_session_tasks !== undefined) {
+      print(`  Session tasks: ${data.include_session_tasks}`);
+    }
   });
 
   webhook

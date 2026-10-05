@@ -4,11 +4,11 @@ import { json, runCli, withApi } from "./helpers.ts";
 const KEY = {
   id: "key_1",
   name: "my-app",
-  keyPreview: "mak_liv...ret",
+  key_preview: "mak_liv...ret",
   scopes: ["generate"],
-  spendingLimit: "25.00",
-  spendingLimitPeriod: "month",
-  createdAt: "2026-01-01T00:00:00.000Z",
+  spending_limit: "25.00",
+  spending_limit_period: "month",
+  created_at: "2026-01-01T00:00:00.000Z",
 };
 
 const route = (
@@ -25,7 +25,7 @@ const route = (
     return json(response, 201, {
       data: {
         raw: "mak_live_secret",
-        apiKey: { ...KEY, name: body.name ?? null, scopes: body.scopes ?? [] },
+        api_key: { ...KEY, name: body.name ?? null, scopes: body.scopes ?? [] },
       },
     });
   }
@@ -66,9 +66,11 @@ describe("api-key create", () => {
     await withApi(
       (request, response) =>
         json(response, 403, {
-          code: "SCOPE_ESCALATION",
-          message:
-            "A key created with API-key authentication always gets the `generate` scope. Sign in to the dashboard or use OAuth to create a key with `manage` or `keys`.",
+          error: {
+            code: "scope_escalation",
+            message:
+              "A key created with API-key authentication always gets the `generate` scope. Sign in to the dashboard or use OAuth to create a key with `manage` or `keys`.",
+          },
         }),
       async (env) => {
         const result = await runCli(["api-key", "create", "x", "--scopes", "keys"], env);
@@ -82,7 +84,9 @@ describe("api-key create", () => {
   it("reports the account key limit", async () => {
     await withApi(
       (request, response) =>
-        json(response, 400, { code: "API_KEY_LIMIT_REACHED", message: "API key limit reached" }),
+        json(response, 400, {
+          error: { code: "api_key_limit_reached", message: "API key limit reached" },
+        }),
       async (env) => {
         const result = await runCli(["api-key", "create", "x"], env);
 
@@ -116,7 +120,7 @@ describe("api-key list and delete", () => {
 
       expect(result.status).toBe(0);
       expect(requests[0]?.method).toBe("DELETE");
-      expect(requests[0]?.url).toBe("/api-key/key_1");
+      expect(requests[0]?.url).toBe("/api-keys/key_1");
     });
   });
 });

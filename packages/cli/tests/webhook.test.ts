@@ -7,9 +7,9 @@ const webhook = {
   url: "https://hooks.test/mynth",
   secret: "whsec_abc",
   events: ["task.completed"],
-  apiKeyIds: null,
-  oauthEnabled: false,
-  createdAt: "2026-01-01T00:00:00.000Z",
+  api_key_ids: null,
+  include_session_tasks: false,
+  created_at: "2026-01-01T00:00:00.000Z",
 };
 
 const route = (request: { method: string }, response: Parameters<typeof json>[0]) => {
@@ -35,7 +35,7 @@ describe("webhook create", () => {
     });
   });
 
-  it("mirrors the API default by omitting oauthEnabled", async () => {
+  it("mirrors the API default by omitting include_session_tasks", async () => {
     await withApi(route, async (env, requests) => {
       await runCli(
         [
@@ -58,7 +58,7 @@ describe("webhook create", () => {
     });
   });
 
-  it("opts into OAuth deliveries and API key scoping when asked", async () => {
+  it("opts into session tasks and API key scoping when asked", async () => {
     await withApi(route, async (env, requests) => {
       await runCli(
         [
@@ -68,7 +68,7 @@ describe("webhook create", () => {
           "https://hooks.test/mynth",
           "-e",
           "task.completed",
-          "--oauth-events",
+          "--include-session-tasks",
           "--api-key-id",
           "key_1",
           "--api-key-id",
@@ -79,20 +79,20 @@ describe("webhook create", () => {
       );
 
       expect(requests[0]?.body).toMatchObject({
-        oauthEnabled: true,
-        apiKeyIds: ["key_1", "key_2"],
+        include_session_tasks: true,
+        api_key_ids: ["key_1", "key_2"],
       });
     });
   });
 
-  it("collapses `all` into the server shorthand", async () => {
+  it("sends `all` as the whole subscription", async () => {
     await withApi(route, async (env, requests) => {
       await runCli(
         ["webhook", "create", "--url", "https://hooks.test/mynth", "-e", "all", "--json"],
         env,
       );
 
-      expect(requests[0]?.body).toMatchObject({ events: "all" });
+      expect(requests[0]?.body).toMatchObject({ events: ["all"] });
     });
   });
 

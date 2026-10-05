@@ -82,10 +82,10 @@ export const API_KEY_SCOPES = ["generate", "manage", "keys"] as const;
 /** The raw key is returned exactly once, by the create endpoint. */
 export const createdApiKey = z.object({
   raw: z.string(),
-  apiKey: z.object({
+  api_key: z.object({
     id: z.string(),
     name: z.string().optional(),
-    keyPreview: z.string(),
+    key_preview: z.string(),
     scopes: z.array(z.string()),
   }),
 });
@@ -97,11 +97,11 @@ const decimal = z.union([z.string(), z.number()]).nullable().optional();
 export const apiKey = z.object({
   id: z.string(),
   name: z.string().nullable(),
-  keyPreview: z.string(),
+  key_preview: z.string(),
   scopes: z.array(z.string()),
-  spendingLimit: decimal,
-  spendingLimitPeriod: z.string().nullable().optional(),
-  createdAt: z.string(),
+  spending_limit: decimal,
+  spending_limit_period: z.string().nullable().optional(),
+  created_at: z.string(),
 });
 export type ApiKey = z.infer<typeof apiKey>;
 
@@ -121,14 +121,14 @@ export const apiKeySpending = z.union([
 ]);
 
 export const me = z.object({
-  userId: z.string(),
+  user_id: z.string(),
   auth: z.object({
     method: z.string(),
-    apiKey: z
+    api_key: z
       .object({
         id: z.string(),
         name: z.string().nullable(),
-        keyPreview: z.string(),
+        key_preview: z.string(),
         scopes: z.array(z.string()).optional(),
         spending: apiKeySpending.optional(),
       })
@@ -157,17 +157,17 @@ const modelInputRule = z.object({
 });
 
 const modelMode = z.object({
-  inputs: z.object({ rules: z.array(modelInputRule), maxTotal: z.number().optional() }).optional(),
+  inputs: z.object({ rules: z.array(modelInputRule), max_total: z.number().optional() }).optional(),
 });
 
 export const imagePricing = z.object({
-  perImage: z.object({ base: z.string(), "4k": z.string().optional() }),
-  perInput: z.string().optional(),
+  per_image: z.object({ base: z.string(), "4k": z.string().optional() }),
+  per_input: z.string().optional(),
 });
 
 export const videoPricing = z.object({
-  perSecond: z.record(z.string(), z.string()),
-  audio: z.object({ perSecond: z.string() }).optional(),
+  per_second: z.record(z.string(), z.string()),
+  audio: z.object({ per_second: z.string() }).optional(),
 });
 
 /**
@@ -177,7 +177,7 @@ export const videoPricing = z.object({
  */
 export const model = z.object({
   id: z.string(),
-  displayName: z.string().nullable(),
+  display_name: z.string().nullable(),
   type: z.string(),
   modes: z.record(z.string(), modelMode),
   pricing: z.union([imagePricing, videoPricing]).nullable(),
@@ -200,14 +200,14 @@ export const task = z.object({
   id: z.string(),
   type: z.string(),
   status: taskStatus,
-  userId: z.string().optional(),
-  apiKeyId: z.string().nullable().optional(),
+  user_id: z.string().optional(),
+  api_key_id: z.string().nullable().optional(),
   cost: z.string().nullable(),
   request: jsonValue.optional(),
   result: jsonValue.nullable(),
   errors: z.array(z.object({ code: z.string(), message: z.string().optional() })).nullish(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
 });
 export type Task = z.infer<typeof task>;
 
@@ -216,8 +216,8 @@ export const taskListItem = z.object({
   type: z.string(),
   status: z.string(),
   cost: z.string().nullable(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
 });
 export type TaskListItem = z.infer<typeof taskListItem>;
 
@@ -238,16 +238,16 @@ export const uploadResult = z.object({ urls: z.array(z.string()) });
 
 /** Shared 201 envelope of every async create-task endpoint. */
 export const createdTask = z.object({
-  taskId: z.string(),
-  estimatedCost: z.string().optional(),
-  access: z.object({ publicAccessToken: z.string() }).optional(),
+  task_id: z.string(),
+  estimated_cost: z.string().optional(),
+  public_access_token: z.string().optional(),
 });
 export type CreatedTask = z.infer<typeof createdTask>;
 
 export const estimate = z.object({
-  estimatedCost: z.string(),
+  estimated_cost: z.string(),
   currency: z.string(),
-  estimateKind: z.enum(["exact", "upper_bound"]),
+  estimate_kind: z.enum(["exact", "upper_bound"]),
 });
 export type Estimate = z.infer<typeof estimate>;
 
@@ -342,8 +342,8 @@ export const destination = z.object({
   name: z.string(),
   provider: z.object({ id: z.string() }).catchall(jsonValue),
   config: z.object({ path_template: z.string(), url_template: z.string().optional() }).partial(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
 });
 export type Destination = z.infer<typeof destination>;
 
@@ -351,18 +351,18 @@ export type Destination = z.infer<typeof destination>;
 // Webhooks
 //
 
-const webhookEvents = z.union([z.literal("all"), z.array(z.string())]);
+const webhookEvents = z.array(z.string());
 
-/** The HMAC signing secret is only ever returned by the create endpoint. */
+/** The `whsec_` signing secret is only ever returned by the create endpoint. */
 export const createdWebhook = z.object({
   id: z.string(),
   enabled: z.boolean(),
   url: z.string(),
   secret: z.string(),
   events: webhookEvents,
-  apiKeyIds: z.array(z.string()).nullish(),
-  oauthEnabled: z.boolean().optional(),
-  createdAt: z.string().optional(),
+  api_key_ids: z.array(z.string()).nullish(),
+  include_session_tasks: z.boolean().optional(),
+  created_at: z.string().optional(),
 });
 export type CreatedWebhook = z.infer<typeof createdWebhook>;
 
@@ -371,7 +371,7 @@ export const updatedWebhook = z.object({
   enabled: z.boolean().optional(),
   url: z.string(),
   events: webhookEvents,
-  apiKeyIds: z.array(z.string()).nullish(),
-  oauthEnabled: z.boolean().optional(),
+  api_key_ids: z.array(z.string()).nullish(),
+  include_session_tasks: z.boolean().optional(),
 });
 export type UpdatedWebhook = z.infer<typeof updatedWebhook>;

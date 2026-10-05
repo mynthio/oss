@@ -33,7 +33,7 @@ const orgOf = (model: Model): string => model.id.split("/")[0]!;
 
 const isImagePricing = (
   pricing: ModelPricing,
-): pricing is Extract<ModelPricing, { perImage: unknown }> => "perImage" in pricing;
+): pricing is Extract<ModelPricing, { per_image: unknown }> => "per_image" in pricing;
 
 /** Image models are priced per image, video models per second of output. */
 const rateUnit = (model: Model): string => (model.type === "video" ? "/s" : "");
@@ -42,7 +42,7 @@ const rates = (model: Model): string[] => {
   const pricing = model.pricing;
   if (pricing === null) return [];
 
-  return isImagePricing(pricing) ? [pricing.perImage.base] : Object.values(pricing.perSecond);
+  return isImagePricing(pricing) ? [pricing.per_image.base] : Object.values(pricing.per_second);
 };
 
 /**
@@ -71,7 +71,7 @@ const priceLabel = (model: Model): string => {
 const price4k = (model: Model): string | undefined => {
   const pricing = model.pricing;
   if (pricing === null) return undefined;
-  return isImagePricing(pricing) ? pricing.perImage["4k"] : pricing.perSecond["4k"];
+  return isImagePricing(pricing) ? pricing.per_image["4k"] : pricing.per_second["4k"];
 };
 
 const price4kLabel = (model: Model): string => {
@@ -82,7 +82,7 @@ const price4kLabel = (model: Model): string => {
 const inputFee = (model: Model): string | undefined => {
   const pricing = model.pricing;
   if (pricing === null || !isImagePricing(pricing)) return undefined;
-  return pricing.perInput;
+  return pricing.per_input;
 };
 
 const parsePrice =
@@ -108,7 +108,7 @@ const SEARCH_THRESHOLD = 0.3;
 
 const search = (models: ReadonlyArray<Model>, query: string): ReadonlyArray<Model> =>
   fuzzysort
-    .go(query, models, { keys: ["id", "displayName"], threshold: SEARCH_THRESHOLD })
+    .go(query, models, { keys: ["id", "display_name"], threshold: SEARCH_THRESHOLD })
     .map((result) => result.obj);
 
 /** `--org bfl` should find black-forest-labs, so the org is fuzzy-matched too. */
@@ -190,7 +190,7 @@ export const modelsCommand = (app: App): Command => {
         data,
         [
           { header: "ID", value: (model) => model.id },
-          { header: "Name", value: (model) => model.displayName ?? "-" },
+          { header: "Name", value: (model) => model.display_name ?? "-" },
           { header: "Type", value: (model) => model.type },
           { header: "Modes", value: (model) => Object.keys(model.modes).join(",") || "-" },
           { header: "Price", value: (model) => priceLabel(model) },

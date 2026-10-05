@@ -26,14 +26,14 @@ const completedGeneration = {
 describe("image generate", () => {
   it("sends only the flags the caller set", async () => {
     await withApi(
-      (request, response) => json(response, 201, { data: { taskId: "tsk_1" } }),
+      (request, response) => json(response, 201, { data: { task_id: "tsk_1" } }),
       async (env, requests) => {
         const result = await runCli(["image", "generate", "-p", "a cat", "--async"], env);
 
         expect(result.status).toBe(0);
         expect(requests[0]?.body).toEqual({
           prompt: "a cat",
-          access: { pat: { enabled: true } },
+          generate_public_access_token: true,
         });
       },
     );
@@ -41,7 +41,7 @@ describe("image generate", () => {
 
   it("sends output as a format-only object", async () => {
     await withApi(
-      (request, response) => json(response, 201, { data: { taskId: "tsk_1" } }),
+      (request, response) => json(response, 201, { data: { task_id: "tsk_1" } }),
       async (env, requests) => {
         await runCli(["image", "generate", "-p", "x", "--async", "--format", "png"], env);
         expect(requests[0]?.body).toMatchObject({ output: { format: "png" } });
@@ -58,7 +58,7 @@ describe("image generate", () => {
 
   it("sends magic_prompt only when --magic-prompt is passed", async () => {
     await withApi(
-      (request, response) => json(response, 201, { data: { taskId: "tsk_1" } }),
+      (request, response) => json(response, 201, { data: { task_id: "tsk_1" } }),
       async (env, requests) => {
         await runCli(["image", "generate", "-p", "x", "--async"], env);
         await runCli(["image", "generate", "-p", "x", "--async", "--magic-prompt"], env);
@@ -71,7 +71,7 @@ describe("image generate", () => {
 
   it("sends inputs as structured image sources with their role", async () => {
     await withApi(
-      (request, response) => json(response, 201, { data: { taskId: "tsk_1" } }),
+      (request, response) => json(response, 201, { data: { task_id: "tsk_1" } }),
       async (env, requests) => {
         await runCli(
           [
@@ -111,7 +111,7 @@ describe("image generate", () => {
 
   it("sends request-level webhooks", async () => {
     await withApi(
-      (request, response) => json(response, 201, { data: { taskId: "tsk_1" } }),
+      (request, response) => json(response, 201, { data: { task_id: "tsk_1" } }),
       async (env, requests) => {
         await runCli(
           [
@@ -122,13 +122,13 @@ describe("image generate", () => {
             "--async",
             "--webhook-url",
             "https://hooks.test/a",
-            "--no-dashboard-webhooks",
+            "--no-registered-webhooks",
           ],
           env,
         );
 
         expect(requests[0]?.body).toMatchObject({
-          webhook: { dashboard: false, custom: [{ url: "https://hooks.test/a" }] },
+          webhook: { registered: false, custom: [{ url: "https://hooks.test/a" }] },
         });
       },
     );
@@ -136,7 +136,7 @@ describe("image generate", () => {
 
   it("falls back to MYNTH_DESTINATION", async () => {
     await withApi(
-      (request, response) => json(response, 201, { data: { taskId: "tsk_1" } }),
+      (request, response) => json(response, 201, { data: { task_id: "tsk_1" } }),
       async (env, requests) => {
         await runCli(["image", "generate", "-p", "x", "--async"], {
           ...env,
@@ -181,7 +181,7 @@ describe("image generate", () => {
     await withApi(
       (request, response) =>
         json(response, 200, {
-          data: { estimatedCost: "0.03", currency: "usd", estimateKind: "upper_bound" },
+          data: { estimated_cost: "0.03", currency: "usd", estimate_kind: "upper_bound" },
         }),
       async (env, requests) => {
         const result = await runCli(["image", "generate", "-p", "x", "--dry-run"], env);
@@ -362,7 +362,7 @@ const completedRemoval = {
 describe("image remove-background", () => {
   it("sends only the flags the caller set", async () => {
     await withApi(
-      (request, response) => json(response, 201, { data: { taskId: "tsk_1" } }),
+      (request, response) => json(response, 201, { data: { task_id: "tsk_1" } }),
       async (env, requests) => {
         const result = await runCli(
           [
@@ -388,7 +388,7 @@ describe("image remove-background", () => {
           destination: "bunny-prod",
           webhook: { custom: [{ url: "https://hooks.test/a" }] },
           metadata: { sku: "1" },
-          access: { pat: { enabled: true } },
+          generate_public_access_token: true,
         });
       },
     );
@@ -399,9 +399,9 @@ describe("image remove-background", () => {
       (request, response) =>
         json(response, 201, {
           data: {
-            taskId: "tsk_async",
-            estimatedCost: "0.02",
-            access: { publicAccessToken: "pat_test" },
+            task_id: "tsk_async",
+            estimated_cost: "0.02",
+            public_access_token: "pat_test",
           },
         }),
       async (env) => {
@@ -494,7 +494,7 @@ const completedUpscale = {
 describe("image upscale", () => {
   it("sends only the flags the caller set", async () => {
     await withApi(
-      (request, response) => json(response, 201, { data: { taskId: "tsk_1" } }),
+      (request, response) => json(response, 201, { data: { task_id: "tsk_1" } }),
       async (env, requests) => {
         const result = await runCli(
           [
@@ -526,7 +526,7 @@ describe("image upscale", () => {
           destination: "bunny-prod",
           webhook: { custom: [{ url: "https://hooks.test/a" }] },
           metadata: { sku: "1" },
-          access: { pat: { enabled: true } },
+          generate_public_access_token: true,
         });
       },
     );
@@ -537,9 +537,9 @@ describe("image upscale", () => {
       (request, response) =>
         json(response, 201, {
           data: {
-            taskId: "tsk_async",
-            estimatedCost: "0.03",
-            access: { publicAccessToken: "pat_test" },
+            task_id: "tsk_async",
+            estimated_cost: "0.03",
+            public_access_token: "pat_test",
           },
         }),
       async (env) => {
@@ -685,7 +685,7 @@ describe("image generate --output-dir", () => {
       await withApi(
         (request, response) => {
           if (request.url === "/image/generate") {
-            return json(response, 201, { data: { taskId: "tsk_dl" } });
+            return json(response, 201, { data: { task_id: "tsk_dl" } });
           }
           if (request.url === "/tasks/tsk_dl/status") {
             return json(response, 200, { data: { status: "completed" } });
@@ -698,13 +698,13 @@ describe("image generate --output-dir", () => {
                 status: "completed",
                 cost: "0.01",
                 request: {},
-                createdAt: "2026-01-01T00:00:00.000Z",
-                updatedAt: "2026-01-01T00:00:01.000Z",
+                created_at: "2026-01-01T00:00:00.000Z",
+                updated_at: "2026-01-01T00:00:01.000Z",
                 result: {
                   model: "m",
                   images: [
                     { status: "success", id: "img_1", url: `${base}/files/first.webp` },
-                    { status: "failed", error: { code: "PROVIDER_ERROR" } },
+                    { status: "failed", error: { code: "provider_error" } },
                   ],
                 },
               },
@@ -715,7 +715,7 @@ describe("image generate --output-dir", () => {
             response.end("image-bytes");
             return;
           }
-          json(response, 404, { code: "NOT_FOUND" });
+          json(response, 404, { error: { code: "not_found" } });
         },
         async (env) => {
           base = env["MYNTH_API_URL"]!;

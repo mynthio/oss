@@ -21,10 +21,10 @@ const SESSION = {
 
 const createdKey = (scopes: ReadonlyArray<string>) => ({
   raw: "mak_live_secret",
-  apiKey: {
+  api_key: {
     id: "key_1",
     name: "mynth-cli (test-host)",
-    keyPreview: "mak_liv...ret",
+    key_preview: "mak_liv...ret",
     scopes,
   },
 });
@@ -37,16 +37,16 @@ const loginRoutes = (request: RecordedRequest, response: ServerResponse) => {
   if (request.url === "/user_management/authenticate") {
     return json(response, 200, SESSION);
   }
-  if (request.url === "/api-key" && request.method === "POST") {
+  if (request.url === "/api-keys" && request.method === "POST") {
     const body = request.body as { scopes?: string[] };
     return json(response, 201, { data: createdKey(body.scopes ?? []) });
   }
-  if (request.url === "/api-key/key_1" && request.method === "DELETE") {
+  if (request.url === "/api-keys/key_1" && request.method === "DELETE") {
     response.statusCode = 204;
     response.end();
     return;
   }
-  json(response, 404, { code: "NOT_FOUND" });
+  json(response, 404, { error: { code: "not_found" } });
 };
 
 const loginEnv = (env: NodeJS.ProcessEnv, configHome: string) => ({
@@ -72,7 +72,7 @@ describe("auth login", () => {
       expect(result.stdout).toContain("Logged in as tom@mynth.io");
       expect(result.stdout).toContain("https://mynth.io/dashboard/keys/key_1");
 
-      const create = requests.find((request) => request.url === "/api-key");
+      const create = requests.find((request) => request.url === "/api-keys");
       expect(create?.body).toMatchObject({ scopes: ["generate", "manage", "keys"] });
       // Minting must use the short-lived WorkOS token, not a stored key.
       expect(create?.authorization).toBe("Bearer wos_access_token");
@@ -154,7 +154,7 @@ describe("auth login", () => {
       );
 
       expect(result.status).toBe(0);
-      expect(requests.find((request) => request.url === "/api-key")?.body).toMatchObject({
+      expect(requests.find((request) => request.url === "/api-keys")?.body).toMatchObject({
         scopes: ["generate", "manage"],
       });
     });
@@ -198,7 +198,9 @@ describe("auth logout", () => {
       expect(result.status).toBe(0);
       expect(result.stdout).toContain("API key revoked");
       expect(
-        requests.some((request) => request.method === "DELETE" && request.url === "/api-key/key_1"),
+        requests.some(
+          (request) => request.method === "DELETE" && request.url === "/api-keys/key_1",
+        ),
       ).toBe(true);
       await expect(readCredentials(configHome)).rejects.toThrow();
     });
@@ -222,7 +224,7 @@ describe("auth logout", () => {
 
     await withApi(
       (request, response) => {
-        if (request.method === "DELETE") return json(response, 500, { code: "BOOM" });
+        if (request.method === "DELETE") return json(response, 500, { error: { code: "boom" } });
         loginRoutes(request, response);
       },
       async (env) => {

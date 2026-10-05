@@ -46,7 +46,8 @@ const readText = async (response: Response): Promise<string> => {
 
 /**
  * Turns a non-2xx response into an `ApiError`, preserving the server's `code`
- * (UNAUTHORIZED, INSUFFICIENT_BALANCE, ...) so it can drive the exit code.
+ * (`unauthorized`, `insufficient_balance`, ...) so it can drive the exit code.
+ * Every API error answers `{ "error": { code, message } }`.
  */
 const toApiError = async (response: Response, label: string): Promise<ApiError> => {
   const text = await readText(response);
@@ -54,10 +55,9 @@ const toApiError = async (response: Response, label: string): Promise<ApiError> 
   let message: string | undefined;
 
   try {
-    const parsed = JSON.parse(text) as { code?: unknown; message?: unknown; error?: unknown };
-    if (typeof parsed.code === "string") code = parsed.code;
-    if (typeof parsed.message === "string") message = parsed.message;
-    else if (typeof parsed.error === "string") message = parsed.error;
+    const parsed = JSON.parse(text) as { error?: { code?: unknown; message?: unknown } };
+    if (typeof parsed.error?.code === "string") code = parsed.error.code;
+    if (typeof parsed.error?.message === "string") message = parsed.error.message;
   } catch {
     // Non-JSON error body; classify by HTTP status alone.
   }

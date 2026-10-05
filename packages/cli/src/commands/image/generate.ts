@@ -216,8 +216,8 @@ export const generateCommand = (app: App): Command => {
         printJson(estimate);
         return;
       }
-      const qualifier = estimate.estimateKind === "upper_bound" ? " (upper bound)" : "";
-      print(`${glyph.ok} Estimated cost: $${estimate.estimatedCost}${qualifier}`);
+      const qualifier = estimate.estimate_kind === "upper_bound" ? " (upper bound)" : "";
+      print(`${glyph.ok} Estimated cost: $${estimate.estimated_cost}${qualifier}`);
       return;
     }
 
@@ -231,7 +231,7 @@ export const generateCommand = (app: App): Command => {
     }
 
     const created = await createImageTask(app.api, "generate", request);
-    const pending = waitForTask(app.api, created.taskId);
+    const pending = waitForTask(app.api, created.task_id);
     const task = options.json ? await pending : await withSpinner(pending);
 
     const outputDir = options.outputDir !== undefined ? resolve(options.outputDir) : undefined;

@@ -54,14 +54,14 @@ export class DeviceFlowError extends CliError {
 // Server error codes that deserve their own exit code. Anything unlisted falls
 // back to the HTTP status.
 const EXIT_BY_API_CODE: Record<string, number> = {
-  UNAUTHORIZED: EXIT_CODES.auth,
-  INSUFFICIENT_SCOPE: EXIT_CODES.auth,
-  VALIDATION_ERROR: EXIT_CODES.usage,
-  INVALID_JSON: EXIT_CODES.usage,
-  UNSUPPORTED_MEDIA_TYPE: EXIT_CODES.usage,
-  INSUFFICIENT_BALANCE: EXIT_CODES.insufficientCredits,
-  SPENDING_LIMIT_EXCEEDED: EXIT_CODES.insufficientCredits,
-  RESTRICTED_CONTENT: EXIT_CODES.moderation,
+  unauthorized: EXIT_CODES.auth,
+  insufficient_scope: EXIT_CODES.auth,
+  validation_error: EXIT_CODES.usage,
+  invalid_json: EXIT_CODES.usage,
+  unsupported_media_type: EXIT_CODES.usage,
+  insufficient_balance: EXIT_CODES.insufficientCredits,
+  spending_limit_exceeded: EXIT_CODES.insufficientCredits,
+  restricted_content: EXIT_CODES.moderation,
 };
 
 export const exitCodeForError = (error: unknown): number => {
@@ -103,8 +103,8 @@ export const taskFailureCode = (task: FailedTask): string | undefined => {
     ),
   ].filter((code): code is string => typeof code === "string");
 
-  return codes.find((code) => code === "RESTRICTED_CONTENT") ?? codes[0];
+  return codes.find((code) => code === "restricted_content") ?? codes[0];
 };
 
 export const exitCodeForFailedTask = (task: FailedTask): number =>
-  taskFailureCode(task) === "RESTRICTED_CONTENT" ? EXIT_CODES.moderation : EXIT_CODES.error;
+  taskFailureCode(task) === "restricted_content" ? EXIT_CODES.moderation : EXIT_CODES.error;

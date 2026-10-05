@@ -46,7 +46,7 @@ export const resolveImage = async (
 export type DeliveryOptions = {
   readonly destination?: string;
   readonly webhookUrl?: ReadonlyArray<string>;
-  readonly dashboardWebhooks?: boolean;
+  readonly registeredWebhooks?: boolean;
 };
 
 /** Destination and webhook flags shared by commands that create a deliverable image. */
@@ -61,7 +61,10 @@ export const addDeliveryOptions = (command: Command): Command =>
       "Deliver this task's events to this URL (repeatable, max 5)",
       collect,
     )
-    .option("--no-dashboard-webhooks", "Skip dashboard-configured webhooks for this task");
+    .option(
+      "--no-registered-webhooks",
+      "Skip the webhooks registered on the account for this task",
+    );
 
 /** Builds the `destination` and `webhook` request fields from the delivery flags. */
 export const buildDelivery = (
@@ -70,14 +73,14 @@ export const buildDelivery = (
 ): { readonly destination?: string; readonly webhook?: Record<string, unknown> } => {
   const destination = options.destination ?? app.config.envDestination;
   const custom = options.webhookUrl ?? [];
-  // `--no-dashboard-webhooks` flips Commander's default of `true`.
-  const disableDashboard = options.dashboardWebhooks === false;
+  // `--no-registered-webhooks` flips Commander's default of `true`.
+  const skipRegistered = options.registeredWebhooks === false;
 
   const webhook =
-    custom.length === 0 && !disableDashboard
+    custom.length === 0 && !skipRegistered
       ? undefined
       : {
-          ...(disableDashboard ? { dashboard: false } : {}),
+          ...(skipRegistered ? { registered: false } : {}),
           ...(custom.length > 0 ? { custom: custom.map((url) => ({ url })) } : {}),
         };
 
@@ -101,22 +104,22 @@ export const createTaskAsync = async (
 ): Promise<void> => {
   const created = await createImageTask(app.api, args.endpoint, {
     ...args.body,
-    access: { pat: { enabled: true } },
+    generate_public_access_token: true,
   });
-  const token = created.access?.publicAccessToken;
+  const token = created.public_access_token;
 
   if (args.json) {
     printJson({
-      taskId: created.taskId,
-      ...(created.estimatedCost !== undefined ? { estimatedCost: created.estimatedCost } : {}),
+      taskId: created.task_id,
+      ...(created.estimated_cost !== undefined ? { estimatedCost: created.estimated_cost } : {}),
       ...(token !== undefined ? { access: { publicAccessToken: token } } : {}),
     });
     return;
   }
 
-  print(`${glyph.ok} Task created: ${created.taskId}`);
+  print(`${glyph.ok} Task created: ${created.task_id}`);
   if (token !== undefined) print(`  Public access token: ${token}`);
-  print(`  Await it with: mynth task wait ${created.taskId}`);
+  print(`  Await it with: mynth task wait ${created.task_id}`);
 };
 
 const levelArray = z.array(z.object({ value: z.string(), description: z.string() }));
@@ -217,7 +220,7 @@ export const runImageTask = async <T>(
 ): Promise<{ readonly taskId: string; readonly cost: string | null; readonly result: T }> => {
   const created = await createImageTask(app.api, args.endpoint, args.body);
 
-  const pending = waitForTask(app.api, created.taskId);
+  const pending = waitForTask(app.api, created.task_id);
   const task = args.quiet ? await pending : await withSpinner(pending);
 
   if (task.status !== "completed") throw failedTaskError(task, args.endpoint);

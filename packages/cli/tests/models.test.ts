@@ -4,48 +4,48 @@ import { json, runCli, withApi } from "./helpers.ts";
 const catalog = [
   {
     id: "black-forest-labs/flux.1-dev",
-    displayName: "FLUX.1 Dev",
+    display_name: "FLUX.1 Dev",
     type: "image",
     modes: { "txt->img": {} },
-    pricing: { perImage: { base: "0.004" } },
+    pricing: { per_image: { base: "0.004" } },
   },
   {
     id: "black-forest-labs/flux.2-pro",
-    displayName: "FLUX.2 Pro",
+    display_name: "FLUX.2 Pro",
     type: "image",
     modes: {
       "txt->img": {},
-      "img->img": { inputs: { rules: [{ type: "image", max: 4 }], maxTotal: 4 } },
+      "img->img": { inputs: { rules: [{ type: "image", max: 4 }], max_total: 4 } },
     },
-    pricing: { perImage: { base: "0.03" }, perInput: "0.03" },
+    pricing: { per_image: { base: "0.03" }, per_input: "0.03" },
   },
   {
     id: "bytedance/seedream-pro",
-    displayName: "Seedream Pro",
+    display_name: "Seedream Pro",
     type: "image",
     modes: {
       "txt->img": {},
       "img->img": { inputs: { rules: [{ type: "image", kind: "source", min: 1, max: 1 }] } },
     },
-    pricing: { perImage: { base: "0.1" }, perInput: "0.00321" },
+    pricing: { per_image: { base: "0.1" }, per_input: "0.00321" },
   },
   {
     id: "google/gemini-3-pro-image-preview",
-    displayName: "Gemini 3 Pro Image Preview",
+    display_name: "Gemini 3 Pro Image Preview",
     type: "image",
     modes: { "txt->img": {} },
-    pricing: { perImage: { base: "0.14", "4k": "0.2" } },
+    pricing: { per_image: { base: "0.14", "4k": "0.2" } },
   },
   {
     id: "recraft/recraft-v4",
-    displayName: "Recraft V4",
+    display_name: "Recraft V4",
     type: "image",
     modes: { "txt->img": {} },
-    pricing: { perImage: { base: "0.04" } },
+    pricing: { per_image: { base: "0.04" } },
   },
   {
     id: "bytedance/seedance-2.0-mini",
-    displayName: "Seedance 2.0 Mini",
+    display_name: "Seedance 2.0 Mini",
     type: "video",
     modes: {
       "txt->vid": {},
@@ -55,20 +55,20 @@ const catalog = [
             { type: "image", kind: "first_frame", min: 1, max: 1 },
             { type: "image", kind: "last_frame", min: 0, max: 1 },
           ],
-          maxTotal: 2,
+          max_total: 2,
         },
       },
     },
-    pricing: { perSecond: { "480p": "0.036", "720p": "0.081" } },
+    pricing: { per_second: { "480p": "0.036", "720p": "0.081" } },
   },
   {
     id: "google/gemini-omni-flash-1.1",
-    displayName: "Gemini Omni Flash 1.1",
+    display_name: "Gemini Omni Flash 1.1",
     type: "video",
     modes: { "txt->vid": {}, "img->vid": { inputs: { rules: [{ type: "image", max: 2 }] } } },
     pricing: {
-      perSecond: { "720p": "0.10", "1080p": "0.15", "4k": "0.30" },
-      audio: { perSecond: "0.002" },
+      per_second: { "720p": "0.10", "1080p": "0.15", "4k": "0.30" },
+      audio: { per_second: "0.002" },
     },
   },
 ];
@@ -76,7 +76,7 @@ const catalog = [
 const route = (request: { url: string }, response: Parameters<typeof json>[0]) =>
   request.url === "/models"
     ? json(response, 200, { data: catalog })
-    : json(response, 404, { code: "NOT_FOUND" });
+    : json(response, 404, { error: { code: "not_found" } });
 
 /** Runs `models list --json` with `args` and returns the matched model IDs, in order. */
 const ids = async (args: ReadonlyArray<string>): Promise<string[]> =>

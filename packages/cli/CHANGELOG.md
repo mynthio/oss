@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.0.26](https://github.com/mynthio/oss/compare/cli-v0.0.25...cli-v0.0.26) (2026-10-05)
+
+
+### ⚠ BREAKING CHANGES
+
+* **cli:** Requires the stable API. webhook --oauth-events is --include-session-tasks, image --no-dashboard-webhooks is --no-registered-webhooks, and the --json output of the auth, balance, api-key, webhook, destination, task and models commands passes the API's snake_case fields through.
+
+### Features
+
+* **cli:** follow the stable API ([5b93f4b](https://github.com/mynthio/oss/commit/5b93f4b6f06a5c41edd7feccb1e0cc47f0c93983))
+
 ## [0.0.25](https://github.com/mynthio/oss/compare/cli-v0.0.24...cli-v0.0.25) (2026-09-30)
 
 

@@ -45,8 +45,8 @@ export interface MynthImageCommonOptions {
   magicPrompt?: boolean;
   /** Output format */
   output?: MynthSDKTypes.ImageGenerationRequestOutput;
-  /** Public Access Token response configuration */
-  access?: MynthSDKTypes.ImageGenerationRequestAccess;
+  /** Ask Mynth for a public access token for this task. Sent as `generate_public_access_token`. */
+  generatePublicAccessToken?: boolean;
   /** Webhook configuration */
   webhook?: MynthSDKTypes.ImageGenerationRequestWebhook;
   /** Image rating configuration */

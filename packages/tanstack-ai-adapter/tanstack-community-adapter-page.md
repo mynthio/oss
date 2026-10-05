@@ -121,7 +121,7 @@ const result = await generateImage({
     negativePrompt: "watermark, blurry text",
     size: {
       type: "aspect_ratio",
-      aspectRatio: "4:5",
+      aspect_ratio: "4:5",
       scale: "4k",
     },
     output: {

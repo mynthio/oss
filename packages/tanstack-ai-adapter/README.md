@@ -114,7 +114,7 @@ const result = await generateImage({
     negativePrompt: "watermark, blurry text",
     size: {
       type: "aspect_ratio",
-      aspectRatio: "4:5",
+      aspect_ratio: "4:5",
       scale: "4k",
     },
     output: {
@@ -122,12 +122,7 @@ const result = await generateImage({
     },
     inputs: ["https://example.com/reference-image.jpg"],
     webhook: {
-      dashboard: false,
-    },
-    access: {
-      pat: {
-        enabled: false,
-      },
+      registered: false,
     },
     rating: true,
     metadata: {
@@ -145,7 +140,6 @@ Notes:
 - `size` overrides the top-level `size`. Use it for structured sizes: aspect ratios with an optional `scale: "4k"`, or `{ type: "auto" }`
 - Top-level `size` takes shorthand strings: `"auto"` and presets such as `"square"`, `"16:9"` or `"16:9_4k"`
 - `inputs` adds image inputs after the prompt's image parts. Entries can be URLs, `Blob`/`File` values (uploaded for you), or structured inputs with an explicit `as` role
-- `access` lets you disable the default Public Access Token response when you do not need browser-side polling
 - `destination` delivers the generation to a configured Mynth destination, overriding any adapter-level or `MYNTH_DESTINATION` default
 
 ### Options per model

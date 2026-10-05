@@ -152,13 +152,13 @@ describe("MynthImageAdapter", () => {
       await adapter.generateImages(
         createOptions({
           size: "portrait",
-          modelOptions: { size: { type: "aspect_ratio", aspectRatio: "4:5", scale: "4k" } },
+          modelOptions: { size: { type: "aspect_ratio", aspect_ratio: "4:5", scale: "4k" } },
         }),
       );
 
       // Assert
       expect(sentRequest()).toMatchObject({
-        size: { type: "aspect_ratio", aspectRatio: "4:5", scale: "4k" },
+        size: { type: "aspect_ratio", aspect_ratio: "4:5", scale: "4k" },
       });
     });
 
@@ -175,13 +175,13 @@ describe("MynthImageAdapter", () => {
       expect(sentRequest()).toMatchObject({ negative_prompt: "watermark", magic_prompt: false });
     });
 
-    it("forwards the remaining provider options unchanged", async () => {
+    it("forwards the remaining provider options under their API names", async () => {
       // Arrange
       const adapter = createAdapter();
       const modelOptions: MynthImageProviderOptions = {
-        access: { pat: { enabled: false } },
+        generatePublicAccessToken: false,
         output: { format: "png" },
-        webhook: { dashboard: false },
+        webhook: { registered: false },
         rating: true,
         metadata: { userId: "u123" },
         destination: "my-bucket",
@@ -191,10 +191,12 @@ describe("MynthImageAdapter", () => {
       await adapter.generateImages(createOptions({ modelOptions }));
 
       // Assert
+      const { generatePublicAccessToken, ...forwarded } = modelOptions;
       expect(sentRequest()).toEqual({
         prompt: "A beautiful sunset",
         model: DEFAULT_MODEL,
-        ...modelOptions,
+        generate_public_access_token: generatePublicAccessToken,
+        ...forwarded,
       });
     });
 

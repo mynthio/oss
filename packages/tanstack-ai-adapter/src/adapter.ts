@@ -160,7 +160,9 @@ export class MynthImageAdapter<TModel extends MynthImageModel> extends BaseImage
         : {}),
       ...(modelOptions.magicPrompt !== undefined ? { magic_prompt: modelOptions.magicPrompt } : {}),
       ...(modelOptions.output !== undefined ? { output: modelOptions.output } : {}),
-      ...(modelOptions.access !== undefined ? { access: modelOptions.access } : {}),
+      ...(modelOptions.generatePublicAccessToken !== undefined
+        ? { generate_public_access_token: modelOptions.generatePublicAccessToken }
+        : {}),
       ...(modelOptions.webhook !== undefined ? { webhook: modelOptions.webhook } : {}),
       ...(modelOptions.rating !== undefined ? { rating: modelOptions.rating } : {}),
       ...(modelOptions.metadata !== undefined ? { metadata: modelOptions.metadata } : {}),

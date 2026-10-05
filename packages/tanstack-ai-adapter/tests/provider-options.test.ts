@@ -55,7 +55,7 @@ describe("per-model provider options", () => {
       adapter: mynthImage(FOUR_K_MODEL, config),
       prompt: "a cat",
       size: "16:9_4k",
-      modelOptions: { size: { type: "aspect_ratio", aspectRatio: "16:9", scale: "4k" } },
+      modelOptions: { size: { type: "aspect_ratio", aspect_ratio: "16:9", scale: "4k" } },
     });
     createImageOptions({
       adapter: mynthImage(INPUT_MODEL, config),
@@ -67,7 +67,7 @@ describe("per-model provider options", () => {
       adapter: mynthImage(INPUT_MODEL, config),
       prompt: "a cat",
       // @ts-expect-error -- the model has no 4k output
-      modelOptions: { size: { type: "aspect_ratio", aspectRatio: "16:9", scale: "4k" } },
+      modelOptions: { size: { type: "aspect_ratio", aspect_ratio: "16:9", scale: "4k" } },
     });
     createImageOptions({
       adapter: mynthImage("auto", config),

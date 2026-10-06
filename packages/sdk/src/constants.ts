@@ -63,6 +63,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["inputs"],
   },
   {
+    id: "alibaba/qwen-image-2.1-pro",
+    label: "Qwen Image 2.1 Pro",
+    capabilities: ["inputs"],
+  },
+  {
     id: "alibaba/qwen-image-3.0",
     label: "Qwen Image 3.0",
     capabilities: ["inputs"],

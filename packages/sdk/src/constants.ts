@@ -268,6 +268,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["inputs", "4k"],
   },
   {
+    id: "google/gemini-nano-banana-2.1",
+    label: "Nano Banana 2.1",
+    capabilities: ["inputs", "4k"],
+  },
+  {
     id: "google/gemini-3-pro-image-preview",
     label: "Nano Banana Pro",
     capabilities: ["inputs", "4k"],

@@ -178,6 +178,7 @@ export namespace MynthSDKTypes {
     | "goofy-ai/prefect-pony-xl-lora"
     | "google/gemini-3.1-flash-lite-image"
     | "google/gemini-3.1-flash-image"
+    | "google/gemini-nano-banana-2.1"
     | "google/gemini-3-pro-image-preview"
     | "imagineart/imagineart-1.5-pro"
     | "imagineart/imagineart-2.0"

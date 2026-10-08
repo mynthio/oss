@@ -1049,7 +1049,8 @@ try {
 } catch (error) {
   if (error instanceof MynthAPIError) {
     // `message` says what to fix. On a validation_error, `issues` lists each invalid field.
-    console.error(error.status, error.code, error.message, error.issues);
+    // On public_access_token_failed, the task was created: follow `taskId` rather than resending.
+    console.error(error.status, error.code, error.message, error.issues, error.taskId);
   } else if (error instanceof TaskAsyncTimeoutError) {
     console.error("Task polling timed out");
   } else if (error instanceof TaskAsyncUnauthorizedError) {

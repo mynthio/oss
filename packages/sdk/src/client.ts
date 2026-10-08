@@ -13,18 +13,25 @@ export class MynthAPIError extends Error {
    * `message` already states all of them.
    */
   public readonly issues?: ReadonlyArray<MynthAPIErrorIssue> | undefined;
+  /**
+   * The task the request created before it failed, when `code` is
+   * `public_access_token_failed`. It will run: follow it rather than resending.
+   */
+  public readonly taskId?: string | undefined;
 
   constructor(
     message: string,
     status: number,
     code?: string,
     issues?: ReadonlyArray<MynthAPIErrorIssue>,
+    taskId?: string,
   ) {
     super(message);
     this.name = "MynthAPIError";
     this.status = status;
     this.code = code;
     this.issues = issues;
+    this.taskId = taskId;
   }
 }
 
@@ -34,12 +41,13 @@ export type MynthAPIErrorIssue = {
   message: string;
 };
 
-/** Every API error answers `{ "error": { code, message?, issues? } }`. */
+/** Every API error answers `{ "error": { code, message?, issues?, task_id? } }`. */
 type APIErrorResponse = {
   error?: {
     code?: unknown;
     message?: unknown;
     issues?: unknown;
+    task_id?: unknown;
   };
 };
 
@@ -57,8 +65,9 @@ function createApiError(data: unknown, status: number) {
     (typeof error.message === "string" && error.message) || `Request failed with status ${status}`;
   const code = typeof error.code === "string" ? error.code : undefined;
   const issues = Array.isArray(error.issues) ? (error.issues as MynthAPIErrorIssue[]) : undefined;
+  const taskId = typeof error.task_id === "string" ? error.task_id : undefined;
 
-  return new MynthAPIError(message, status, code, issues);
+  return new MynthAPIError(message, status, code, issues, taskId);
 }
 
 /** An error body that is not JSON (a proxy's HTML page, say) still yields an API error. */

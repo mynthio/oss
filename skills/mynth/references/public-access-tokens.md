@@ -40,7 +40,7 @@ if (status.status === "completed") {
 }
 ```
 
-`image.generateAsync()`, `image.removeBackgroundAsync()`, `image.upscaleAsync()`, and `video.generateAsync()` return a PAT; rate, alt, and review do not. Treat it as optional: if signing fails the task is still created without one, so fall back to server-side polling. A PAT is issued only when the request sets `generate_public_access_token: true` (default `false`); over REST it comes back as `data.public_access_token`. Leave it out when only server-side polling or webhooks are used.
+`image.generateAsync()`, `image.removeBackgroundAsync()`, `image.upscaleAsync()`, and `video.generateAsync()` return a PAT; rate, alt, and review do not. If the task is created but its PAT cannot be generated, the create fails with `500 public_access_token_failed` and the task's id in `error.task_id` (SDK: `MynthAPIError.taskId`); the task still runs, so poll it server-side instead of resending, which would create and charge a second task. A PAT is issued only when the request sets `generate_public_access_token: true` (default `false`); over REST it comes back as `data.public_access_token`. Leave it out when only server-side polling or webhooks are used.
 
 ## Safety
 

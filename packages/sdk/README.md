@@ -1050,7 +1050,8 @@ try {
 } catch (error) {
   if (error instanceof MynthAPIError) {
     // `message` says what to fix. On a validation_error, `issues` lists each invalid field.
-    console.error(error.status, error.code, error.message, error.issues);
+    // On public_access_token_failed, the task was created: follow `taskId` rather than resending.
+    console.error(error.status, error.code, error.message, error.issues, error.taskId);
   } else if (error instanceof TaskAsyncTimeoutError) {
     console.error("Task polling timed out");
   } else if (error instanceof TaskAsyncUnauthorizedError) {
@@ -1064,21 +1065,6 @@ try {
   }
 }
 ```
-
-## Migrating from 0.0.49
-
-0.0.50 follows the stable API, which changed in one go. Nothing in it is backward compatible:
-
-- Request fields are snake_case, and the API now rejects a field it does not know. `size.aspectRatio` is `size.aspect_ratio`.
-- `access: { pat: { enabled } }` is `generate_public_access_token: true`, and it now defaults to `false`: pass it to get `taskAsync.access.publicAccessToken` from `generateAsync()`, `removeBackgroundAsync()`, `upscaleAsync()` and `video.generateAsync()`.
-- `webhook.dashboard` is `webhook.registered`.
-- `MynthAPIError.code` and every task error code are lowercase: `validation_error`, `insufficient_balance`, `provider_error`.
-- API data the SDK returns as is is snake_case: `MynthSDKTypes.TaskData` (`user_id`, `api_key_id`, `created_at`, `updated_at`), the model catalog (`display_name`, `per_image`, `per_second`, `max_total`) and `video.estimate()` (`estimated_cost`, `estimate_kind`).
-- A video's `url` can be `null`, like an image's. `result.urls` skips it.
-- Webhooks follow Standard Webhooks. Every registered webhook got a new `whsec_...` signing secret: copy it from the dashboard into `MYNTH_WEBHOOK_SECRET`. `X-Mynth-Event`, `X-Mynth-Delivery` and `X-Mynth-Signature` are gone; deliveries carry `webhook-id`, `webhook-timestamp` and `webhook-signature`.
-- The webhook body is an event, `{ id, type, timestamp, data }`, with the task in `data`. `MynthSDKTypes.WebhookPayload` and its variants are replaced by `MynthSDKTypes.WebhookEvent`, and `verifyWebhook()` returns one.
-- Webhook callbacks get `{ event }` in their last argument instead of `deliveryId`. Deduplicate on `event.id`.
-- Unsigned deliveries to a custom URL are refused unless the helper gets the `unsigned` option.
 
 ## Documentation
 

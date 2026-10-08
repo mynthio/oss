@@ -213,7 +213,8 @@ try {
   const task = await mynth.image.generate({ model: "black-forest-labs/flux.2-pro", prompt: "..." });
 } catch (error) {
   if (error instanceof MynthAPIError) {
-    console.error(error.status, error.code, error.message);
+    // On public_access_token_failed the task was created: follow `taskId` rather than resending.
+    console.error(error.status, error.code, error.message, error.taskId);
   } else if (error instanceof TaskAsyncTimeoutError) {
     console.error("Polling timed out");
   } else if (error instanceof TaskAsyncTaskFailedError) {

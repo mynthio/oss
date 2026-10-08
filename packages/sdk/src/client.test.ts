@@ -72,6 +72,38 @@ describe("MynthClient errors", () => {
     }
   });
 
+  test("reads the task a failed create left behind", async () => {
+    // Arrange
+    const client = new MynthClient({ apiKey: "mak_test", baseUrl: "https://api.test" });
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json(
+        {
+          error: {
+            code: "public_access_token_failed",
+            message: "Task tsk_123 was created and will run.",
+            task_id: "tsk_123",
+          },
+        },
+        { status: 500 },
+      ),
+    );
+
+    try {
+      // Act
+      const error: unknown = await client.post("/image/generate", {}).catch((caught) => caught);
+
+      // Assert
+      expect(error).toMatchObject({
+        name: "MynthAPIError",
+        status: 500,
+        code: "public_access_token_failed",
+        taskId: "tsk_123",
+      });
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
+
   test("falls back to the status when the body is not the error envelope", async () => {
     // Arrange
     const client = new MynthClient({ apiKey: "mak_test", baseUrl: "https://api.test" });

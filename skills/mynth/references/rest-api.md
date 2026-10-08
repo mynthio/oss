@@ -29,7 +29,7 @@ Optional fields: `negative_prompt`, `magic_prompt`, `inputs`, `rating` (see [ima
 
 Every field name is snake_case, and a field the endpoint does not define answers `400 validation_error` naming it. `count` is a whole number from 1 to 20.
 
-Errors are `{ "error": { "code": "insufficient_balance", "message": "..." } }`, with lowercase snake_case codes; `validation_error` adds `error.issues: [{ path, message }]`. Branch on `error.code`, never on `message`.
+Errors are `{ "error": { "code": "insufficient_balance", "message": "..." } }`, with lowercase snake_case codes; `validation_error` adds `error.issues: [{ path, message }]`, and `public_access_token_failed` (500) adds `error.task_id`: that task was created and runs, so follow it instead of resending. Branch on `error.code`, never on `message`.
 
 Response (201):
 

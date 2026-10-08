@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.51](https://github.com/mynthio/oss/compare/sdk-v0.0.50...sdk-v0.0.51) (2026-10-08)
+
+
+### Features
+
+* **sdk:** expose the created task on MynthAPIError ([3dda250](https://github.com/mynthio/oss/commit/3dda250dfc3f70369ca7ddda15310a260a9c7452))
+
 ## [0.0.50](https://github.com/mynthio/oss/compare/sdk-v0.0.49...sdk-v0.0.50) (2026-10-05)
 
 

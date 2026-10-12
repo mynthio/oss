@@ -1112,6 +1112,7 @@ function createVideoTaskData(
           cost: "0.42",
           duration: 8,
           resolution: "1080p",
+          aspect_ratio: "16:9",
           audio: true,
         },
         {
@@ -1165,7 +1166,7 @@ describe("MynthVideo", () => {
       model: "google/gemini-omni-flash-1.1",
       prompt: "a cat surfing",
       duration: 8,
-      resolution: "1080p",
+      size: "9:16_1080p",
       audio: true,
     });
 
@@ -1181,7 +1182,7 @@ describe("MynthVideo", () => {
           model: "google/gemini-omni-flash-1.1",
           prompt: "a cat surfing",
           duration: 8,
-          resolution: "1080p",
+          size: "9:16_1080p",
           audio: true,
         }),
       }),
@@ -1230,6 +1231,7 @@ describe("MynthVideo", () => {
           cost: "0.42",
           duration: 8,
           resolution: "1080p",
+          aspectRatio: "16:9",
           audio: true,
         },
       ],

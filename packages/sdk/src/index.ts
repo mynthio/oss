@@ -702,7 +702,7 @@ class MynthImage {
  *   model: "google/gemini-omni-flash-1.1",
  *   prompt: "A cat surfing a wave at sunset",
  *   duration: 8,
- *   resolution: "1080p",
+ *   size: "9:16_1080p",
  * });
  *
  * console.log(result.urls); // ["https://..."]
@@ -809,7 +809,7 @@ class MynthVideo {
    * Price a video generation request without generating anything.
    *
    * The request is validated exactly as `generate()` would validate it, so an
-   * unsupported duration, resolution or input combination throws here too —
+   * unsupported duration, resolution tier or input combination throws here too —
    * making this a cheap pre-flight check as well as a cost lookup. Because
    * video pins a concrete model, the returned estimate is exact.
    *
@@ -822,7 +822,7 @@ class MynthVideo {
    *   model: "google/gemini-omni-flash-1.1",
    *   prompt: "A timelapse of clouds over a canyon",
    *   duration: 10,
-   *   resolution: "4k",
+   *   size: "16:9_4k",
    * });
    * ```
    */

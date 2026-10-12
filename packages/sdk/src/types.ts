@@ -741,6 +741,47 @@ export namespace MynthSDKTypes {
   /** Resolution tier. Each model supports a subset; see `AVAILABLE_VIDEO_MODELS`. */
   export type VideoGenerationRequestResolution = "480p" | "720p" | "1080p" | "4k";
 
+  /**
+   * A video shape: `auto`, a named shape, or an aspect ratio. The same list
+   * images take. The model gets the closest aspect ratio it supports.
+   */
+  export type VideoGenerationRequestSizeShape =
+    | "auto"
+    | "square"
+    | "portrait"
+    | "landscape"
+    | "portrait_tall"
+    | "landscape_wide"
+    | ImageGenerationRequestAspectRatio;
+
+  /** A shape, optionally with a resolution tier, e.g. `"16:9"` or `"16:9_1080p"`. */
+  export type VideoGenerationRequestSizePreset =
+    | VideoGenerationRequestSizeShape
+    | `${VideoGenerationRequestSizeShape}_${VideoGenerationRequestResolution}`;
+
+  /** Structured aspect ratio size configuration */
+  export type VideoGenerationRequestSizeAspectRatio = {
+    type: "aspect_ratio";
+    aspect_ratio: ImageGenerationRequestAspectRatio;
+    resolution?: VideoGenerationRequestResolution;
+  };
+
+  /** Structured auto size configuration */
+  export type VideoGenerationRequestSizeAuto = {
+    type: "auto";
+    resolution?: VideoGenerationRequestResolution;
+  };
+
+  /**
+   * Video size: aspect ratio and resolution tier. The aspect ratio is best
+   * effort; the tier is strict, because it sets the price. With image inputs
+   * the first frame sets the shape. Defaults to `"auto"`.
+   */
+  export type VideoGenerationRequestSize =
+    | VideoGenerationRequestSizePreset
+    | VideoGenerationRequestSizeAspectRatio
+    | VideoGenerationRequestSizeAuto;
+
   /** Video webhook configuration (same shape as image generation). */
   export type VideoGenerationRequestWebhook = ImageGenerationRequestWebhook;
 
@@ -779,8 +820,8 @@ export namespace MynthSDKTypes {
     negative_prompt?: string;
     /** Duration in whole seconds. Defaults to the model's default duration. */
     duration?: number;
-    /** Resolution tier. Defaults to the model's default tier. */
-    resolution?: VideoGenerationRequestResolution;
+    /** Aspect ratio and resolution tier. Defaults to `"auto"` at the model's default tier. */
+    size?: VideoGenerationRequestSize;
     /** Model-native generated audio. Only for models with the audio capability. */
     audio?: boolean;
     inputs?: (string | VideoGenerationRequestInput)[];
@@ -820,6 +861,8 @@ export namespace MynthSDKTypes {
     /** Duration of the generated video in seconds */
     duration: number;
     resolution: VideoGenerationRequestResolution;
+    /** Aspect ratio the video was generated at, e.g. `"16:9"`. `null` when the first frame set it. */
+    aspect_ratio: string | null;
     /** Whether the video was generated with audio */
     audio: boolean;
   };

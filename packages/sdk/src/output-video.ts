@@ -19,6 +19,8 @@ export type MynthOutputVideo = {
   duration: number;
   /** Resolution tier the video was rendered at */
   resolution: MynthSDKTypes.VideoGenerationRequestResolution;
+  /** Aspect ratio the video was generated at, e.g. `"16:9"`. `null` when the first frame set it. */
+  aspectRatio: string | null;
   /** Whether the video has generated audio */
   audio: boolean;
 };
@@ -32,6 +34,7 @@ export function toOutputVideo(video: MynthSDKTypes.VideoResultVideoSuccess): Myn
     cost: video.cost,
     duration: video.duration,
     resolution: video.resolution,
+    aspectRatio: video.aspect_ratio,
     audio: video.audio,
   };
 }

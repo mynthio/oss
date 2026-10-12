@@ -138,6 +138,7 @@ export const WEBHOOK_EVENTS: {
           cost: "0.40500000",
           duration: 5,
           resolution: "720p",
+          aspect_ratio: "16:9",
           audio: false,
         },
       ],

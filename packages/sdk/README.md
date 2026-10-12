@@ -692,7 +692,7 @@ const task = await mynth.video.generate({
   model: "google/gemini-omni-flash-1.1",
   prompt: "A drone shot over a misty forest at dawn",
   duration: 8,
-  resolution: "1080p",
+  size: "9:16_1080p",
   audio: true,
 });
 
@@ -720,9 +720,26 @@ return { id: taskAsync.id, access: taskAsync.access };
 
 `taskAsync.access.publicAccessToken` works exactly as it does for images: requested with `generate_public_access_token: true`, scoped to that one task, safe to send to the client, and usable against `GET /tasks/:id/status` and `GET /tasks/:id/result`.
 
-### Duration, Resolution and Audio
+### Size
 
-`duration` is in whole seconds and `resolution` is a tier (`"480p"`, `"720p"`, `"1080p"`, `"4k"`). Each model accepts a subset of both, and rejects a request outside it. Omit either to take the model default. `audio: true` enables model-native generated audio.
+`size` sets the aspect ratio and the resolution tier:
+
+```ts
+size: "auto"; // default: the model's default shape and tier
+size: "portrait"; // a named shape or an aspect ratio, at the model's default tier
+size: "9:16_1080p"; // a shape with a tier
+size: "auto_1080p"; // the model's default shape, at a tier
+size: { type: "aspect_ratio", aspect_ratio: "9:16", resolution: "1080p" };
+size: { type: "auto", resolution: "1080p" };
+```
+
+Shapes are the same as for images: `square`, `portrait`, `landscape`, `portrait_tall`, `landscape_wide`, and the ratios `1:1`, `2:3`, `3:2`, `3:4`, `4:3`, `4:5`, `5:4`, `9:16`, `16:9`, `21:9`, `2:1`, `1:2`.
+
+The aspect ratio is best effort: the model gets the closest one it supports. With image inputs, the first frame sets the shape and the aspect ratio is ignored. The tier (`"480p"`, `"720p"`, `"1080p"`, `"4k"`) is strict, because it sets the price: each model accepts a subset, and rejects a tier outside it.
+
+### Duration and Audio
+
+`duration` is in whole seconds. Each model accepts a range, and rejects a request outside it. Omit it to take the model default. `audio: true` enables model-native generated audio.
 
 ### Input Images
 
@@ -759,7 +776,7 @@ const { estimated_cost } = await mynth.video.estimate({
   model: "google/gemini-omni-flash-1.1",
   prompt: "A timelapse of clouds over a canyon",
   duration: 10,
-  resolution: "4k",
+  size: "16:9_4k",
 });
 ```
 
@@ -780,7 +797,7 @@ console.log(task.metadata);
 console.log(task.raw);
 ```
 
-Each video has `id`, `url`, `mynthUrl`, `cost`, `duration`, `resolution`, and `audio`. `url` is `null` when the video could not be delivered there; `mynthUrl` is always set.
+Each video has `id`, `url`, `mynthUrl`, `cost`, `duration`, `resolution`, `aspectRatio`, and `audio`. `aspectRatio` is `null` when the first frame set the shape. `url` is `null` when the video could not be delivered there; `mynthUrl` is always set.
 
 ### Video Models
 

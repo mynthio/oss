@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.0.52](https://github.com/mynthio/oss/compare/sdk-v0.0.51...sdk-v0.0.52) (2026-10-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* **sdk:** support video size and output aspect ratios
+
+### Features
+
+* **sdk:** support video size and output aspect ratios ([185b946](https://github.com/mynthio/oss/commit/185b946a797523dc1bcb7d5e0e05a61e0406b076))
+
 ## [0.0.51](https://github.com/mynthio/oss/compare/sdk-v0.0.50...sdk-v0.0.51) (2026-10-08)
 
 

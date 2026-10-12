@@ -159,7 +159,7 @@ Response (200):
 
 ## Video
 
-`POST /video/generate` — `model` (required, no `auto`) and `prompt`, plus optional `duration`, `resolution`, `audio`, `inputs` (`first_frame`/`last_frame`), `webhook`, `metadata`. One video per request; no `destination` (sending one is a `400 validation_error`). Values the model does not serve fail with `400 validation_error`. `POST /video/generate/estimate` prices the same body. Details: https://mynth.io/docs/guides/generate-video.md
+`POST /video/generate` — `model` (required, no `auto`) and `prompt`, plus optional `duration`, `size`, `audio`, `inputs` (`first_frame`/`last_frame`), `webhook`, `metadata`. `size` is a shape with an optional tier (`"auto"`, `"portrait"`, `"9:16_1080p"`, `"auto_1080p"`) or `{ "type": "aspect_ratio", "aspect_ratio": "9:16", "resolution": "1080p" }`; the aspect ratio is best effort, image inputs set it from the first frame. One video per request; no `destination` (sending one is a `400 validation_error`). A tier or duration the model does not serve fails with `400 validation_error`. `POST /video/generate/estimate` prices the same body. Details: https://mynth.io/docs/guides/generate-video.md
 
 ## Webhook Management
 

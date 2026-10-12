@@ -144,11 +144,11 @@ const video = await mynth.video.generate({
   model: "bytedance/seedance-2.0-mini", // example id; required, video has no auto
   prompt: "A lighthouse beam sweeping over waves",
   duration: 5,
-  resolution: "720p",
+  size: "9:16_720p", // aspect ratio is best effort; the tier is strict
 });
 
 video.urls;
-video.videos[0]?.duration; // each video: id, url, mynthUrl, cost, duration, resolution, audio
+video.videos[0]?.duration; // each video: id, url, mynthUrl, cost, duration, resolution, aspectRatio, audio
 video.failures;
 ```
 

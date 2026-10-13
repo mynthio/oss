@@ -1,6 +1,6 @@
 ---
 name: release-packages
-description: "Release packages in the correct order by creating appropriate commits and pushing. Use when the user says to release, publish, deploy packages, ship changes, release sdk, release adapter, or mentions releasing anything in this monorepo. Handles the dependency order: SDK must be released first, then tanstack-adapter (which updates its SDK dependency), then other directories. Each sub-project gets its own commit with a conventional commit message."
+description: "Release packages by creating appropriate commits and pushing. Use when the user says to release, publish, deploy packages, ship changes, release sdk, release adapter, release cli, or mentions releasing anything in this monorepo. Every package (SDK, CLI, TanStack AI adapter) is independent and releases on its own; each sub-project gets its own commit with a conventional commit message."
 ---
 
 # Release Packages
@@ -11,9 +11,9 @@ Release the packages in the repository.
 
 Run the lint and test checks for packages you're releasing in that batch. Run the format command to format packages before release.
 
-# Order
+# Independence
 
-Packages that does not depend on SDK can be release in parallel, while packages that depends on SDK needs to be release after SDK version is published.
+Packages do not depend on each other, so they release in parallel and in any order. None of them waits for another to be published first. Do not add a dependency between packages to share code.
 
 # Release process
 
@@ -27,15 +27,11 @@ Using `gh` CLI you have all the rights to finish the release process, including 
 
 Always pull latest changes to keep repo in sync after merges.
 
-# SDK dependent packages
-
-For all packages that depends on SDK release process is same, but first you need to pull changes, and update the SDK version in the target package package.json file. We always use fixed versions, and we always should use fixed version.
-
-Then run required checks and release the package. The package might be not compatible with new SDK, in such case, TS/Tests errors skip this package and report it to user at the end.
-
 # Tanstack Adapter
 
-Before release Tanstack Adapter package check if it doesn't need a sync with Mynth SDK. If nothing has changed that affects Tanstack Adapter, skip the release process for this package, or ask user on how to proceed.
+The adapter calls the Mynth API itself and keeps its own model table (`src/model-meta.ts`). Before releasing it, run `pnpm --filter @mynthio/tanstack-ai-adapter check:models`. It compares the table with the live catalog at `https://api.mynth.io/models`. When it reports a difference, stop and report it to the user rather than editing the adapter: the package must not be changed without explicit instructions.
+
+A change to the API that the adapter uses (request fields, task responses, errors) needs an adapter change too, as it does for the SDK.
 
 # Rest of the changes
 

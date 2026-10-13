@@ -1,3 +1,5 @@
 - Never edit Tanstack Adapter package automatically, without explicit user instructions to edit it
 - Use `pnpm` as package manager; the runtime is Node 24 (pinned via `devEngines` in the root `package.json`)
 - Relative imports use explicit `.ts` extensions (enforced by oxlint for everything under `packages/`)
+- Packages are independent: none depends on another (the TanStack AI adapter calls the Mynth API itself), so each builds, tests and releases on its own. Do not add a workspace dependency between packages
+- The TanStack AI adapter's model table (`packages/tanstack-ai-adapter/src/model-meta.ts`) is kept in sync by hand; `pnpm --filter @mynthio/tanstack-ai-adapter check:models` compares it with the live catalog

@@ -1,45 +1,59 @@
-import type { MynthSDKTypes } from "@mynthio/sdk";
-import { AVAILABLE_MODELS } from "@mynthio/sdk";
-import type { ModelCapability } from "@mynthio/sdk";
 import { describe, expect, expectTypeOf, it } from "vitest";
 
 import {
-  MYNTH_IMAGE_4K_MODELS,
-  MYNTH_IMAGE_INPUT_MODELS,
+  hasMynthImageCapability,
+  isMynthImageModel,
+  MYNTH_IMAGE_MODEL_META,
   MYNTH_IMAGE_MODELS,
-  MYNTH_IMAGE_NEGATIVE_PROMPT_MODELS,
+  type MynthImageInputModel,
+  type MynthImageModelMeta,
 } from "../src/model-meta.ts";
-import type { MynthImageModel } from "../src/model-meta.ts";
-
-function sdkModelsWith(capability: ModelCapability): string[] {
-  return AVAILABLE_MODELS.filter((model) => model.capabilities.includes(capability)).map(
-    (model) => model.id,
-  );
-}
 
 describe("model metadata", () => {
-  // Compile-time check: `pnpm typecheck` fails when a listed ID drifts.
-  it("lists only model IDs the SDK accepts", () => {
-    expectTypeOf<MynthImageModel>().toExtend<MynthSDKTypes.ImageGenerationModel>();
+  // Compile-time checks: `pnpm typecheck` fails when they break.
+  it("describes every model with a label and capabilities", () => {
+    expectTypeOf(MYNTH_IMAGE_MODEL_META).toExtend<Record<string, MynthImageModelMeta>>();
   });
 
-  it("lists every model in the SDK catalog", () => {
-    // Arrange
-    const sdkModels = AVAILABLE_MODELS.map((model) => model.id);
-
-    // Act & Assert
-    expect([...MYNTH_IMAGE_MODELS]).toEqual(sdkModels);
+  it("derives the capability unions from the table", () => {
+    expectTypeOf<"black-forest-labs/flux.2-pro">().toExtend<MynthImageInputModel>();
+    expectTypeOf<"black-forest-labs/flux.1-dev">().not.toExtend<MynthImageInputModel>();
   });
 
+  it("lists auto first, so pickers default to it", () => {
+    // Arrange & Act
+    const [first] = MYNTH_IMAGE_MODELS;
+
+    // Assert
+    expect(first).toBe("auto");
+  });
+});
+
+describe("isMynthImageModel", () => {
   it.each([
-    ["inputs", MYNTH_IMAGE_INPUT_MODELS],
-    ["negative_prompt", MYNTH_IMAGE_NEGATIVE_PROMPT_MODELS],
-    ["4k", MYNTH_IMAGE_4K_MODELS],
-  ] as const)("matches the SDK's %s capability", (capability, models) => {
-    // Arrange
-    const sdkModels = sdkModelsWith(capability);
+    ["a known model", "krea/krea-2-large", true],
+    ["an unknown model", "acme/image-1", false],
+    ["an inherited object key", "toString", false],
+    ["a non-string", 42, false],
+  ])("recognizes %s", (_, value, expected) => {
+    // Act
+    const known = isMynthImageModel(value);
 
-    // Act & Assert
-    expect([...models]).toEqual(sdkModels);
+    // Assert
+    expect(known).toBe(expected);
+  });
+});
+
+describe("hasMynthImageCapability", () => {
+  it.each([
+    ["black-forest-labs/flux-3", "4k", true],
+    ["black-forest-labs/flux.2-pro", "4k", false],
+    ["purplesmartai/pony-diffusion-v6-xl", "negative_prompt", true],
+  ] as const)("reports whether %s has %s", (model, capability, expected) => {
+    // Act
+    const has = hasMynthImageCapability(model, capability);
+
+    // Assert
+    expect(has).toBe(expected);
   });
 });

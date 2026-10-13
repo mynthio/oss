@@ -9,5 +9,5 @@
     "declaration": true,
     "isolatedDeclarations": true
   },
-  "include": ["src", "tests"]
+  "include": ["src", "tests", "scripts"]
 }

@@ -1,4 +1,13 @@
-import type { MynthSDKTypes } from "@mynthio/sdk";
+import type {
+  MynthImageAspectRatioSize,
+  MynthImageAutoSize,
+  MynthImageInput,
+  MynthImageOutput,
+  MynthImageRating,
+  MynthImageSize,
+  MynthImageSizePreset,
+  MynthImageWebhook,
+} from "./api.ts";
 import type {
   MynthImage4kModel,
   MynthImageInputModel,
@@ -10,13 +19,13 @@ import type {
 // Size Types
 // ============================================================================
 
-type Mynth4kSizePreset = Extract<MynthSDKTypes.ImageGenerationRequestSizePreset, `${string}_4k`>;
+type Mynth4kSizePreset = Extract<MynthImageSizePreset, `${string}_4k`>;
 
 /**
  * Mynth size values that fit TanStack's top-level string size API.
  * Structured size objects remain available through modelOptions.size.
  */
-export type MynthImageShorthandSize = "auto" | MynthSDKTypes.ImageGenerationRequestSizePreset;
+export type MynthImageShorthandSize = "auto" | MynthImageSizePreset;
 
 /**
  * Shorthand sizes for models without 4k output: every preset except `_4k`.
@@ -29,8 +38,8 @@ export type MynthImageBaseShorthandSize = Exclude<MynthImageShorthandSize, Mynth
  */
 export type MynthImageBaseSize =
   | MynthImageBaseShorthandSize
-  | MynthSDKTypes.ImageGenerationRequestSizeAuto
-  | (Omit<MynthSDKTypes.ImageGenerationRequestSizeAspectRatio, "scale"> & { scale?: "base" });
+  | MynthImageAutoSize
+  | (Omit<MynthImageAspectRatioSize, "scale"> & { scale?: "base" });
 
 // ============================================================================
 // Provider Options
@@ -44,13 +53,13 @@ export interface MynthImageCommonOptions {
   /** Enable Mynth-side prompt enhancement. The enhanced prompt comes back as `revisedPrompt`. */
   magicPrompt?: boolean;
   /** Output format */
-  output?: MynthSDKTypes.ImageGenerationRequestOutput;
+  output?: MynthImageOutput;
   /** Ask Mynth for a public access token for this task. Sent as `generate_public_access_token`. */
   generatePublicAccessToken?: boolean;
   /** Webhook configuration */
-  webhook?: MynthSDKTypes.ImageGenerationRequestWebhook;
+  webhook?: MynthImageWebhook;
   /** Image rating configuration */
-  rating?: MynthSDKTypes.ImageGenerationRequestRating;
+  rating?: MynthImageRating;
   /** Custom metadata */
   metadata?: Record<string, unknown>;
   /** Destination name (slug) for delivering this generation. Overrides any adapter-level or env default. */
@@ -63,7 +72,7 @@ export interface MynthImageCommonOptions {
  * request), or structured inputs with an explicit `as` role.
  */
 export interface MynthImageInputOptions {
-  inputs?: NonNullable<MynthSDKTypes.ImageGenerationClientRequest["inputs"]>;
+  inputs?: MynthImageInput[];
 }
 
 /**
@@ -96,9 +105,7 @@ export type MynthImageMagicNegativePromptOptions =
 export type MynthImageProviderOptionsFor<TModel extends MynthImageModel> =
   MynthImageCommonOptions & {
     /** Size config (presets, aspect ratio, auto). Overrides the top-level `size`. */
-    size?: TModel extends MynthImage4kModel
-      ? MynthSDKTypes.ImageGenerationRequestSize
-      : MynthImageBaseSize;
+    size?: TModel extends MynthImage4kModel ? MynthImageSize : MynthImageBaseSize;
   } & (TModel extends MynthImageInputModel ? MynthImageInputOptions : unknown) &
     (TModel extends MynthImageNegativePromptModel | "auto"
       ? MynthImageNativeNegativePromptOptions
@@ -111,7 +118,7 @@ export type MynthImageProviderOptionsFor<TModel extends MynthImageModel> =
 export interface MynthImageProviderOptions
   extends MynthImageCommonOptions, MynthImageInputOptions, MynthImageNativeNegativePromptOptions {
   /** Size config (presets, aspect ratio, auto). Overrides the top-level `size`. */
-  size?: MynthSDKTypes.ImageGenerationRequestSize;
+  size?: MynthImageSize;
 }
 
 // ============================================================================

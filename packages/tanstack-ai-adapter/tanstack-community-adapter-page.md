@@ -15,24 +15,26 @@ keywords:
 
 # Mynth
 
-The Mynth adapter gives you access to Mynth image generation models through TanStack AI. It is a community adapter for `generateImage()` with typed model IDs, per-model typed `modelOptions`, image-to-image support, a files adapter for `uploadFile()`, cancellation, usage and cost reporting, and a BYOK descriptor.
+The Mynth adapter gives you access to Mynth image generation models through TanStack AI. It is a community adapter for `generateImage()` with typed model IDs, per-model typed `modelOptions`, image-to-image support, a files adapter for `uploadFile()`, cancellation, usage and cost reporting, typed errors, and a BYOK descriptor. It has no dependencies besides `@tanstack/ai`.
 
 Mynth is image-only in this package. Reach for it when you want TanStack AI's image generation workflow with Mynth models such as Flux, Recraft, Gemini, Qwen, Seedream, Wan, and Grok Imagine.
 
-Quick note: Mynth is in public beta, so the model lineup and a few request options are still settling. The adapter tracks the Mynth SDK closely, and we welcome feedback on the API and integration experience.
+Quick note: Mynth is in public beta, so the model lineup and a few request options are still settling. The adapter tracks the Mynth API closely, and we welcome feedback on the API and integration experience.
 
 ## Installation
 
-```sh
-# bun
-bun add @mynthio/tanstack-ai-adapter @tanstack/ai
+<!-- ::start:tabs variant="package-manager" mode="install" -->
 
-# pnpm
-pnpm add @mynthio/tanstack-ai-adapter @tanstack/ai
+react: @mynthio/tanstack-ai-adapter @tanstack/ai
+vue: @mynthio/tanstack-ai-adapter @tanstack/ai
+solid: @mynthio/tanstack-ai-adapter @tanstack/ai
+svelte: @mynthio/tanstack-ai-adapter @tanstack/ai
+preact: @mynthio/tanstack-ai-adapter @tanstack/ai
+angular: @mynthio/tanstack-ai-adapter @tanstack/ai
+vanilla: @mynthio/tanstack-ai-adapter @tanstack/ai
+octane: @mynthio/tanstack-ai-adapter @tanstack/ai
 
-# npm
-npm install @mynthio/tanstack-ai-adapter @tanstack/ai
-```
+<!-- ::end:tabs -->
 
 The adapter requires `@tanstack/ai` 0.61 or newer.
 
@@ -46,7 +48,7 @@ MYNTH_API_KEY=mak_...
 
 Keep `MYNTH_API_KEY` on the server only. Never expose it in browser code or public client environment variables, or it may end up in a client bundle.
 
-You can also pass `apiKey` directly in the adapter config. `baseUrl` is optional and useful for proxies, tests, or custom deployments.
+You can also pass `apiKey` directly in the adapter config. `baseURL`, `defaultHeaders` and `fetch` route the adapter through a proxy or gateway, the same way as every other TanStack AI adapter.
 
 If you need a key, create one in the [Mynth API keys dashboard](https://mynth.io/dashboard/keys).
 
@@ -80,7 +82,7 @@ import { createMynthImage } from "@mynthio/tanstack-ai-adapter";
 
 const mynth = createMynthImage({
   apiKey: process.env.MYNTH_API_KEY!,
-  baseUrl: "https://api.mynth.io",
+  destination: "my-bucket",
 });
 
 const result = await generateImage({
@@ -99,7 +101,8 @@ import { createMynthImage } from "@mynthio/tanstack-ai-adapter";
 const mynth = createMynthImage();
 
 const adapter = mynth("auto", {
-  baseUrl: "https://proxy.example.com",
+  baseURL: "https://gateway.example.com/mynth",
+  defaultHeaders: { "cf-aig-authorization": `Bearer ${process.env.GATEWAY_TOKEN}` },
 });
 ```
 
@@ -126,7 +129,6 @@ const result = await generateImage({
     },
     output: {
       format: "png",
-      quality: 90,
     },
     rating: true,
     metadata: {
@@ -177,7 +179,7 @@ A few things worth knowing:
 - URL sources (`{ type: "url", value }`) are sent as they are. Inline data sources (`{ type: "data", value, mimeType }`) are uploaded to Mynth first, because the Mynth API only fetches http(s) URLs. File sources from `mynthFiles()` are covered below
 - Mynth accepts JPEG, PNG and WebP images
 - A part's `metadata.role` maps to Mynth's input role. TanStack's `"reference"` and `"character"` roles map to Mynth's `"reference"` guidance role, and Mynth routes a part without a role itself. Mynth has no mask, control or frame inputs, so parts with those roles throw instead of being sent as plain images
-- For explicit routing, pass `modelOptions.inputs` with SDK-supported `as` values `"source"` or `"reference"`
+- For explicit routing, pass `modelOptions.inputs` with an `as` role of `"source"` or `"reference"`
 - Image parts from the prompt and entries in `modelOptions.inputs` are combined, with prompt parts first
 - Video and audio parts throw: Mynth image generation takes text and images only
 
@@ -220,13 +222,22 @@ const result = await generateImage({
 
 A task that was already created keeps running on Mynth, and it is still billed.
 
+The adapter polls the task often at first (every second for the first 10 seconds, then every 2, then every 5), retries polls through network errors and `5xx` responses, and honors `Retry-After`. Creating the task is never retried, so a request is never billed twice. Pass `debug: { provider: true }` to log every polled status.
+
 ## Usage and Cost
 
 `result.usage` reports what Mynth billed: `billed` is `{ quantity, unit: "images" }` and `cost` is the task's total in USD. Token fields are always `0`, since Mynth bills per image. TanStack AI passes `usage` to middleware such as `otelMiddleware()`.
 
 ## Errors
 
-When a task completes but every image failed, the adapter throws `MynthNoImagesError`, which carries the `taskId` and each image's error. When only some images fail, the result holds the successful ones. Request and task errors from the Mynth SDK propagate unchanged.
+Every Mynth failure is a `MynthError` with a `code`, which TanStack AI reports on the stream's `RUN_ERROR` event:
+
+- `MynthAPIError`: the API answered with an error status. `code` is the API's own, such as `insufficient_balance` or `validation_error`, next to `status` and `issues`
+- `MynthTaskFailedError` (`MYNTH_TASK_FAILED`): the task failed as a whole. It is not billed
+- `MynthNoImagesError` (`MYNTH_NO_IMAGES`): the task completed, but every image failed
+- `MynthTaskTimeoutError` (`MYNTH_TASK_TIMEOUT`): the task did not settle within 30 minutes
+
+The task errors carry the `taskId` and each error's `code`. When only some images fail, the result holds the successful ones.
 
 ## Bring Your Own Key
 
@@ -244,21 +255,27 @@ if (!apiKey) return byokMissing(mynthByok);
 const adapter = mynthImage("auto", { apiKey });
 ```
 
+`keyedAdapter(mynthByok, (apiKey) => mynthImage("auto", { apiKey }))` works too, for hosts that pick the key per request with `keyedAdapterFromRequest()`.
+
 ## Available Models
 
-The adapter exports a runtime list and a type union for supported image models:
+The adapter exports the image models it knows, with display names and capabilities:
 
 ```ts
-import { MYNTH_IMAGE_MODELS, type MynthImageModel } from "@mynthio/tanstack-ai-adapter";
-
-const defaultModel: MynthImageModel = "auto";
+import {
+  isMynthImageModel,
+  MYNTH_IMAGE_MODEL_META,
+  MYNTH_IMAGE_MODELS,
+} from "@mynthio/tanstack-ai-adapter";
 
 for (const model of MYNTH_IMAGE_MODELS) {
-  console.log(model);
+  console.log(model, MYNTH_IMAGE_MODEL_META[model].label);
 }
+
+const model = isMynthImageModel(body.model) ? body.model : "auto";
 ```
 
-This is handy for model selectors, validation, and keeping client and server code in sync. Capability subsets mirror the Mynth SDK's catalog: `MYNTH_IMAGE_INPUT_MODELS` (image inputs), `MYNTH_IMAGE_4K_MODELS` (4k output) and `MYNTH_IMAGE_NEGATIVE_PROMPT_MODELS` (native negative prompt), each with a matching type.
+This is handy for model selectors, validation, and keeping client and server code in sync. Capability subsets mirror Mynth's catalog: `MYNTH_IMAGE_INPUT_MODELS` (image inputs), `MYNTH_IMAGE_4K_MODELS` (4k output) and `MYNTH_IMAGE_NEGATIVE_PROMPT_MODELS` (native negative prompt), each with a matching type.
 
 Mynth supports model IDs across multiple providers, including `auto`, Flux, Recraft, Gemini, Qwen, Seedream, Imagine, Wan, and Grok Imagine. The exported list is a fixed snapshot for type safety. For the live catalog with pricing, use the models endpoint below.
 
@@ -271,24 +288,27 @@ const response = await fetch("https://api.mynth.io/models");
 const { data } = await response.json();
 
 for (const model of data) {
-  console.log(model.id, model.displayName, model.pricing);
+  console.log(model.id, model.display_name, model.pricing);
 }
 ```
 
-Each entry looks roughly like this:
+Each image model entry looks roughly like this:
 
 ```jsonc
 {
   "id": "black-forest-labs/flux.2-dev",
-  "displayName": "FLUX.2 Dev",
+  "display_name": "FLUX.2 Dev",
+  "type": "image",
+  "modes": {
+    "txt->img": {},
+    "img->img": { "inputs": { "rules": [{ "type": "image", "max": 3 }] } },
+  },
   "pricing": {
-    "perImage": { "base": "0.01", "4k": "0.04" },
-    "perInput": "0.002",
+    "per_image": { "base": "0.012" },
+    "per_input": "0.012",
   },
 }
 ```
-
-If you already use the Mynth SDK, the same data is available through `new Mynth().models.list()`.
 
 ## Streaming Example
 
@@ -324,7 +344,9 @@ For a full example using `useGenerateImage()`, see the [TanStack Start + Mynth a
 - Cancellation with `timeout` and `abortSignal`
 - Usage and cost on `result.usage`
 - BYOK with `mynthByok`
-- Typed model IDs through `MYNTH_IMAGE_MODELS` and `MynthImageModel`
+- Typed model IDs, display names and capabilities through `MYNTH_IMAGE_MODEL_META`, `MYNTH_IMAGE_MODELS` and `MynthImageModel`
+- Typed errors with stable codes on `RUN_ERROR`
+- `baseURL`, `defaultHeaders` and a custom `fetch` for proxies and gateways
 - Mynth-specific request options through `modelOptions`, typed per model
 
 The adapter returns TanStack AI's normalized image result shape:
@@ -344,8 +366,8 @@ Creates a Mynth image adapter directly.
 
 - `model`: a `MynthImageModel`
 - `config.apiKey?`: optional override for `MYNTH_API_KEY`
-- `config.baseUrl?`: optional base URL override
-- `config.destination?`: optional default destination for generated images
+- `config.destination?`: optional default destination for generated images, overriding `MYNTH_DESTINATION`
+- `config.baseURL?`, `config.defaultHeaders?`, `config.fetch?`: for proxies, gateways and tests
 
 Returns a `MynthImageAdapter` for use with `generateImage()`.
 
@@ -355,19 +377,19 @@ Creates a reusable provider factory that returns model-bound adapters.
 
 ### `mynthFiles(config?)`
 
-Creates a files adapter for `uploadFile()`. Takes `apiKey` and `baseUrl`.
+Creates a files adapter for `uploadFile()`. Takes `apiKey`, `baseURL`, `defaultHeaders` and `fetch`.
 
 ### `mynthByok`
 
 BYOK descriptor, exported from `@mynthio/tanstack-ai-adapter/byok`.
 
-### `MynthNoImagesError`
+### Errors
 
-Thrown when a task completes without any successful image.
+`MynthError` and its subclasses `MynthAPIError`, `MynthTaskFailedError`, `MynthNoImagesError`, `MynthTaskTimeoutError` and `MynthResponseError`.
 
-### Model lists
+### Models
 
-`MYNTH_IMAGE_MODELS`, `MYNTH_IMAGE_INPUT_MODELS`, `MYNTH_IMAGE_4K_MODELS` and `MYNTH_IMAGE_NEGATIVE_PROMPT_MODELS`, with the matching `MynthImageModel`, `MynthImageInputModel`, `MynthImage4kModel` and `MynthImageNegativePromptModel` types.
+`MYNTH_IMAGE_MODEL_META`, `MYNTH_IMAGE_MODELS`, `MYNTH_IMAGE_INPUT_MODELS`, `MYNTH_IMAGE_4K_MODELS` and `MYNTH_IMAGE_NEGATIVE_PROMPT_MODELS`, with the matching `MynthImageModel`, `MynthImageInputModel`, `MynthImage4kModel` and `MynthImageNegativePromptModel` types, plus the `isMynthImageModel()` and `hasMynthImageCapability()` guards.
 
 ## Limitations
 
@@ -376,6 +398,6 @@ Thrown when a task completes without any successful image.
 
 ## Next Steps
 
-- [Mynth SDK README](https://github.com/mynthio/oss/tree/main/packages/sdk)
+- [Adapter README](https://github.com/mynthio/oss/tree/main/packages/tanstack-ai-adapter)
 - [TanStack Start + Mynth adapter demo](https://github.com/mynthio/oss/tree/main/examples/tanstack-start-ai-mynth-adapter)
 - [Mynth](https://mynth.io)

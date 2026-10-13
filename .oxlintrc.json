@@ -20,6 +20,13 @@
           { "ignorePackages": true, "checkTypeImports": true }
         ]
       }
+    },
+    {
+      // Maintenance scripts report to the terminal.
+      "files": ["packages/*/scripts/**/*.ts"],
+      "rules": {
+        "no-console": "off"
+      }
     }
   ]
 }

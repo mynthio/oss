@@ -1,5 +1,3 @@
-import type { MynthSDKTypes } from "@mynthio/sdk";
-import { MynthImage } from "@mynthio/sdk";
 import type {
   ContentPartSource,
   GeneratedImage,
@@ -13,7 +11,15 @@ import { fileReferenceFor, resolveMediaPrompt } from "@tanstack/ai";
 import { BaseImageAdapter, normalizeFileUploadInput } from "@tanstack/ai/adapters";
 import { toRunErrorPayload } from "@tanstack/ai/adapter-internals";
 
-import { MynthNoImagesError } from "./errors.ts";
+import {
+  type ImageGenerationRequest,
+  type MynthImageInput,
+  type MynthImageInputRole,
+  parseTaskCreated,
+} from "./api.ts";
+import { MynthClient } from "./client.ts";
+import { type MynthImageConfig, resolveClientConfig, resolveDestination } from "./config.ts";
+import { MynthNoImagesError, MynthTaskFailedError } from "./errors.ts";
 import type { MynthImageModel } from "./model-meta.ts";
 import type {
   MynthImageModelInputModalitiesByName,
@@ -22,21 +28,20 @@ import type {
   MynthImageProviderOptions,
   MynthImageShorthandSize,
 } from "./provider-options.ts";
-import type { MynthImageConfig } from "./types.ts";
+import type { SettledImageGenerationTask } from "./task.ts";
+import { waitForImageGenerationTask } from "./task.ts";
+import { resolveImageInputs } from "./uploads.ts";
 
-type MynthImageClientInput = MynthSDKTypes.ImageGenerationClientInput;
-type MynthImageTask = Awaited<ReturnType<MynthImage["generate"]>>;
+const GENERATE_PATH = "/image/generate";
 
 /**
- * Map a TanStack media-input role onto a Mynth image input role (`as`).
+ * Map a TanStack media-input role onto a Mynth input role (`as`).
  *
  * Reference-like roles map to Mynth's `"reference"` guidance role, and a part
  * without a role is left for Mynth to route. Mynth has no mask, control or
  * frame inputs, so those roles are rejected rather than sent as plain images.
  */
-function mapRoleToInputAs(
-  role: MediaInputRole | undefined,
-): MynthSDKTypes.ImageGenerationRequestInputAs | undefined {
+function toInputRole(role: MediaInputRole | undefined): MynthImageInputRole | undefined {
   switch (role) {
     case undefined:
       return undefined;
@@ -53,10 +58,11 @@ function mapRoleToInputAs(
 
 /**
  * Turn a TanStack content source into a Mynth input source. The Mynth API
- * only fetches http(s) URLs, so inline bytes go up as a file that the SDK
- * uploads before creating the task.
+ * only fetches http(s) URLs, so inline bytes go up as a file first.
  */
-function toInputSource(source: ContentPartSource): MynthImageClientInput["source"] {
+function toInputSource(
+  source: ContentPartSource,
+): { type: "url"; url: string } | { type: "file"; file: Blob } {
   switch (source.type) {
     case "url":
       return { type: "url", url: source.value };
@@ -85,9 +91,10 @@ export type MynthImageProvider = <TModel extends MynthImageModel>(
 /**
  * Mynth Image Generation Adapter for TanStack AI.
  *
- * TanStack AI binds an adapter instance to a single model. This adapter then
- * translates TanStack's image-generation options into a Mynth SDK request and
- * returns TanStack's normalized image result shape.
+ * TanStack AI binds an adapter instance to a single model. The adapter
+ * creates a Mynth image generation task, uploads any local input images
+ * first, waits for the task to settle, and returns TanStack's normalized
+ * image result.
  */
 export class MynthImageAdapter<TModel extends MynthImageModel> extends BaseImageAdapter<
   TModel,
@@ -100,61 +107,83 @@ export class MynthImageAdapter<TModel extends MynthImageModel> extends BaseImage
   /** Consumes image URLs uploaded with `mynthFiles()`. */
   override readonly supportsFileSources: boolean = true;
 
-  private readonly client: MynthImage;
+  private readonly client: MynthClient;
+  private readonly destination: string | undefined;
 
+  /**
+   * @throws {Error} When no API key is passed and `MYNTH_API_KEY` is unset
+   */
   constructor(config: MynthImageConfig, model: TModel) {
     super(model);
 
-    this.client = new MynthImage({
-      apiKey: config.apiKey,
-      baseUrl: config.baseUrl,
-      destination: config.destination,
-    });
+    this.client = new MynthClient(resolveClientConfig(config));
+    this.destination = resolveDestination(config);
   }
 
   override async generateImages(
     options: ImageGenerationOptions<MynthImageProviderOptions, MynthImageModelSizeByName[TModel]>,
   ): Promise<ImageGenerationResult> {
-    const { logger, abortSignal } = options;
+    const { logger, abortSignal: signal } = options;
 
     try {
-      const request = this.buildRequest(options);
+      const { inputs, ...request } = this.buildRequest(options);
 
       logger.request(
-        `activity=image provider=${this.name} model=${this.model} count=${request.count ?? 1} inputs=${request.inputs?.length ?? 0}`,
+        `activity=image provider=${this.name} model=${this.model} count=${request.count ?? 1} inputs=${inputs.length}`,
         { provider: this.name, model: this.model },
       );
 
-      const task = await this.client.generate(request, { signal: abortSignal });
+      const body: ImageGenerationRequest = {
+        ...request,
+        ...(inputs.length > 0
+          ? { inputs: await resolveImageInputs(this.client, inputs, { signal }) }
+          : {}),
+      };
+      const { taskId } = parseTaskCreated(
+        await this.client.postJson(GENERATE_PATH, body, { signal }),
+      );
+
+      const task = await waitForImageGenerationTask(this.client, taskId, {
+        signal,
+        onStatus: (status) =>
+          logger.provider(`provider=${this.name} task=${taskId} status=${status}`, {
+            taskId,
+            status,
+          }),
+      });
 
       return this.transformResponse(task);
     } catch (error) {
-      logger.errors(`${this.name}.generateImages fatal`, {
-        error: toRunErrorPayload(error, `${this.name}.generateImages failed`),
-        source: `${this.name}.generateImages`,
-      });
+      // A timeout or a cancelled request is not a Mynth failure; TanStack AI
+      // reports it as an abort.
+      if (!signal?.aborted) {
+        // Narrow before logging: never hand a raw error to user loggers.
+        logger.errors(`${this.name}.generateImages fatal`, {
+          error: toRunErrorPayload(error, `${this.name}.generateImages failed`),
+          source: `${this.name}.generateImages`,
+        });
+      }
       throw error;
     }
   }
 
+  /** Map TanStack's options onto the Mynth request, inputs kept apart for upload. */
   private buildRequest(
     options: ImageGenerationOptions<MynthImageProviderOptions, MynthImageShorthandSize>,
-  ): MynthSDKTypes.ImageGenerationClientRequest {
+  ): Omit<ImageGenerationRequest, "inputs"> & { inputs: MynthImageInput[] } {
     const { prompt, numberOfImages, size, modelOptions = {} } = options;
     const { text, inputs: promptInputs } = this.resolvePrompt(prompt);
-
-    // Prompt image parts come first to preserve prompt order, then the
-    // provider-specific `modelOptions.inputs`.
-    const inputs = [...promptInputs, ...(modelOptions.inputs ?? [])];
     const requestSize = modelOptions.size ?? size;
+    const destination = modelOptions.destination ?? this.destination;
 
     return {
       prompt: text,
       // TanStack adapters are model-bound; provider options cannot override it.
       model: this.model,
+      // Prompt image parts come first to keep prompt order, then `modelOptions.inputs`.
+      inputs: [...promptInputs, ...(modelOptions.inputs ?? [])],
       ...(numberOfImages !== undefined ? { count: numberOfImages } : {}),
       ...(requestSize !== undefined ? { size: requestSize } : {}),
-      ...(inputs.length > 0 ? { inputs } : {}),
       ...(modelOptions.negativePrompt !== undefined
         ? { negative_prompt: modelOptions.negativePrompt }
         : {}),
@@ -166,22 +195,16 @@ export class MynthImageAdapter<TModel extends MynthImageModel> extends BaseImage
       ...(modelOptions.webhook !== undefined ? { webhook: modelOptions.webhook } : {}),
       ...(modelOptions.rating !== undefined ? { rating: modelOptions.rating } : {}),
       ...(modelOptions.metadata !== undefined ? { metadata: modelOptions.metadata } : {}),
-      ...(modelOptions.destination !== undefined ? { destination: modelOptions.destination } : {}),
+      ...(destination !== undefined ? { destination } : {}),
     };
   }
 
   /**
-   * Normalize a TanStack media prompt into Mynth's request shape.
-   *
-   * A plain string prompt yields just the text. An array prompt is decomposed
-   * into its verbatim text and image content parts; each image part becomes a
-   * Mynth `inputs` entry with a role derived from the part's `metadata.role`.
+   * Split a TanStack media prompt into its verbatim text and its image parts.
+   * Each image part becomes a Mynth input with a role from `metadata.role`.
    * Mynth image generation takes no video or audio, so those parts throw.
    */
-  private resolvePrompt(prompt: MediaPrompt): {
-    text: string;
-    inputs: MynthImageClientInput[];
-  } {
+  private resolvePrompt(prompt: MediaPrompt): { text: string; inputs: MynthImageInput[] } {
     const resolved = resolveMediaPrompt(prompt);
 
     if (resolved.videos.length > 0 || resolved.audios.length > 0) {
@@ -190,8 +213,8 @@ export class MynthImageAdapter<TModel extends MynthImageModel> extends BaseImage
       );
     }
 
-    const inputs = resolved.images.map((image): MynthImageClientInput => {
-      const as = mapRoleToInputAs(image.metadata?.role);
+    const inputs = resolved.images.map((image): MynthImageInput => {
+      const as = toInputRole(image.metadata?.role);
       const source = toInputSource(image.source);
 
       return as === undefined ? { type: "image", source } : { type: "image", as, source };
@@ -200,13 +223,17 @@ export class MynthImageAdapter<TModel extends MynthImageModel> extends BaseImage
     return { text: resolved.text, inputs };
   }
 
-  private transformResponse(task: MynthImageTask): ImageGenerationResult {
-    if (task.images.length === 0) {
-      throw new MynthNoImagesError(task.taskId, task.failures);
+  private transformResponse(task: SettledImageGenerationTask): ImageGenerationResult {
+    if (task.status === "failed") {
+      throw new MynthTaskFailedError(task.id, task.errors);
     }
 
-    const revisedPrompt = task.magicPrompt?.positive;
-    const images: Array<GeneratedImage> = task.images.map((image) => ({
+    if (task.images.length === 0) {
+      throw new MynthNoImagesError(task.id, task.failures);
+    }
+
+    const { revisedPrompt } = task;
+    const images = task.images.map((image): GeneratedImage => ({
       // `url` is the destination URL, or null when a destination upload
       // failed or has no public URL; the Mynth CDN copy is always there.
       url: image.url ?? image.mynthUrl,
@@ -214,26 +241,26 @@ export class MynthImageAdapter<TModel extends MynthImageModel> extends BaseImage
     }));
 
     return {
-      id: task.taskId,
+      id: task.id,
       model: task.model,
       images,
-      usage: this.buildUsage(task, images.length),
+      usage: buildUsage(task.cost, images.length),
     };
   }
+}
 
-  /**
-   * Mynth bills per generated image and reports the task's total cost in USD.
-   * Image generation has no tokens, so the token fields are zero.
-   */
-  private buildUsage(task: MynthImageTask, imageCount: number): TokenUsage {
-    return {
-      promptTokens: 0,
-      completionTokens: 0,
-      totalTokens: 0,
-      billed: { quantity: imageCount, unit: "images" },
-      cost: Number(task.cost),
-    };
-  }
+/**
+ * Mynth bills per generated image and reports the task's total cost in USD.
+ * Image generation has no tokens, so the token fields are zero.
+ */
+function buildUsage(cost: string, imageCount: number): TokenUsage {
+  return {
+    promptTokens: 0,
+    completionTokens: 0,
+    totalTokens: 0,
+    billed: { quantity: imageCount, unit: "images" },
+    cost: Number(cost),
+  };
 }
 
 /**
@@ -243,7 +270,7 @@ export class MynthImageAdapter<TModel extends MynthImageModel> extends BaseImage
  * per-call config overrides when needed.
  *
  * @param config - Optional shared configuration for all created adapters.
- * If apiKey is omitted, the Mynth SDK falls back to MYNTH_API_KEY.
+ * If apiKey is omitted, the adapters read MYNTH_API_KEY.
  * @returns Provider function that creates configured Mynth image adapters
  *
  * @example
@@ -253,7 +280,7 @@ export class MynthImageAdapter<TModel extends MynthImageModel> extends BaseImage
  *
  * const mynth = createMynthImage({
  *   apiKey: 'mak_...',
- *   baseUrl: 'https://api.mynth.io',
+ *   baseURL: 'https://api.mynth.io',
  * })
  *
  * const result = await generateImage({
@@ -273,8 +300,6 @@ export function createMynthImage(config: MynthImageConfig = {}): MynthImageProvi
   };
 }
 
-const defaultMynthImageProvider = createMynthImage();
-
 /**
  * Creates a Mynth image adapter directly.
  *
@@ -282,9 +307,9 @@ const defaultMynthImageProvider = createMynthImage();
  *
  * @param model - The Mynth model name (e.g., 'krea/krea-2-large')
  * @param config - Optional adapter configuration, including apiKey overrides.
- * If apiKey is omitted, the Mynth SDK falls back to MYNTH_API_KEY.
+ * If apiKey is omitted, the adapter reads MYNTH_API_KEY.
  * @returns Configured Mynth image adapter instance
- * @throws Error if MYNTH_API_KEY is not found in environment
+ * @throws Error if no apiKey is passed and MYNTH_API_KEY is not set
  *
  * @example
  * ```typescript
@@ -301,7 +326,7 @@ const defaultMynthImageProvider = createMynthImage();
  */
 export function mynthImage<TModel extends MynthImageModel>(
   model: TModel,
-  config?: MynthImageConfig,
+  config: MynthImageConfig = {},
 ): MynthImageAdapter<TModel> {
-  return defaultMynthImageProvider(model, config);
+  return new MynthImageAdapter(config, model);
 }

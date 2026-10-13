@@ -1,8 +1,10 @@
-import { MynthImage } from "@mynthio/sdk";
 import type { FileHandle, FileUploadInput } from "@tanstack/ai/adapters";
 import { BaseFilesAdapter, normalizeFileUploadInput } from "@tanstack/ai/adapters";
 
-import type { MynthFilesConfig } from "./types.ts";
+import { MynthClient } from "./client.ts";
+import { type MynthFilesConfig, resolveClientConfig } from "./config.ts";
+import { MynthResponseError } from "./errors.ts";
+import { uploadImages } from "./uploads.ts";
 
 /**
  * Mynth Files adapter for TanStack AI: uploads an image to Mynth's temporary
@@ -17,21 +19,23 @@ import type { MynthFilesConfig } from "./types.ts";
 export class MynthFilesAdapter extends BaseFilesAdapter<"mynth"> {
   readonly name = "mynth" as const;
 
-  private readonly client: MynthImage;
+  private readonly client: MynthClient;
 
+  /**
+   * @throws {Error} When no API key is passed and `MYNTH_API_KEY` is unset
+   */
   constructor(config: MynthFilesConfig = {}) {
     super();
 
-    this.client = new MynthImage({ apiKey: config.apiKey, baseUrl: config.baseUrl });
+    this.client = new MynthClient(resolveClientConfig(config));
   }
 
   override async upload(input: FileUploadInput): Promise<FileHandle<"mynth">> {
     const { blob, mimeType, filename } = normalizeFileUploadInput(input);
-    const { urls } = await this.client.upload(blob);
-    const url = urls[0];
+    const [url] = await uploadImages(this.client, [blob]);
 
     if (url === undefined) {
-      throw new Error("Mynth upload returned no URL for the uploaded image.");
+      throw new MynthResponseError("Mynth upload returned no URL for the uploaded image.");
     }
 
     return {
@@ -47,8 +51,8 @@ export class MynthFilesAdapter extends BaseFilesAdapter<"mynth"> {
 /**
  * Creates a Mynth Files adapter for `uploadFile()`.
  *
- * @param config - Optional configuration. If apiKey is omitted, the Mynth SDK
- * falls back to MYNTH_API_KEY.
+ * @param config - Optional configuration. If apiKey is omitted, the adapter
+ * reads MYNTH_API_KEY.
  *
  * @example
  * ```typescript

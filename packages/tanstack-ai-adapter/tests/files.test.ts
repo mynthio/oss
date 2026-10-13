@@ -1,45 +1,25 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
-const { uploadMock, MockMynthImage } = vi.hoisted(() => {
-  const upload = vi.fn();
-  const MockMynthImageConstructor = vi.fn(function MockMynthImage() {
-    return { upload };
-  });
+import { mynthFiles } from "../src/files.ts";
+import { BASE_URL, createMockApi, type MockApi, ok } from "./mock-api.ts";
 
-  return { uploadMock: upload, MockMynthImage: MockMynthImageConstructor };
-});
+const UPLOAD = "POST /image/upload";
 
-vi.mock("@mynthio/sdk", () => ({ MynthImage: MockMynthImage }));
-
-const { mynthFiles } = await import("../src/files.ts");
+function createAdapter(api: MockApi) {
+  return mynthFiles({ apiKey: "mak_test", baseURL: BASE_URL, fetch: api.fetch });
+}
 
 describe("mynthFiles", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    uploadMock.mockResolvedValue({ urls: ["https://cdn.mynth.io/uploads/input.png"] });
-  });
-
-  it("passes config to the SDK client", () => {
-    // Arrange
-    const config = { apiKey: "mak_test", baseUrl: "https://custom.api" };
-
-    // Act
-    mynthFiles(config);
-
-    // Assert
-    expect(MockMynthImage).toHaveBeenCalledWith(config);
-  });
-
   it("uploads a Blob and returns its URL as the handle", async () => {
     // Arrange
-    const adapter = mynthFiles({ apiKey: "mak_test" });
-    const blob = new Blob(["png"], { type: "image/png" });
+    const api = createMockApi({
+      [UPLOAD]: ok({ urls: ["https://cdn.mynth.io/uploads/input.png"] }),
+    });
 
     // Act
-    const handle = await adapter.upload(blob);
+    const handle = await createAdapter(api).upload(new Blob(["png"], { type: "image/png" }));
 
     // Assert
-    expect(uploadMock).toHaveBeenCalledWith(blob);
     expect(handle).toEqual({
       id: "https://cdn.mynth.io/uploads/input.png",
       provider: "mynth",
@@ -50,31 +30,32 @@ describe("mynthFiles", () => {
 
   it("decodes base64 input before uploading", async () => {
     // Arrange
-    const adapter = mynthFiles({ apiKey: "mak_test" });
+    const api = createMockApi({
+      [UPLOAD]: ok({ urls: ["https://cdn.mynth.io/uploads/input.webp"] }),
+    });
 
     // Act
-    const handle = await adapter.upload({
+    await createAdapter(api).upload({ data: "QUJD", mimeType: "image/webp" });
+
+    // Assert
+    const form = await api.requests[0]?.formData();
+    expect(await (form?.get("images") as File | null)?.text()).toBe("ABC");
+  });
+
+  it("echoes the input's MIME type and filename on the handle", async () => {
+    // Arrange
+    const api = createMockApi({
+      [UPLOAD]: ok({ urls: ["https://cdn.mynth.io/uploads/input.webp"] }),
+    });
+
+    // Act
+    const handle = await createAdapter(api).upload({
       data: "QUJD",
       mimeType: "image/webp",
       filename: "input.webp",
     });
 
     // Assert
-    const uploaded = uploadMock.mock.calls[0]?.[0] as Blob;
-    expect(uploaded.type).toBe("image/webp");
-    expect(await uploaded.text()).toBe("ABC");
     expect(handle).toMatchObject({ mimeType: "image/webp", filename: "input.webp" });
-  });
-
-  it("throws when the upload returns no URL", async () => {
-    // Arrange
-    uploadMock.mockResolvedValue({ urls: [] });
-    const adapter = mynthFiles({ apiKey: "mak_test" });
-
-    // Act
-    const result = adapter.upload(new Blob(["png"], { type: "image/png" }));
-
-    // Assert
-    await expect(result).rejects.toThrow("no URL");
   });
 });

@@ -1,6 +1,6 @@
 # TanStack Start AI + Mynth Adapter Demo
 
-This example is a minimal image-generation app built around the official TanStack AI streaming pattern from the [Image Generation guide](https://tanstack.com/ai/latest/docs/guides/image-generation.md):
+This example is a minimal image-generation app built around the official TanStack AI streaming pattern from the [Image Generation guide](https://tanstack.com/ai/latest/docs/media/image-generation):
 
 - Server route: `generateImage({ ..., stream: true })` + `toServerSentEventsResponse(...)`
 - Client hook: `useGenerateImage({ connection: fetchServerSentEvents(...) })`
@@ -8,26 +8,28 @@ This example is a minimal image-generation app built around the official TanStac
 The UI is intentionally tiny:
 
 - one textarea for the prompt
-- one model selector sourced from `MYNTH_IMAGE_MODELS`
+- one model selector built from `MYNTH_IMAGE_MODELS` and the display names in `MYNTH_IMAGE_MODEL_META`
 - one image per request
-- one grid that accumulates generated images
+- one grid that accumulates generated images in `localStorage`
 
 ## Local package wiring
 
-This example installs the OSS packages from the local repo instead of npm:
+The example uses the adapter from this repo through the pnpm workspace:
 
 ```json
 {
-  "@mynthio/tanstack-ai-adapter": "file:../../packages/tanstack-ai-adapter"
+  "@mynthio/tanstack-ai-adapter": "workspace:*"
 }
 ```
 
+Build the adapter once before starting the app, from the repo root: `pnpm build`.
+
 ## Environment
 
-Set your Mynth API key before running the app:
+Set your Mynth API key before running the app, in the shell or in `.env.local`:
 
 ```bash
-export MYNTH_API_KEY=mak_your_key_here
+MYNTH_API_KEY=mak_your_key_here
 ```
 
 ## Run
@@ -46,5 +48,4 @@ pnpm build
 ## Files to look at
 
 - `src/routes/index.tsx` for the shadcn UI and `useGenerateImage`
-- `src/routes/api/generate/image.ts` for the streaming route
-- `src/lib/image-demo.ts` for the small image helpers used by the UI and tests
+- `src/routes/api/generate/image.ts` for the streaming route, which validates the requested model with `isMynthImageModel`

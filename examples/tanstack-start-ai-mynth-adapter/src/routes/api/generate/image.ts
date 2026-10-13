@@ -1,4 +1,4 @@
-import { MYNTH_IMAGE_MODELS, mynthImage, type MynthImageModel } from "@mynthio/tanstack-ai-adapter";
+import { isMynthImageModel, mynthImage, type MynthImageModel } from "@mynthio/tanstack-ai-adapter";
 import { generateImage, toServerSentEventsResponse } from "@tanstack/ai";
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -32,7 +32,3 @@ export const Route = createFileRoute("/api/generate/image")({
     },
   },
 });
-
-function isMynthImageModel(model: unknown): model is MynthImageModel {
-  return typeof model === "string" && MYNTH_IMAGE_MODELS.includes(model as MynthImageModel);
-}

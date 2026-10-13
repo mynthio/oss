@@ -9,7 +9,11 @@ import {
 } from "#/components/ui/select";
 import { Separator } from "#/components/ui/separator";
 import { Textarea } from "#/components/ui/textarea";
-import { MYNTH_IMAGE_MODELS, type MynthImageModel } from "@mynthio/tanstack-ai-adapter";
+import {
+  MYNTH_IMAGE_MODEL_META,
+  MYNTH_IMAGE_MODELS,
+  type MynthImageModel,
+} from "@mynthio/tanstack-ai-adapter";
 import type { ImageGenerationResult } from "@tanstack/ai";
 import { fetchServerSentEvents, useGenerateImage } from "@tanstack/ai-react";
 import { createFileRoute } from "@tanstack/react-router";
@@ -17,7 +21,11 @@ import { useLocalStorage } from "@uidotdev/usehooks";
 import { ImageIcon, LoaderCircle, Sparkles, Trash2 } from "lucide-react";
 import { useState, type SubmitEvent } from "react";
 
-export const Route = createFileRoute("/")({ component: App });
+export const Route = createFileRoute("/")({
+  // The gallery lives in localStorage, which only exists in the browser.
+  ssr: false,
+  component: App,
+});
 
 const DEFAULT_MODEL: MynthImageModel = "auto";
 
@@ -67,7 +75,7 @@ function App() {
           <p className="text-xs text-muted-foreground">
             Image generation with{" "}
             <a
-              href="https://github.com/mynthio/tanstack-ai-adapter"
+              href="https://github.com/mynthio/oss/tree/main/packages/tanstack-ai-adapter"
               target="_blank"
               rel="noopener noreferrer"
               className="text-primary underline underline-offset-2 transition-colors hover:text-primary/80"
@@ -105,7 +113,7 @@ function App() {
               <SelectContent>
                 {MYNTH_IMAGE_MODELS.map((availableModel) => (
                   <SelectItem key={availableModel} value={availableModel}>
-                    {availableModel}
+                    {MYNTH_IMAGE_MODEL_META[availableModel].label}
                   </SelectItem>
                 ))}
               </SelectContent>

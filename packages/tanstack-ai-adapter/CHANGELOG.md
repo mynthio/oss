@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.0.35](https://github.com/mynthio/oss/compare/tan-ai-v0.0.34...tan-ai-v0.0.35) (2026-10-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* **tan-ai:** errors from @mynthio/sdk (MynthAPIError, TaskAsync*Error) are replaced by the adapter's own error classes, exported from the package. A failed task now throws MynthTaskFailedError with the task's errors.
+
+### Features
+
+* **tan-ai:** call the Mynth API directly instead of the SDK ([d633ff3](https://github.com/mynthio/oss/commit/d633ff3453314edf934c9c1f8198a14478dcade8))
+
 ## [0.0.34](https://github.com/mynthio/oss/compare/tan-ai-v0.0.33...tan-ai-v0.0.34) (2026-10-05)
 
 

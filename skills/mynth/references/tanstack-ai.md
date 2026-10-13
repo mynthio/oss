@@ -67,4 +67,15 @@ const result = await generateImage({
 });
 ```
 
-`MYNTH_IMAGE_MODELS` is the id list built into the package version and includes `auto`. Do not use `mynthImage("auto")`: it is experimental. Image content parts become Mynth `inputs` only on models in `MYNTH_IMAGE_INPUT_MODELS`.
+`MYNTH_IMAGE_MODELS` is the id list built into the package version and includes `auto`; `MYNTH_IMAGE_MODEL_META[id].label` is its display name, and `isMynthImageModel(value)` validates an id from a request. Do not use `mynthImage("auto")`: it is experimental. Image content parts become Mynth `inputs` only on models in `MYNTH_IMAGE_INPUT_MODELS`.
+
+The adapter has no dependency on `@mynthio/sdk`: it calls the REST API itself and waits for the task. Do not add the SDK just for the adapter. Failures are `MynthError` subclasses with a `code` that TanStack AI puts on `RUN_ERROR`:
+
+| Error                   | `code`                                                     |
+| ----------------------- | ---------------------------------------------------------- |
+| `MynthAPIError`         | the API's code, e.g. `insufficient_balance`; also `status` |
+| `MynthTaskFailedError`  | `MYNTH_TASK_FAILED`, with the task's `errors`              |
+| `MynthNoImagesError`    | `MYNTH_NO_IMAGES`, when every image failed                 |
+| `MynthTaskTimeoutError` | `MYNTH_TASK_TIMEOUT`, after 30 minutes                     |
+
+Proxies and gateways: pass `baseURL`, `defaultHeaders`, or a custom `fetch` in the adapter config.

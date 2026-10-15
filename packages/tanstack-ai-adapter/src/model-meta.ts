@@ -42,6 +42,7 @@ export const MYNTH_IMAGE_MODEL_META = {
   "black-forest-labs/flux.2-max": { label: "FLUX.2 Max", capabilities: ["inputs"] },
   "black-forest-labs/flux.2-klein-4b": { label: "FLUX.2 Klein", capabilities: ["inputs"] },
   "black-forest-labs/flux-3": { label: "FLUX.3", capabilities: ["inputs", "4k"] },
+  "black-forest-labs/flux-3-klein": { label: "FLUX.3 Klein", capabilities: ["inputs", "4k"] },
   "bria/fibo-edit-1.5": { label: "FIBO Edit 1.5", capabilities: ["inputs"] },
   "bria/fibo-generate-1.5": { label: "FIBO Generate 1.5", capabilities: [] },
   "circlestone-labs/anima": { label: "Anima", capabilities: ["inputs"] },

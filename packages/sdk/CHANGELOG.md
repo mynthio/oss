@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.53](https://github.com/mynthio/oss/compare/sdk-v0.0.52...sdk-v0.0.53) (2026-10-15)
+
+
+### Features
+
+* **sdk:** add FLUX.3 Klein model ([4207879](https://github.com/mynthio/oss/commit/4207879e806de9cadb94a17c8d3bac6b6942bd5c))
+
 ## [0.0.52](https://github.com/mynthio/oss/compare/sdk-v0.0.51...sdk-v0.0.52) (2026-10-12)
 
 

@@ -198,6 +198,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["inputs"],
   },
   {
+    id: "krea/v3",
+    label: "Krea 3",
+    capabilities: ["inputs", "negative_prompt"],
+  },
+  {
     id: "luma/uni-1",
     label: "Luma UNI-1",
     capabilities: ["inputs"],

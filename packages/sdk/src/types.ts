@@ -188,6 +188,7 @@ export namespace MynthSDKTypes {
     | "krea/krea-2-turbo"
     | "krea/krea-2-medium"
     | "krea/krea-2-large"
+    | "krea/v3"
     | "luma/uni-1"
     | "luma/uni-1-max"
     | "meta/muse-image"

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.36](https://github.com/mynthio/oss/compare/tan-ai-v0.0.35...tan-ai-v0.0.36) (2026-10-21)
+
+
+### Features
+
+* **tanstack-ai-adapter:** add FLUX.3 Klein model ([ed907df](https://github.com/mynthio/oss/commit/ed907df34b82ad13ff65e3728d0a80d57c016f20))
+
 ## [0.0.35](https://github.com/mynthio/oss/compare/tan-ai-v0.0.34...tan-ai-v0.0.35) (2026-10-13)
 
 

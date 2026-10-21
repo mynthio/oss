@@ -129,53 +129,66 @@ describe("models list filtering", () => {
     ]);
   });
 
-  it("filters by media type", async () => {
-    expect(await ids(["--type", "video"])).toEqual([
-      "bytedance/seedance-2.0-mini",
-      "google/gemini-omni-flash-1.1",
-    ]);
-    expect(await ids(["--type", "image"])).toHaveLength(5);
+  it.each([
+    ["video", ["bytedance/seedance-2.0-mini", "google/gemini-omni-flash-1.1"]],
+    [
+      "image",
+      [
+        "black-forest-labs/flux.1-dev",
+        "black-forest-labs/flux.2-pro",
+        "bytedance/seedream-pro",
+        "google/gemini-3-pro-image-preview",
+        "recraft/recraft-v4",
+      ],
+    ],
+  ])("filters by media type %s", async (type, expected) => {
+    // Act & Assert
+    expect(await ids(["--type", type])).toEqual(expected);
   });
 
-  it("filters by max and min base price inclusively", async () => {
-    expect(await ids(["--max-price", "0.04"])).toEqual([
-      "black-forest-labs/flux.1-dev",
-      "black-forest-labs/flux.2-pro",
-      "recraft/recraft-v4",
-      // Cheapest per-second tier, so a video model is comparable on price.
-      "bytedance/seedance-2.0-mini",
-    ]);
-    expect(await ids(["--min-price", "0.1"])).toEqual([
-      "bytedance/seedream-pro",
-      "google/gemini-3-pro-image-preview",
-      "google/gemini-omni-flash-1.1",
-    ]);
+  it.each([
+    [
+      "--max-price",
+      "0.04",
+      [
+        "black-forest-labs/flux.1-dev",
+        "black-forest-labs/flux.2-pro",
+        "recraft/recraft-v4",
+        // Cheapest per-second tier, so a video model is comparable on price.
+        "bytedance/seedance-2.0-mini",
+      ],
+    ],
+    [
+      "--min-price",
+      "0.1",
+      [
+        "bytedance/seedream-pro",
+        "google/gemini-3-pro-image-preview",
+        "google/gemini-omni-flash-1.1",
+      ],
+    ],
+  ])("filters by %s %s inclusively", async (flag, value, expected) => {
+    // Act & Assert
+    expect(await ids([flag, value])).toEqual(expected);
   });
 
-  it("filters on the modes a model actually serves", async () => {
-    expect(await ids(["--capability", "img2img"])).toEqual([
-      "black-forest-labs/flux.2-pro",
-      "bytedance/seedream-pro",
-    ]);
-    // A model serving both modes matches both filters.
-    expect(await ids(["--capability", "txt2img"])).toEqual([
-      "black-forest-labs/flux.1-dev",
-      "black-forest-labs/flux.2-pro",
-      "bytedance/seedream-pro",
-      "google/gemini-3-pro-image-preview",
-      "recraft/recraft-v4",
-    ]);
-  });
-
-  it("filters on video modes", async () => {
-    expect(await ids(["--capability", "txt2vid"])).toEqual([
-      "bytedance/seedance-2.0-mini",
-      "google/gemini-omni-flash-1.1",
-    ]);
-    expect(await ids(["--capability", "img2vid"])).toEqual([
-      "bytedance/seedance-2.0-mini",
-      "google/gemini-omni-flash-1.1",
-    ]);
+  it.each([
+    ["img2img", ["black-forest-labs/flux.2-pro", "bytedance/seedream-pro"]],
+    [
+      "txt2img",
+      [
+        "black-forest-labs/flux.1-dev",
+        "black-forest-labs/flux.2-pro",
+        "bytedance/seedream-pro",
+        "google/gemini-3-pro-image-preview",
+        "recraft/recraft-v4",
+      ],
+    ],
+    ["txt2vid", ["bytedance/seedance-2.0-mini", "google/gemini-omni-flash-1.1"]],
+    ["img2vid", ["bytedance/seedance-2.0-mini", "google/gemini-omni-flash-1.1"]],
+  ])("filters on the %s mode a model actually serves", async (capability, expected) => {
+    // Act & Assert
+    expect(await ids(["--capability", capability])).toEqual(expected);
   });
 
   it("combines filters", async () => {

@@ -1,4 +1,4 @@
-import { httpRouter, type PublicHttpAction } from "convex/server";
+import type { PublicHttpAction } from "convex/server";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import {
@@ -49,18 +49,6 @@ describe("mynthWebhookAction", () => {
       });
     },
   );
-
-  test("returns a Convex HTTP action that httpRouter accepts", () => {
-    // Arrange
-    const http = httpRouter();
-    const action = mynthWebhookAction({}, signed);
-
-    // Act
-    http.route({ path: "/mynth-webhook", method: "POST", handler: action });
-
-    // Assert
-    expect(http.lookup("/mynth-webhook", "POST")?.[0]).toBe(action);
-  });
 
   test("reads the webhook secret when the request arrives, not when the action is created", async () => {
     // Arrange

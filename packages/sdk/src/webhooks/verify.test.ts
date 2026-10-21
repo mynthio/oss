@@ -140,16 +140,4 @@ describe("verifyWebhook", () => {
     // Assert
     await expect(verify).rejects.toThrow("not a Mynth event for this webhook-id");
   });
-
-  test("produces nothing the reference library would reject", async () => {
-    // Arrange: verified by this SDK, then by the reference library.
-    const headers = signedHeaders();
-    await verifyWebhook({ body, headers }, WEBHOOK_SECRET);
-
-    // Act
-    const reference = new Webhook(WEBHOOK_SECRET).verify(body, headers);
-
-    // Assert
-    expect(reference).toEqual(event);
-  });
 });

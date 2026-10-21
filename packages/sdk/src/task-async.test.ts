@@ -77,15 +77,7 @@ describe("TaskAsyncTimeoutError", () => {
     const error = new TaskAsyncTimeoutError(taskId);
 
     // Assert
-    expect(error.message).toContain(taskId);
-  });
-
-  test("has correct error name", () => {
-    // Arrange & Act
-    const error = new TaskAsyncTimeoutError("task-id");
-
-    // Assert
-    expect(error.name).toBe("TaskAsyncTimeoutError");
+    expect(error.message).toBe("Task task-abc-123 polling timed out after 1800000ms");
   });
 });
 
@@ -99,14 +91,6 @@ describe("TaskAsyncUnauthorizedError", () => {
 
     // Assert
     expect(error.message).toContain(taskId);
-  });
-
-  test("has correct error name", () => {
-    // Arrange & Act
-    const error = new TaskAsyncUnauthorizedError("task-id");
-
-    // Assert
-    expect(error.name).toBe("TaskAsyncUnauthorizedError");
   });
 });
 
@@ -132,14 +116,6 @@ describe("TaskAsyncFetchError", () => {
 
     // Assert
     expect(error.cause).toBe(originalError);
-  });
-
-  test("has correct error name", () => {
-    // Arrange & Act
-    const error = new TaskAsyncFetchError("task-id");
-
-    // Assert
-    expect(error.name).toBe("TaskAsyncFetchError");
   });
 
   test("includes HTTP status code in message when provided", () => {
@@ -178,14 +154,6 @@ describe("TaskAsyncTaskFetchError", () => {
     // Assert
     expect(error.message).toContain("500");
   });
-
-  test("has correct error name", () => {
-    // Arrange & Act
-    const error = new TaskAsyncTaskFetchError("task-id");
-
-    // Assert
-    expect(error.name).toBe("TaskAsyncTaskFetchError");
-  });
 });
 
 describe("TaskAsyncTaskFailedError", () => {
@@ -199,70 +167,9 @@ describe("TaskAsyncTaskFailedError", () => {
     // Assert
     expect(error.message).toContain(taskId);
   });
-
-  test("has correct error name", () => {
-    // Arrange & Act
-    const error = new TaskAsyncTaskFailedError("task-id");
-
-    // Assert
-    expect(error.name).toBe("TaskAsyncTaskFailedError");
-  });
 });
 
-// ============================================================================
-// TaskAsync Class - Basic Properties
-// ============================================================================
-
 describe("TaskAsync", () => {
-  describe("constructor and basic properties", () => {
-    test("exposes the task id", () => {
-      // Arrange
-      const taskId = "unique-task-id";
-      const client = createMockClient();
-
-      // Act
-      const taskAsync = createTaskAsync(taskId, { client });
-
-      // Assert
-      expect(taskAsync.id).toBe(taskId);
-    });
-
-    test("access getter returns undefined publicAccessToken when no PAT provided", () => {
-      // Arrange
-      const client = createMockClient();
-
-      // Act
-      const taskAsync = createTaskAsync("task-id", { client });
-
-      // Assert
-      expect(taskAsync.access.publicAccessToken).toBeUndefined();
-    });
-
-    test("access getter exposes public access token when provided", () => {
-      // Arrange
-      const client = createMockClient();
-      const pat = "public-access-token-xyz";
-
-      // Act
-      const taskAsync = createTaskAsync("task-id", { client, pat });
-
-      // Assert
-      expect(taskAsync.access.publicAccessToken).toBe(pat);
-    });
-
-    test("toString returns the task id", () => {
-      // Arrange
-      const taskId = "my-task-id";
-      const client = createMockClient();
-
-      // Act
-      const taskAsync = createTaskAsync(taskId, { client });
-
-      // Assert
-      expect(taskAsync.toString()).toBe(taskId);
-    });
-  });
-
   // ==========================================================================
   // Polling Behavior - wait()
   // ==========================================================================

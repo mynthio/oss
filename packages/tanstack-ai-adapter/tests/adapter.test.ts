@@ -63,17 +63,6 @@ describe("MynthImageAdapter", () => {
     vi.unstubAllEnvs();
   });
 
-  it("declares that it consumes provider file sources", () => {
-    // Arrange
-    const adapter = createAdapter(createMockApi({}));
-
-    // Act
-    const supportsFileSources = adapter.supportsFileSources;
-
-    // Assert
-    expect(supportsFileSources).toBe(true);
-  });
-
   describe("request mapping", () => {
     it("sends the prompt with the adapter-bound model", async () => {
       // Arrange

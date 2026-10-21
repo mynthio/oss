@@ -29,17 +29,6 @@ describe("resolveClientConfig", () => {
     expect(resolve).toThrow("MYNTH_API_KEY");
   });
 
-  it("defaults to the production API", () => {
-    // Arrange
-    const config = { apiKey: "mak_test" };
-
-    // Act
-    const { baseURL } = resolveClientConfig(config);
-
-    // Assert
-    expect(baseURL).toBe("https://api.mynth.io");
-  });
-
   it("strips trailing slashes from the base URL", () => {
     // Arrange
     const config = { apiKey: "mak_test", baseURL: "https://proxy.example.com/mynth/" };

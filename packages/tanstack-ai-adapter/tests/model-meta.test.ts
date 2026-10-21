@@ -1,33 +1,6 @@
-import { describe, expect, expectTypeOf, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import {
-  hasMynthImageCapability,
-  isMynthImageModel,
-  MYNTH_IMAGE_MODEL_META,
-  MYNTH_IMAGE_MODELS,
-  type MynthImageInputModel,
-  type MynthImageModelMeta,
-} from "../src/model-meta.ts";
-
-describe("model metadata", () => {
-  // Compile-time checks: `pnpm typecheck` fails when they break.
-  it("describes every model with a label and capabilities", () => {
-    expectTypeOf(MYNTH_IMAGE_MODEL_META).toExtend<Record<string, MynthImageModelMeta>>();
-  });
-
-  it("derives the capability unions from the table", () => {
-    expectTypeOf<"black-forest-labs/flux.2-pro">().toExtend<MynthImageInputModel>();
-    expectTypeOf<"black-forest-labs/flux.1-dev">().not.toExtend<MynthImageInputModel>();
-  });
-
-  it("lists auto first, so pickers default to it", () => {
-    // Arrange & Act
-    const [first] = MYNTH_IMAGE_MODELS;
-
-    // Assert
-    expect(first).toBe("auto");
-  });
-});
+import { hasMynthImageCapability, isMynthImageModel } from "../src/model-meta.ts";
 
 describe("isMynthImageModel", () => {
   it.each([

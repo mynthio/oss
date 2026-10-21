@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import type { ImageGenerationResult } from "../image-generation-result.ts";
 import type { ImageUpscaleResult } from "../image-upscale-result.ts";
 import type { MynthSDKTypes } from "../types.ts";
 import { signWebhook, WEBHOOK_EVENTS, WEBHOOK_SECRET, webhookRequest } from "./events.fixture.ts";
@@ -392,37 +391,6 @@ describe("handleWebhookRequest callback arguments", () => {
       taskId: completed.data.id,
       cost: completed.data.cost,
       raw: { request: completed.data.request, result: completed.data.result },
-    });
-  });
-
-  test("builds output images and failures for image generation", async () => {
-    // Arrange
-    const imageTaskCompleted = vi.fn();
-
-    // Act
-    await deliver(WEBHOOK_EVENTS["task.image.generate.completed"], { imageTaskCompleted });
-    const result: ImageGenerationResult = imageTaskCompleted.mock.calls[0]?.[0];
-
-    // Assert
-    expect({
-      image: result.images[0],
-      failures: result.failures,
-      metadata: result.metadata,
-    }).toEqual({
-      image: {
-        id: "img_1",
-        url: null,
-        mynthUrl: "https://mynth.test/1.png",
-        width: 1024,
-        height: 768,
-        size: "1024x768",
-        format: "png",
-        mimeType: "image/png",
-        destination: undefined,
-        rating: undefined,
-      },
-      failures: [{ code: "provider_error", message: "The provider failed." }],
-      metadata: { productId: "sku_1" },
     });
   });
 

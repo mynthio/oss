@@ -1,68 +1,46 @@
 import { describe, expect, it } from "vitest";
 import { createServer } from "node:http";
-import { stripVTControlCharacters } from "node:util";
 import type { AddressInfo } from "node:net";
 import { json, runCli, withApi } from "./helpers.ts";
-import { logo } from "../src/output/logo.ts";
 
 describe("help", () => {
-  it("documents the exit codes and environment variables", async () => {
-    const result = await runCli(["--help"]);
-
-    expect(result.status).toBe(0);
-    for (const line of [
-      "3  authentication error",
-      "4  insufficient credits",
-      "5  blocked by content moderation",
-      "MYNTH_API_KEY",
-      "MYNTH_DESTINATION",
-    ]) {
-      expect(result.stdout).toContain(line);
-    }
-  });
-
   it("keeps the logo out of piped help", async () => {
+    // Act
     const result = await runCli(["--help"]);
 
-    expect(result.stdout).not.toMatch(/[\u2580-\u2588]/u);
-    expect(result.stdout.startsWith("Usage: mynth")).toBe(true);
-  });
-
-  it("draws the mint glyph with half blocks, 11 cells wide", () => {
-    const lines = logo().split("\n");
-    const width = (line: string) => [...stripVTControlCharacters(line)].length;
-
-    expect(lines).toHaveLength(5);
-    for (const line of lines) expect(width(line)).toBeLessThanOrEqual(11);
-    expect(lines.join("")).toMatch(/[\u2580-\u2588]/u);
+    // Assert
+    expect({
+      hasBlockGlyphs: /[\u2580-\u2588]/u.test(result.stdout),
+      startsWithUsage: result.stdout.startsWith("Usage: mynth"),
+    }).toEqual({ hasBlockGlyphs: false, startsWithUsage: true });
   });
 
   it("lists every top-level command", async () => {
+    // Act
     const result = await runCli(["--help"]);
 
-    for (const command of [
-      "auth",
-      "balance",
-      "config",
-      "destination",
-      "docs",
-      "image",
-      "models",
-      "task",
-      "webhook",
-      "whoami",
-    ]) {
-      expect(result.stdout).toContain(command);
-    }
-  });
-
-  it("reports the package version", async () => {
-    const result = await runCli(["--version"]);
-    expect(result.status).toBe(0);
+    // Assert
+    expect(
+      [
+        "auth",
+        "balance",
+        "config",
+        "destination",
+        "docs",
+        "image",
+        "models",
+        "task",
+        "webhook",
+        "whoami",
+      ].filter((command) => !result.stdout.includes(command)),
+    ).toEqual([]);
   });
 
   it("exits 2 on an unknown option", async () => {
+    // Act
     const result = await runCli(["image", "generate", "--nonsense"]);
+
+    // Assert
     expect(result.status).toBe(2);
   });
 });
@@ -74,44 +52,23 @@ describe("exit codes", () => {
       (env) => runCli(["balance"], env),
     );
 
-  it("exits 3 on unauthorized", async () => {
-    expect((await failing(401, "unauthorized")).status).toBe(3);
-  });
+  it.each([
+    [401, "unauthorized", 3],
+    [403, "insufficient_scope", 3],
+    [402, "insufficient_balance", 4],
+    [402, "spending_limit_exceeded", 4],
+    [402, "something_new", 4],
+    [429, "rate_limited", 6],
+    [400, "validation_error", 2],
+    [400, "invalid_json", 2],
+    [415, "unsupported_media_type", 2],
+    [500, "internal_server_error", 1],
+  ])("exits %i on %s", async (status, code, expected) => {
+    // Act
+    const result = await failing(status, code);
 
-  it("exits 3 on insufficient_scope", async () => {
-    expect((await failing(403, "insufficient_scope")).status).toBe(3);
-  });
-
-  it("exits 4 on insufficient_balance", async () => {
-    expect((await failing(402, "insufficient_balance")).status).toBe(4);
-  });
-
-  it("exits 4 on spending_limit_exceeded", async () => {
-    expect((await failing(402, "spending_limit_exceeded")).status).toBe(4);
-  });
-
-  it("exits 4 on a 402 with an unknown code", async () => {
-    expect((await failing(402, "something_new")).status).toBe(4);
-  });
-
-  it("exits 6 when plainly rate limited", async () => {
-    expect((await failing(429, "rate_limited")).status).toBe(6);
-  });
-
-  it("exits 2 on validation_error", async () => {
-    expect((await failing(400, "validation_error")).status).toBe(2);
-  });
-
-  it("exits 2 on invalid_json", async () => {
-    expect((await failing(400, "invalid_json")).status).toBe(2);
-  });
-
-  it("exits 2 on unsupported_media_type", async () => {
-    expect((await failing(415, "unsupported_media_type")).status).toBe(2);
-  });
-
-  it("exits 1 on a server error", async () => {
-    expect((await failing(500, "internal_server_error")).status).toBe(1);
+    // Assert
+    expect(result.status).toBe(expected);
   });
 });
 

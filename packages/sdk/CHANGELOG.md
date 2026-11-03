@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.0.54](https://github.com/mynthio/oss/compare/sdk-v0.0.53...sdk-v0.0.54) (2026-11-03)
+
+
+### Features
+
+* **sdk,cli:** safe retries with Idempotency-Key and X-Mynth-Client on task creates ([#148](https://github.com/mynthio/oss/issues/148)) ([8fbca0c](https://github.com/mynthio/oss/commit/8fbca0c0c235ba8d82abd9d86a40eed01fdac5bf))
+* **sdk:** add Grok Imagine Video 1.5 Lite model ([#144](https://github.com/mynthio/oss/issues/144)) ([b1411e7](https://github.com/mynthio/oss/commit/b1411e7ca58add9289a096086a24d2433253ed22))
+* **sdk:** add Qwen Image 2.1 Pro and Gemini Nano Banana 2.1 models ([#145](https://github.com/mynthio/oss/issues/145)) ([b0ff06b](https://github.com/mynthio/oss/commit/b0ff06bd9a5aea215f0b380f878d7de1c7325ab3))
+
 ## [0.0.53](https://github.com/mynthio/oss/compare/sdk-v0.0.52...sdk-v0.0.53) (2026-10-21)
 
 

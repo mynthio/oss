@@ -206,7 +206,7 @@ result.image.url;
 
 ## Error Handling
 
-Mynth is prepaid. A new account starts at $0, so its first paid call answers `402 insufficient_balance` until the human tops up in the wallet (https://mynth.io/dashboard/wallet). On that error, stop and ask the human to top up. Don't retry, and don't treat it as an auth problem. In the SDK this is a `MynthAPIError` with `code === "insufficient_balance"`.
+Mynth is prepaid. A new account starts at $0, so its first paid call answers `402 insufficient_balance` until the human tops up in the wallet (https://mynth.io/dashboard/wallet). On that error, stop: read `balance.available` from `GET /me` (any key can), tell the human that number, and ask them to top up. Don't retry, and don't treat it as an auth problem. In the SDK this is a `MynthAPIError` with `code === "insufficient_balance"`.
 
 ```ts
 import { MynthAPIError, TaskAsyncTimeoutError, TaskAsyncTaskFailedError } from "@mynthio/sdk";

@@ -51,6 +51,61 @@ type APIErrorResponse = {
   };
 };
 
+declare const __MYNTH_SDK_VERSION__: string | undefined;
+
+/**
+ * Sent as `X-Mynth-Client` on creates so Mynth can count SDK traffic. The API
+ * only records it, never checks it. The build inlines the package version.
+ */
+export const SDK_CLIENT: string =
+  typeof __MYNTH_SDK_VERSION__ === "string" ? `sdk/${__MYNTH_SDK_VERSION__}` : "sdk/dev";
+
+/**
+ * Waits before each retry of a create that failed in transit or with a 5xx.
+ * The retry sends the same `Idempotency-Key`, so Mynth returns the task the
+ * first attempt made, if it made one, instead of creating and charging another.
+ */
+const CREATE_RETRY_DELAYS_MS = [500, 2000] as const;
+
+/** Statuses a create may answer while the API is restarting or overloaded. */
+const RETRYABLE_STATUSES = new Set([500, 502, 503, 504]);
+
+/** A fresh `Idempotency-Key`: one per logical create, reused by its retries. */
+export function createIdempotencyKey(): string {
+  const crypto = globalThis.crypto;
+  if (typeof crypto?.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+
+  const bytes = new Uint8Array(16);
+  if (typeof crypto?.getRandomValues === "function") {
+    crypto.getRandomValues(bytes);
+  } else {
+    for (let index = 0; index < bytes.length; index++) {
+      bytes[index] = Math.floor(Math.random() * 256);
+    }
+  }
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function wait(ms: number, signal: AbortSignal | undefined): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(signal.reason);
+      return;
+    }
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(signal?.reason);
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
 type MynthClientRequestOptions = {
   headers?: Record<string, string>;
   accessToken?: string | undefined;
@@ -133,6 +188,59 @@ class MynthClient {
     }
 
     return (await response.json()) as DataType;
+  }
+
+  /**
+   * Creates a task. Sends `X-Mynth-Client` and an `Idempotency-Key` (the
+   * caller's, or a fresh one), and retries with the same key when the request
+   * fails in transit or with a 5xx, so a retry never creates a second task.
+   */
+  public async createTask<DataType>(
+    path: string,
+    data: unknown,
+    {
+      signal,
+      idempotencyKey = createIdempotencyKey(),
+    }: Pick<MynthClientRequestOptions, "signal"> & { idempotencyKey?: string | undefined } = {},
+  ): Promise<DataType> {
+    const body = JSON.stringify(data);
+
+    for (let attempt = 0; ; attempt++) {
+      const delay = CREATE_RETRY_DELAYS_MS[attempt];
+      let response: Response;
+
+      try {
+        response = await fetch(this.getUrl(path), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Idempotency-Key": idempotencyKey,
+            "X-Mynth-Client": SDK_CLIENT,
+            ...this.getAuthHeaders(),
+          },
+          body,
+          ...(signal ? { signal } : {}),
+        });
+      } catch (error) {
+        if (signal?.aborted || delay === undefined) {
+          throw error;
+        }
+        await wait(delay, signal);
+        continue;
+      }
+
+      if (response.ok) {
+        return (await response.json()) as DataType;
+      }
+
+      if (RETRYABLE_STATUSES.has(response.status) && delay !== undefined) {
+        await response.body?.cancel();
+        await wait(delay, signal);
+        continue;
+      }
+
+      throw createApiError(await readErrorBody(response), response.status);
+    }
   }
 
   public async get<DataType>(

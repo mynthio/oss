@@ -33,6 +33,8 @@ Mynth is prepaid. A new account starts at $0, so its first paid call answers `40
 
 Errors are `{ "error": { "code": "insufficient_balance", "message": "..." } }`, with lowercase snake_case codes; `validation_error` adds `error.issues: [{ path, message }]`, and `public_access_token_failed` (500) adds `error.task_id`: that task was created and runs, so follow it instead of resending. Branch on `error.code`, never on `message`.
 
+Send a fresh `Idempotency-Key` (a UUID) on every create. If the request times out, the connection drops, or it answers a 5xx, resend it once or twice with the same key and the same body: Mynth returns the original task instead of creating and charging a second one. The same key with a different body answers `409 idempotency_conflict`. Never resend a create without the key. Also send `X-Mynth-Client: skill`; it is only counted, never checked.
+
 Response (201):
 
 ```json

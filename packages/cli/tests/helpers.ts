@@ -53,6 +53,8 @@ export type RecordedRequest = {
   readonly url: string;
   readonly body: unknown;
   readonly authorization: string | undefined;
+  readonly idempotencyKey: string | undefined;
+  readonly client: string | undefined;
 };
 
 export type Route = (request: RecordedRequest, response: ServerResponse) => void;
@@ -88,6 +90,8 @@ export const withApi = async <T>(
         url: request.url ?? "/",
         body: raw.length > 0 && raw.startsWith("{") ? JSON.parse(raw) : raw,
         authorization: request.headers.authorization,
+        idempotencyKey: request.headers["idempotency-key"] as string | undefined,
+        client: request.headers["x-mynth-client"] as string | undefined,
       };
       requests.push(recorded);
       route(recorded, response);

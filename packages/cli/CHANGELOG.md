@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.27](https://github.com/mynthio/oss/compare/cli-v0.0.26...cli-v0.0.27) (2026-11-03)
+
+
+### Features
+
+* **sdk,cli:** safe retries with Idempotency-Key and X-Mynth-Client on task creates ([#148](https://github.com/mynthio/oss/issues/148)) ([8fbca0c](https://github.com/mynthio/oss/commit/8fbca0c0c235ba8d82abd9d86a40eed01fdac5bf))
+
 ## [0.0.26](https://github.com/mynthio/oss/compare/cli-v0.0.25...cli-v0.0.26) (2026-10-05)
 
 

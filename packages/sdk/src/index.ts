@@ -85,6 +85,14 @@ type MynthRequestOptions = {
    * created keeps running on Mynth.
    */
   signal?: AbortSignal | undefined;
+  /**
+   * Sent as the `Idempotency-Key` header of the create. By default every call
+   * gets a fresh key, which the SDK reuses when it retries a create that failed
+   * in transit or with a 5xx, so a retry never creates or charges a second
+   * task. Pass your own to make your retries of the same logical request safe
+   * too: the same key with the same request returns the original task.
+   */
+  idempotencyKey?: string | undefined;
 };
 
 type MynthModel = MynthSDKTypes.Model;
@@ -286,7 +294,7 @@ class MynthImage {
 
   private async createGenerationTask<const T extends MynthSDKTypes.ImageGenerationClientRequest>(
     request: T,
-    { signal }: MynthRequestOptions,
+    { signal, idempotencyKey }: MynthRequestOptions,
   ): Promise<TaskAsync<ImageGenerationResult<ExtractMetadata<T>, ExtractRatingResponse<T>>>> {
     const inputs = await resolveInputs<MynthSDKTypes.ImageGenerationRequestInputAs>(
       this.client,
@@ -294,7 +302,7 @@ class MynthImage {
       { signal },
     );
 
-    const json = await this.client.post<
+    const json = await this.client.createTask<
       MynthSDKTypes.ApiResponse<MynthSDKTypes.TaskCreatedResponse>
     >(
       GENERATE_IMAGE_PATH,
@@ -303,7 +311,7 @@ class MynthImage {
         inputs,
         destination: request.destination ?? this.defaultDestination,
       },
-      { signal },
+      { signal, idempotencyKey },
     );
 
     const data = json.data;
@@ -398,7 +406,7 @@ class MynthImage {
     const url = await this.resolveUrlOrFile(request);
     const { file: _, url: __, ...rest } = request;
 
-    const json = await this.client.post<
+    const json = await this.client.createTask<
       MynthSDKTypes.ApiResponse<MynthSDKTypes.ImageRateCreatedResponse>
     >(RATE_IMAGE_PATH, { ...rest, url });
 
@@ -461,7 +469,7 @@ class MynthImage {
   ): Promise<TaskAsync<ImageAltResult>> {
     const url = await this.resolveUrlOrFile(request);
 
-    const json = await this.client.post<
+    const json = await this.client.createTask<
       MynthSDKTypes.ApiResponse<MynthSDKTypes.ImageAltCreatedResponse>
     >(ALT_IMAGE_PATH, { url });
 
@@ -515,7 +523,7 @@ class MynthImage {
     const url = await this.resolveUrlOrFile(request);
     const { file: _, url: __, ...rest } = request;
 
-    const json = await this.client.post<
+    const json = await this.client.createTask<
       MynthSDKTypes.ApiResponse<MynthSDKTypes.ImageReviewCreatedResponse>
     >(REVIEW_IMAGE_PATH, { ...rest, url });
 
@@ -587,7 +595,7 @@ class MynthImage {
     const url = await this.resolveUrlOrFile(request);
     const { file: _, url: __, ...rest } = request;
 
-    const json = await this.client.post<
+    const json = await this.client.createTask<
       MynthSDKTypes.ApiResponse<MynthSDKTypes.ImageRemoveBackgroundCreatedResponse>
     >(REMOVE_BACKGROUND_IMAGE_PATH, {
       ...rest,
@@ -666,7 +674,7 @@ class MynthImage {
     const url = await this.resolveUrlOrFile(request);
     const { file: _, url: __, ...rest } = request;
 
-    const json = await this.client.post<
+    const json = await this.client.createTask<
       MynthSDKTypes.ApiResponse<MynthSDKTypes.ImageUpscaleCreatedResponse>
     >(UPSCALE_IMAGE_PATH, {
       ...rest,
@@ -851,7 +859,7 @@ class MynthVideo {
   private async createGenerationTask<const T extends MynthSDKTypes.VideoGenerationClientRequest>(
     request: T,
   ): Promise<TaskAsync<VideoGenerationResult<ExtractVideoMetadata<T>>>> {
-    const json = await this.client.post<
+    const json = await this.client.createTask<
       MynthSDKTypes.ApiResponse<MynthSDKTypes.VideoGenerationCreatedResponse>
     >(GENERATE_VIDEO_PATH, await this.toRequestBody(request));
 

@@ -1,4 +1,10 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { defineConfig } from "tsdown";
+
+const { version } = JSON.parse(
+  readFileSync(resolve(import.meta.dirname, "package.json"), "utf8"),
+) as { version: string };
 
 export default defineConfig({
   entry: {
@@ -15,4 +21,6 @@ export default defineConfig({
   publint: true,
   attw: { profile: "esm-only", level: "error" },
   failOnWarn: true,
+  // The SDK names itself in `X-Mynth-Client` as `sdk/<version>`.
+  define: { __MYNTH_SDK_VERSION__: JSON.stringify(version) },
 });

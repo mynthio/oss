@@ -680,7 +680,11 @@ describe("MynthAPIError", () => {
     // Arrange
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValueOnce(new Response("<html>Bad Gateway</html>", { status: 502 })),
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response("<html>Request Entity Too Large</html>", { status: 413 }),
+        ),
     );
     const mynth = new Mynth({ apiKey: "mak_test", baseUrl: "https://api.test" });
 
@@ -690,8 +694,8 @@ describe("MynthAPIError", () => {
     // Assert
     await expect(promise).rejects.toMatchObject({
       name: "MynthAPIError",
-      message: "Request failed with status 502",
-      status: 502,
+      message: "Request failed with status 413",
+      status: 413,
     });
   });
 });

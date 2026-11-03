@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 
-import { MynthClient } from "./client.ts";
+import { MynthClient, SDK_CLIENT } from "./client.ts";
 import { API_URL } from "./constants.ts";
 
 describe("MynthClient", () => {
@@ -121,6 +121,145 @@ describe("MynthClient errors", () => {
         code: undefined,
         message: "Request failed with status 502",
       });
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
+});
+
+describe("MynthClient.createTask", () => {
+  const created = () => Response.json({ data: { task_id: "tsk_1" } }, { status: 201 });
+
+  function headersOf(call: unknown[]): Record<string, string> {
+    return (call[1] as RequestInit).headers as Record<string, string>;
+  }
+
+  test("sends the client tag and a fresh idempotency key per create", async () => {
+    // Arrange
+    const client = new MynthClient({ apiKey: "mak_test", baseUrl: "https://api.test" });
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async () => created());
+
+    try {
+      // Act
+      await client.createTask("/image/generate", { prompt: "a" });
+      await client.createTask("/image/generate", { prompt: "a" });
+
+      // Assert
+      const [first, second] = fetchMock.mock.calls.map((call) => headersOf(call));
+      expect(first).toMatchObject({
+        "X-Mynth-Client": SDK_CLIENT,
+        Authorization: "Bearer mak_test",
+        "Idempotency-Key": expect.any(String),
+      });
+      expect(SDK_CLIENT).toMatch(/^[a-z0-9@][a-z0-9@._/-]{0,63}$/);
+      expect(first?.["Idempotency-Key"]).not.toBe(second?.["Idempotency-Key"]);
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
+
+  test("retries a 5xx and a network error with the same key, then returns the task", async () => {
+    // Arrange
+    vi.useFakeTimers();
+    const client = new MynthClient({ apiKey: "mak_test", baseUrl: "https://api.test" });
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response("bad gateway", { status: 502 }))
+      .mockRejectedValueOnce(new TypeError("fetch failed"))
+      .mockResolvedValueOnce(created());
+
+    try {
+      // Act
+      const pending = client.createTask(
+        "/image/generate",
+        { prompt: "a" },
+        { idempotencyKey: "k1" },
+      );
+      await vi.runAllTimersAsync();
+      const result = await pending;
+
+      // Assert
+      expect(result).toEqual({ data: { task_id: "tsk_1" } });
+      expect(fetchMock.mock.calls.map((call) => headersOf(call)["Idempotency-Key"])).toEqual([
+        "k1",
+        "k1",
+        "k1",
+      ]);
+    } finally {
+      fetchMock.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
+  test("gives up after two retries and throws the last API error", async () => {
+    // Arrange
+    vi.useFakeTimers();
+    const client = new MynthClient({ apiKey: "mak_test", baseUrl: "https://api.test" });
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async () =>
+        Response.json({ error: { code: "internal_error", message: "Boom." } }, { status: 500 }),
+      );
+
+    try {
+      // Act
+      const pending = client.createTask("/image/generate", {}).catch((caught: unknown) => caught);
+      await vi.runAllTimersAsync();
+      const error = await pending;
+
+      // Assert
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      expect(error).toMatchObject({ name: "MynthAPIError", status: 500, code: "internal_error" });
+    } finally {
+      fetchMock.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
+  test("does not retry a 4xx, which fails the same way every time", async () => {
+    // Arrange
+    const client = new MynthClient({ apiKey: "mak_test", baseUrl: "https://api.test" });
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async () =>
+        Response.json(
+          { error: { code: "insufficient_balance", message: "Top up." } },
+          { status: 402 },
+        ),
+      );
+
+    try {
+      // Act
+      const error: unknown = await client
+        .createTask("/image/generate", {})
+        .catch((caught) => caught);
+
+      // Assert
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(error).toMatchObject({ status: 402, code: "insufficient_balance" });
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
+
+  test("does not retry once the caller aborts", async () => {
+    // Arrange
+    const client = new MynthClient({ apiKey: "mak_test", baseUrl: "https://api.test" });
+    const controller = new AbortController();
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
+      controller.abort();
+      throw new DOMException("The operation was aborted.", "AbortError");
+    });
+
+    try {
+      // Act
+      const error: unknown = await client
+        .createTask("/image/generate", {}, { signal: controller.signal })
+        .catch((caught) => caught);
+
+      // Assert
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(error).toMatchObject({ name: "AbortError" });
     } finally {
       fetchMock.mockRestore();
     }

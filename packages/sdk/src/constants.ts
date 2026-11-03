@@ -63,6 +63,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["inputs"],
   },
   {
+    id: "alibaba/qwen-image-2.1-pro",
+    label: "Qwen Image 2.1 Pro",
+    capabilities: ["inputs"],
+  },
+  {
     id: "alibaba/qwen-image-2.1-turbo",
     label: "Qwen Image 2.1 Turbo",
     capabilities: ["inputs"],
@@ -280,6 +285,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
   {
     id: "google/gemini-3-pro-image-preview",
     label: "Nano Banana Pro",
+    capabilities: ["inputs", "4k"],
+  },
+  {
+    id: "google/gemini-nano-banana-2.1",
+    label: "Gemini Nano Banana 2.1",
     capabilities: ["inputs", "4k"],
   },
   {

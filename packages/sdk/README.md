@@ -640,6 +640,7 @@ Current model IDs include:
 - `auto`
 - `alibaba/qwen-image-2.0`
 - `alibaba/qwen-image-2.0-pro`
+- `alibaba/qwen-image-2.1-pro`
 - `alibaba/qwen-image-2.1-turbo`
 - `alibaba/qwen-image-3.0`
 - `alibaba/qwen-image-3.0-pro`
@@ -658,6 +659,7 @@ Current model IDs include:
 - `google/gemini-3.1-flash-lite-image`
 - `google/gemini-3.1-flash-image`
 - `google/gemini-3-pro-image-preview`
+- `google/gemini-nano-banana-2.1`
 - `imagineart/imagineart-1.5-pro`
 - `imagineart/imagineart-2.0`
 - `ideogram/ideogram-4.5`

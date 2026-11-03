@@ -29,7 +29,7 @@ Optional fields: `negative_prompt`, `magic_prompt`, `inputs`, `rating` (see [ima
 
 Every field name is snake_case, and a field the endpoint does not define answers `400 validation_error` naming it. `count` is a whole number from 1 to 20.
 
-Mynth is prepaid. A new account starts at $0, so its first paid call answers `402 insufficient_balance` until the human tops up in the wallet (https://mynth.io/dashboard/wallet). On that error, stop and ask the human to top up. Don't retry, and don't treat it as an auth problem.
+Mynth is prepaid. A new account starts at $0, so its first paid call answers `402 insufficient_balance` until the human tops up in the wallet (https://mynth.io/dashboard/wallet). On that error, stop: read `balance.available` from `GET /me` (any key can), tell the human that number, and ask them to top up. Don't retry, and don't treat it as an auth problem.
 
 Errors are `{ "error": { "code": "insufficient_balance", "message": "..." } }`, with lowercase snake_case codes; `validation_error` adds `error.issues: [{ path, message }]`, and `public_access_token_failed` (500) adds `error.task_id`: that task was created and runs, so follow it instead of resending. Branch on `error.code`, never on `message`.
 

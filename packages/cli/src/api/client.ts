@@ -1,5 +1,6 @@
+import { setTimeout as sleep } from "node:timers/promises";
 import type { z } from "zod";
-import type { Config } from "../config.ts";
+import { CLI_VERSION, type Config } from "../config.ts";
 import { ApiError } from "../errors.ts";
 import { envelope } from "./schemas.ts";
 
@@ -17,7 +18,22 @@ export type RequestOptions = {
   readonly token?: string;
   /** Set to `false` for endpoints that need no credentials. */
   readonly auth?: false;
+  /**
+   * Sent as `Idempotency-Key`. Only task creates set it; with it, a request that
+   * fails in transit or with a 5xx is retried with the same key, so Mynth
+   * returns the task the first attempt made instead of creating another.
+   */
+  readonly idempotencyKey?: string;
 };
+
+/** Sent as `X-Mynth-Client` so Mynth can count CLI traffic; never checked. */
+export const CLI_CLIENT: string = `cli/${CLI_VERSION}`;
+
+/** Waits before each retry of an idempotent create. */
+const CREATE_RETRY_DELAYS_MS = [500, 2000] as const;
+
+/** A 5xx may come from a restart or an overload; a retry can succeed. */
+const isRetryable = (status: number): boolean => status >= 500;
 
 const buildQuery = (query: RequestOptions["query"]): string => {
   if (query === undefined) return "";
@@ -80,10 +96,30 @@ export class ApiClient {
   /** Performs a request and throws `ApiError` on transport failure or non-2xx. */
   async send(label: string, path: string, options: RequestOptions = {}): Promise<Response> {
     // API keys do not expire, so a 401 means revoked or wrong — never stale.
-    // There is nothing a retry could fix.
-    const response = await this.attempt(path, options);
-    if (response.ok) return response;
-    throw await toApiError(response, label);
+    // No retry fixes a 4xx.
+    // Only a create with an `Idempotency-Key` is retried: the key makes a
+    // repeat return the original task, so it can never be charged twice.
+    const delays: ReadonlyArray<number> =
+      options.idempotencyKey === undefined ? [] : CREATE_RETRY_DELAYS_MS;
+
+    for (let attempt = 0; ; attempt++) {
+      const delay = delays[attempt];
+      let response: Response;
+      try {
+        response = await this.attempt(path, options);
+      } catch (error) {
+        if (delay === undefined || !(error instanceof ApiError) || error.status !== 0) throw error;
+        await sleep(delay);
+        continue;
+      }
+      if (response.ok) return response;
+      if (delay !== undefined && isRetryable(response.status)) {
+        await response.body?.cancel();
+        await sleep(delay);
+        continue;
+      }
+      throw await toApiError(response, label);
+    }
   }
 
   /** Performs a request and parses the `{ data }` envelope with `schema`. */
@@ -128,7 +164,14 @@ export class ApiClient {
     try {
       return await fetch(`${this.baseUrl}${path}${buildQuery(options.query)}`, {
         method: options.method ?? (options.body !== undefined ? "POST" : "GET"),
-        headers: { ...headers, ...(auth !== undefined ? { Authorization: `Bearer ${auth}` } : {}) },
+        headers: {
+          ...headers,
+          "X-Mynth-Client": CLI_CLIENT,
+          ...(options.idempotencyKey !== undefined
+            ? { "Idempotency-Key": options.idempotencyKey }
+            : {}),
+          ...(auth !== undefined ? { Authorization: `Bearer ${auth}` } : {}),
+        },
         ...(body !== undefined ? { body } : {}),
       });
     } catch (cause) {

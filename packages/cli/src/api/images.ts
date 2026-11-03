@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { UsageError } from "../errors.ts";
 import { readImageFile } from "../utils/files.ts";
@@ -39,13 +40,19 @@ export type ImageTaskEndpoint =
   | "remove-background"
   | "upscale";
 
-/** POSTs a request body to an async image endpoint and returns the created task. */
+/**
+ * POSTs a request body to an async image endpoint and returns the created task.
+ * A fresh `Idempotency-Key` makes the client's retries safe.
+ */
 export const createImageTask = (
   client: ApiClient,
   endpoint: ImageTaskEndpoint,
   body: Record<string, unknown>,
 ): Promise<CreatedTask> =>
-  client.fetch(`image ${endpoint}`, `/image/${endpoint}`, createdTask, { body });
+  client.fetch(`image ${endpoint}`, `/image/${endpoint}`, createdTask, {
+    body,
+    idempotencyKey: randomUUID(),
+  });
 
 /** Validates the request server-side and prices it without generating anything. */
 export const estimateGeneration = (

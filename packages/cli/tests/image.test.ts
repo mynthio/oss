@@ -194,6 +194,51 @@ describe("image generate", () => {
   });
 });
 
+describe("image task creates", () => {
+  it("sends the CLI tag and a fresh idempotency key per create", async () => {
+    await withApi(
+      (request, response) => json(response, 201, { data: { task_id: "tsk_1" } }),
+      async (env, requests) => {
+        await runCli(["image", "generate", "-p", "x", "--async"], env);
+        await runCli(["image", "generate", "-p", "x", "--async"], env);
+
+        expect(requests[0]?.client).toMatch(/^cli\/[a-z0-9.-]+$/);
+        expect(requests[0]?.idempotencyKey).toMatch(/^[0-9a-f-]{36}$/);
+        expect(requests[1]?.idempotencyKey).not.toBe(requests[0]?.idempotencyKey);
+      },
+    );
+  });
+
+  it("retries a 5xx once with the same key and return the task", async () => {
+    let calls = 0;
+    await withApi(
+      (request, response) =>
+        ++calls === 1
+          ? json(response, 503, { error: { code: "unavailable", message: "Restarting." } })
+          : json(response, 201, { data: { task_id: "tsk_1" } }),
+      async (env, requests) => {
+        const result = await runCli(["image", "generate", "-p", "x", "--async"], env);
+
+        expect(result.status).toBe(0);
+        expect(requests).toHaveLength(2);
+        expect(requests[1]?.idempotencyKey).toBe(requests[0]?.idempotencyKey);
+      },
+    );
+  });
+
+  it("does not retry a 4xx", async () => {
+    await withApi(
+      (request, response) =>
+        json(response, 402, { error: { code: "insufficient_balance", message: "Top up." } }),
+      async (env, requests) => {
+        await runCli(["image", "generate", "-p", "x", "--async"], env);
+
+        expect(requests).toHaveLength(1);
+      },
+    );
+  });
+});
+
 describe("image analysis", () => {
   it("returns rate results with the task id and cost", async () => {
     await withApi(

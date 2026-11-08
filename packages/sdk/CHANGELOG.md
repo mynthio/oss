@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.0.55](https://github.com/mynthio/oss/compare/sdk-v0.0.54...sdk-v0.0.55) (2026-11-08)
+
+
+### Features
+
+* **sdk:** add GPT Image 2.6 Flare ([#150](https://github.com/mynthio/oss/issues/150)) ([71f548a](https://github.com/mynthio/oss/commit/71f548af73a9f98fd68ace1e0067f420132d7973))
+* **sdk:** add GPT Image 2.6 Sunburst ([#151](https://github.com/mynthio/oss/issues/151)) ([14508fd](https://github.com/mynthio/oss/commit/14508fd2e6942930f20783db0040fa2e29fa90ae))
+* **sdk:** add GPT Image Flare ([#152](https://github.com/mynthio/oss/issues/152)) ([abeb560](https://github.com/mynthio/oss/commit/abeb5606a773d968de0767067cfc055c4743784a))
+* **sdk:** add GPT Image Sunburst ([#153](https://github.com/mynthio/oss/issues/153)) ([cd825af](https://github.com/mynthio/oss/commit/cd825af3389fede438f00d8685aacb122f301639))
+
 ## [0.0.54](https://github.com/mynthio/oss/compare/sdk-v0.0.53...sdk-v0.0.54) (2026-11-03)
 
 

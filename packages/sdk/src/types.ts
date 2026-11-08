@@ -203,6 +203,7 @@ export namespace MynthSDKTypes {
     | "openai/gpt-image-2.6-flare"
     | "openai/gpt-image-2.6-sunburst"
     | "openai/gpt-image-flare"
+    | "openai/gpt-image-sunburst"
     | "tongyi-mai/z-image"
     | "tongyi-mai/z-image-turbo"
     | "john6666/bismuth-illustrious-mix"

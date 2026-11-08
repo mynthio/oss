@@ -201,6 +201,7 @@ export namespace MynthSDKTypes {
     | "openai/gpt-image-2.5-flare"
     | "openai/gpt-image-2.5-sunburst"
     | "openai/gpt-image-2.6-flare"
+    | "openai/gpt-image-2.6-sunburst"
     | "openai/gpt-image-flare"
     | "tongyi-mai/z-image"
     | "tongyi-mai/z-image-turbo"

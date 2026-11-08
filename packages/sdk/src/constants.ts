@@ -328,6 +328,11 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["inputs"],
   },
   {
+    id: "openai/gpt-image-2.6-sunburst",
+    label: "GPT Image 2.6 Sunburst",
+    capabilities: ["inputs"],
+  },
+  {
     id: "openai/gpt-image-flare",
     label: "GPT Image Flare",
     capabilities: ["inputs"],

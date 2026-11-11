@@ -3,7 +3,7 @@
 codecov:
   notify:
     # Wait for every package so statuses never reflect a partial upload.
-    after_n_builds: 3
+    after_n_builds: 4
 
 coverage:
   status:
@@ -27,8 +27,11 @@ flags:
   tanstack-ai-adapter:
     paths:
       - packages/tanstack-ai-adapter/src/
+  ai-sdk-provider:
+    paths:
+      - packages/ai-sdk-provider/src/
 
 comment:
   layout: "header, diff, flags, files, footer"
   behavior: default
-  after_n_builds: 3
+  after_n_builds: 4

@@ -90,11 +90,20 @@ export class MynthImageModel implements ImageModelV4 {
       ...(inputs === undefined || inputs.length === 0 ? {} : { inputs }),
     } as MynthSDKTypes.ImageGenerationClientRequest;
 
+    // Create and wait are separate so an error after the task exists is never
+    // retryable: a retry would create and charge a second task.
+    let task;
+    try {
+      task = await this.config.client().generateAsync(request, { signal: options.abortSignal });
+    } catch (error) {
+      throw toAISDKError(error, this.config.baseURL, "/image/generate", { taskCreated: false });
+    }
+
     let result;
     try {
-      result = await this.config.client().generate(request, { signal: options.abortSignal });
+      result = await task.wait({ signal: options.abortSignal });
     } catch (error) {
-      throw toAISDKError(error, this.config.baseURL, "/image/generate");
+      throw toAISDKError(error, this.config.baseURL, "/image/generate", { taskCreated: true });
     }
 
     if (result.images.length === 0) {

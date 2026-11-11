@@ -3,6 +3,9 @@ import { generateImage } from "ai";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createMynth } from "../src/index.ts";
+import { MynthAPIError } from "@mynthio/sdk";
+import type { MynthImage } from "@mynthio/sdk";
+import { MynthImageModel } from "../src/mynth-image-model.ts";
 import {
   apiError,
   BASE_URL,
@@ -275,6 +278,28 @@ describe("MynthImageModel.doGenerate", () => {
 
     // Assert
     expect(error).toMatchObject({ statusCode: 429, isRetryable: true });
+  });
+
+  it("does not mark a 429 during the wait as retryable, so no second task is created", async () => {
+    // Arrange: the create succeeds, then the wait fails with a 429. (The SDK backs
+    // off on rate-limited polls itself; this pins what happens if one ever surfaces.)
+    const generateAsync = vi.fn(async () => ({
+      wait: async () => {
+        throw new MynthAPIError("Rate limited", 429, "rate_limited");
+      },
+    }));
+    const model = new MynthImageModel(MODEL, {
+      provider: "mynth.image",
+      baseURL: BASE_URL,
+      client: () => ({ generateAsync }) as unknown as MynthImage,
+    });
+
+    // Act
+    const error = await errorOf(model.doGenerate(callOptions()));
+
+    // Assert
+    expect(error).toMatchObject({ statusCode: 429, isRetryable: false });
+    expect(generateAsync).toHaveBeenCalledTimes(1);
   });
 
   it("warns when some images failed and returns the rest", async () => {

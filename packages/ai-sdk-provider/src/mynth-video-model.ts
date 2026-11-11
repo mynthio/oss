@@ -98,14 +98,22 @@ export class MynthVideoModel implements VideoModelV4 {
       ...(inputs.length === 0 ? {} : { inputs }),
     } as MynthSDKTypes.VideoGenerationClientRequest;
 
-    let result;
+    // Create and wait are separate so an error after the task exists is never
+    // retryable: a retry would create and charge a second task.
+    let task;
     try {
       // Creating the task cannot be cancelled once sent; the wait can.
       options.abortSignal?.throwIfAborted();
-      const task = await this.config.client().generateAsync(request);
+      task = await this.config.client().generateAsync(request);
+    } catch (error) {
+      throw toAISDKError(error, this.config.baseURL, "/video/generate", { taskCreated: false });
+    }
+
+    let result;
+    try {
       result = await task.wait({ signal: options.abortSignal });
     } catch (error) {
-      throw toAISDKError(error, this.config.baseURL, "/video/generate");
+      throw toAISDKError(error, this.config.baseURL, "/video/generate", { taskCreated: true });
     }
 
     if (result.videos.length === 0) {

@@ -3,6 +3,9 @@ import { experimental_generateVideo } from "ai";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createMynth } from "../src/index.ts";
+import { MynthAPIError } from "@mynthio/sdk";
+import type { MynthVideo } from "@mynthio/sdk";
+import { MynthVideoModel } from "../src/mynth-video-model.ts";
 import {
   apiError,
   BASE_URL,
@@ -290,6 +293,41 @@ describe("MynthVideoModel.doGenerate", () => {
         issues: [{ path: ["duration"], message: "must be at most 15" }],
       },
     });
+  });
+
+  it("marks a 429 on the create as retryable", async () => {
+    // Arrange
+    const { model } = setup(
+      videoRoutes({ "POST /video/generate": apiError(429, { code: "rate_limited" }) }),
+    );
+
+    // Act
+    const error = await errorOf(model.doGenerate!(callOptions()));
+
+    // Assert
+    expect(error).toMatchObject({ statusCode: 429, isRetryable: true });
+  });
+
+  it("does not mark a 429 during the wait as retryable, so no second task is created", async () => {
+    // Arrange: the create succeeds, then the wait fails with a 429. (The SDK backs
+    // off on rate-limited polls itself; this pins what happens if one ever surfaces.)
+    const generateAsync = vi.fn(async () => ({
+      wait: async () => {
+        throw new MynthAPIError("Rate limited", 429, "rate_limited");
+      },
+    }));
+    const model = new MynthVideoModel(MODEL, {
+      provider: "mynth.video",
+      baseURL: BASE_URL,
+      client: () => ({ generateAsync }) as unknown as MynthVideo,
+    });
+
+    // Act
+    const error = await errorOf(model.doGenerate!(callOptions()));
+
+    // Assert
+    expect(error).toMatchObject({ statusCode: 429, isRetryable: false });
+    expect(generateAsync).toHaveBeenCalledTimes(1);
   });
 
   it("turns a failed task into a non-retryable APICallError", async () => {

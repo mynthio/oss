@@ -132,11 +132,17 @@ export function headersWarning(
 /**
  * Turns Mynth SDK errors into AI SDK errors.
  *
- * Only a 429 is marked retryable. A create that failed with a 5xx was already
- * retried by the Mynth SDK with the same `Idempotency-Key`; a retry from the AI
- * SDK would send a fresh key and could create and charge a second task.
+ * Only a 429 on the create is marked retryable. A create that failed with a 5xx
+ * was already retried by the Mynth SDK with the same `Idempotency-Key`. Once a
+ * task exists (`taskCreated`), nothing is retryable: the AI SDK retries by
+ * calling doGenerate again, which creates and charges a second task.
  */
-export function toAISDKError(error: unknown, baseURL: string, path: string): unknown {
+export function toAISDKError(
+  error: unknown,
+  baseURL: string,
+  path: string,
+  { taskCreated }: { taskCreated: boolean },
+): unknown {
   if (error instanceof MynthAPIError) {
     return new APICallError({
       message: error.message,
@@ -144,7 +150,7 @@ export function toAISDKError(error: unknown, baseURL: string, path: string): unk
       requestBodyValues: undefined,
       statusCode: error.status,
       cause: error,
-      isRetryable: error.status === 429,
+      isRetryable: error.status === 429 && !taskCreated,
       data: {
         code: error.code ?? null,
         issues: error.issues ? error.issues.map((issue) => ({ ...issue })) : null,

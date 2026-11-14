@@ -111,12 +111,16 @@ export function requirePrompt(prompt: string | undefined): string {
   return prompt;
 }
 
-/** Warns when the caller passed request headers: the Mynth SDK sets its own. */
+/**
+ * Warns when the caller passed request headers: the Mynth SDK sets its own.
+ * The AI SDK adds `user-agent` to every call itself, so that one is ignored
+ * quietly; otherwise every call would warn.
+ */
 export function headersWarning(
   headers: Record<string, string | undefined> | undefined,
 ): SharedV4Warning[] {
   const names = Object.entries(headers ?? {})
-    .filter(([, value]) => value !== undefined)
+    .filter(([name, value]) => value !== undefined && name.toLowerCase() !== "user-agent")
     .map(([name]) => name);
   return names.length === 0
     ? []

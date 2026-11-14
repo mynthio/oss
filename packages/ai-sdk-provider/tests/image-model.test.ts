@@ -360,10 +360,12 @@ describe("generateImage with a Mynth model", () => {
     const { model } = setup();
 
     // Act
-    const { image, providerMetadata } = await generateImage({ model, prompt: "A cat" });
+    const { image, providerMetadata, warnings } = await generateImage({ model, prompt: "A cat" });
 
     // Assert
     expect(image.uint8Array).toEqual(PNG_BYTES);
+    // The AI SDK sends its own user-agent; that alone must not warn.
+    expect(warnings).not.toContainEqual(expect.objectContaining({ feature: "headers" }));
     expect(providerMetadata.mynth?.images).toEqual([
       expect.objectContaining({ id: "img_1", taskId: "tsk_img", taskCost: "0.004" }),
     ]);

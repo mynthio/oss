@@ -34,3 +34,11 @@ runs:
         disable_search: true
         files: packages/tanstack-ai-adapter/coverage/lcov.info
         flags: tanstack-ai-adapter
+
+    - name: Upload AI SDK provider coverage
+      uses: codecov/codecov-action@v7
+      with:
+        use_oidc: true
+        disable_search: true
+        files: packages/ai-sdk-provider/coverage/lcov.info
+        flags: ai-sdk-provider

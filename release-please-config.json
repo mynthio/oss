@@ -26,6 +26,15 @@
       "include-v-in-tag": true,
       "initial-version": "0.0.1",
       "changelog-path": "CHANGELOG.md"
+    },
+    "packages/ai-sdk-provider": {
+      "release-type": "node",
+      "versioning": "always-bump-patch",
+      "package-name": "@mynthio/ai-sdk-provider",
+      "component": "ai-sdk",
+      "include-v-in-tag": true,
+      "initial-version": "0.0.1",
+      "changelog-path": "CHANGELOG.md"
     }
   }
 }

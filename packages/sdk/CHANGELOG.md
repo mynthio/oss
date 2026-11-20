@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.56](https://github.com/mynthio/oss/compare/sdk-v0.0.55...sdk-v0.0.56) (2026-11-20)
+
+
+### Features
+
+* **sdk:** add 15 image models live on the API (Nov 20) ([#157](https://github.com/mynthio/oss/issues/157)) ([8e53e87](https://github.com/mynthio/oss/commit/8e53e87f59fae9a8b96bdd6f06a603df11b7b5f5))
+
 ## [0.0.55](https://github.com/mynthio/oss/compare/sdk-v0.0.54...sdk-v0.0.55) (2026-11-08)
 
 

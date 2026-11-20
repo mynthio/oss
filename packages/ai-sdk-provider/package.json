@@ -1,6 +1,6 @@
 {
   "name": "@mynthio/ai-sdk-provider",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Mynth image and video generation provider for the Vercel AI SDK",
   "keywords": [
     "ai",

@@ -98,6 +98,16 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["inputs"],
   },
   {
+    id: "bytedance/seedream-5.5",
+    label: "Seedream 5.5",
+    capabilities: ["inputs"],
+  },
+  {
+    id: "bytedance/seedream",
+    label: "Seedream",
+    capabilities: ["inputs"],
+  },
+  {
     id: "black-forest-labs/flux.1-dev",
     label: "FLUX.1 Dev",
     capabilities: [],
@@ -163,6 +173,26 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: [],
   },
   {
+    id: "bria/fibo-edit-2.0",
+    label: "FIBO Edit 2.0",
+    capabilities: ["inputs"],
+  },
+  {
+    id: "bria/fibo-edit",
+    label: "FIBO Edit",
+    capabilities: ["inputs"],
+  },
+  {
+    id: "bria/fibo-generate-2.0",
+    label: "FIBO Generate 2.0",
+    capabilities: [],
+  },
+  {
+    id: "bria/fibo-generate",
+    label: "FIBO Generate",
+    capabilities: [],
+  },
+  {
     id: "circlestone-labs/anima",
     label: "Anima",
     capabilities: ["inputs"],
@@ -193,6 +223,16 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     capabilities: ["inputs", "4k"],
   },
   {
+    id: "klingai/kling-image-4.0",
+    label: "Kling IMAGE 4.0",
+    capabilities: ["inputs", "4k"],
+  },
+  {
+    id: "klingai/kling-image",
+    label: "Kling IMAGE",
+    capabilities: ["inputs", "4k"],
+  },
+  {
     id: "krea/krea-2-turbo",
     label: "Krea 2 Turbo",
     capabilities: ["inputs"],
@@ -206,6 +246,16 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     id: "krea/krea-2-large",
     label: "Krea 2 Large",
     capabilities: ["inputs"],
+  },
+  {
+    id: "krea/krea-3",
+    label: "Krea 3",
+    capabilities: ["inputs", "4k"],
+  },
+  {
+    id: "krea/krea",
+    label: "Krea",
+    capabilities: ["inputs", "4k"],
   },
   {
     id: "luma/uni-1",
@@ -236,6 +286,21 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
     id: "minimax/h3",
     label: "MiniMax H3",
     capabilities: ["inputs"],
+  },
+  {
+    id: "minimax/h3-image",
+    label: "MiniMax H3 Image",
+    capabilities: ["inputs", "4k"],
+  },
+  {
+    id: "minimax/h3-image-highspeed",
+    label: "MiniMax H3 Image Highspeed",
+    capabilities: ["inputs", "4k"],
+  },
+  {
+    id: "openmoss-team/moss-image",
+    label: "MOSS-Image",
+    capabilities: [],
   },
   {
     id: "purplesmartai/pony-diffusion-v6-xl",
@@ -305,6 +370,16 @@ export const AVAILABLE_MODELS: readonly AvailableModel[] = [
   {
     id: "ideogram/ideogram-4.5",
     label: "Ideogram 4.5",
+    capabilities: ["inputs"],
+  },
+  {
+    id: "ideogram/ideogram-4.6",
+    label: "Ideogram 4.6",
+    capabilities: ["inputs"],
+  },
+  {
+    id: "ideogram/ideogram",
+    label: "Ideogram",
     capabilities: ["inputs"],
   },
   {

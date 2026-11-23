@@ -69,6 +69,38 @@ describe("image generate", () => {
     );
   });
 
+  it("sends the structured magic_prompt for --magic-prompt-creativity", async () => {
+    await withApi(
+      (request, response) => json(response, 201, { data: { task_id: "tsk_1" } }),
+      async (env, requests) => {
+        const base = ["image", "generate", "-p", "x", "--async"];
+        await runCli([...base, "--magic-prompt-creativity", "high"], env);
+        await runCli([...base, "--magic-prompt", "--magic-prompt-creativity=balanced"], env);
+        await runCli(["image", "generate", "--magic-prompt", "-p", "x", "--async"], env);
+
+        expect(requests[0]?.body).toMatchObject({ magic_prompt: { creativity: "high" } });
+        expect(requests[1]?.body).toMatchObject({ magic_prompt: { creativity: "balanced" } });
+        expect(requests[2]?.body).toMatchObject({ prompt: "x", magic_prompt: true });
+      },
+    );
+  });
+
+  it("rejects an unknown creativity level before calling the API", async () => {
+    await withApi(
+      (request, response) => json(response, 201, { data: { task_id: "tsk_1" } }),
+      async (env, requests) => {
+        const result = await runCli(
+          ["image", "generate", "-p", "x", "--async", "--magic-prompt-creativity", "wild"],
+          env,
+        );
+
+        expect(result.status).toBe(2);
+        expect(`${result.stdout}${result.stderr}`).toContain("none, balanced, high");
+        expect(requests).toHaveLength(0);
+      },
+    );
+  });
+
   it("sends inputs as structured image sources with their role", async () => {
     await withApi(
       (request, response) => json(response, 201, { data: { task_id: "tsk_1" } }),

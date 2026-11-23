@@ -120,7 +120,7 @@ await generateImage({
 });
 ```
 
-`magic_prompt` also takes `{ creativity: "none" | "balanced" | "high" }`, as the API does, with `@mynthio/sdk` 0.0.57 or later installed. `true` is `"none"`, and image edits always use `"none"`.
+`magic_prompt` also takes `{ creativity: "none" | "balanced" | "high" }`, as the API does, with `@mynthio/sdk` 0.0.57 or later installed. `true` is `"none"`, and requests with input images always use `"none"`.
 
 ## Results and costs
 

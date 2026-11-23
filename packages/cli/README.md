@@ -68,7 +68,7 @@ mynth image generate -p "A flower" --magic-prompt-creativity high
 | `-p, --prompt`              | Prompt.                                                                                                                                                     |
 | `-n, --negative`            | Negative prompt.                                                                                                                                            |
 | `--magic-prompt`            | Let Mynth expand the prompt before generating. Off by default.                                                                                              |
-| `--magic-prompt-creativity` | `none`, `balanced` or `high`: how far the rewrite can go beyond your prompt. Implies `--magic-prompt`, whose rewrite is `none`. Image edits stay on `none`. |
+| `--magic-prompt-creativity` | `none`, `balanced` or `high`: how far the rewrite can go beyond your prompt. Implies `--magic-prompt`, whose rewrite is `none`. Requests with input images stay on `none`. |
 | `-m, --model`               | Model ID. Defaults to `auto`. See `mynth models list`.                                                                                                      |
 | `-s, --size`                | Preset or aspect ratio: `square`, `landscape`, `16:9`, `16:9_4k`, `auto`, …                                                                                 |
 | `-c, --count`               | Images per request.                                                                                                                                         |

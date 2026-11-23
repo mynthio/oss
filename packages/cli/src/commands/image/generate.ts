@@ -164,7 +164,7 @@ export const generateCommand = (app: App): Command => {
     .addOption(
       new Option(
         "--magic-prompt-creativity <level>",
-        'How far Magic Prompt can go beyond the prompt; implies --magic-prompt. Image edits stay on "none"',
+        'How far Magic Prompt can go beyond the prompt; implies --magic-prompt. Requests with input images stay on "none"',
       ).choices(MAGIC_PROMPT_CREATIVITY),
     )
     .option("-m, --model <id>", 'Model ID (e.g. "black-forest-labs/flux.2-pro"). Default: auto')

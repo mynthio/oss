@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.57](https://github.com/mynthio/oss/compare/sdk-v0.0.56...sdk-v0.0.57) (2026-11-23)
+
+
+### Features
+
+* **sdk,cli:** magic_prompt creativity levels ([#159](https://github.com/mynthio/oss/issues/159)) ([c48e2e9](https://github.com/mynthio/oss/commit/c48e2e904d07173f3967ebbf6213ad788aa79a02))
+
 ## [0.0.56](https://github.com/mynthio/oss/compare/sdk-v0.0.55...sdk-v0.0.56) (2026-11-20)
 
 

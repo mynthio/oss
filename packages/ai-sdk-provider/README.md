@@ -120,6 +120,8 @@ await generateImage({
 });
 ```
 
+`magic_prompt` also takes `{ creativity: "none" | "balanced" | "high" }`, as the API does, with `@mynthio/sdk` 0.0.57 or later installed. `true` is `"none"`, and image edits always use `"none"`.
+
 ## Results and costs
 
 `providerMetadata.mynth` carries the Mynth task: for images, each entry in `images` has its `id`,

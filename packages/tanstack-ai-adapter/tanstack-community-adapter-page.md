@@ -141,6 +141,7 @@ const result = await generateImage({
 Notes:
 
 - `modelOptions.magicPrompt` maps to Mynth's `magic_prompt`, and `modelOptions.negativePrompt` maps to `negative_prompt`. The enhanced prompt comes back as `images[*].revisedPrompt`
+- `modelOptions.magicPrompt` also takes `{ creativity: "none" | "balanced" | "high" }` (beta, free for now). Requests with input images always use `"none"`
 - `modelOptions.rating` configures content rating on the result
 - `modelOptions.size` overrides the top-level `size`. Use it when you need structured Mynth size objects, including aspect ratios and an optional `scale: "4k"`
 - Top-level `size` is for shorthand values such as `"auto"` and preset strings like `"square"`, `"landscape"` or `"16:9_4k"`

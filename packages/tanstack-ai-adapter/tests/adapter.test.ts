@@ -134,6 +134,22 @@ describe("MynthImageAdapter", () => {
       });
     });
 
+    it("sends a magicPrompt creativity object as magic_prompt", async () => {
+      // Arrange
+      const api = createMockApi(generationRoutes());
+      const adapter = createAdapter(api);
+
+      // Act
+      await run(
+        adapter.generateImages(
+          createOptions({ modelOptions: { magicPrompt: { creativity: "high" } } }),
+        ),
+      );
+
+      // Assert
+      expect(await sentBody(api)).toMatchObject({ magic_prompt: { creativity: "high" } });
+    });
+
     it("forwards the remaining provider options under their API names", async () => {
       // Arrange
       const api = createMockApi(generationRoutes());

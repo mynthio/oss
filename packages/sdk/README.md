@@ -249,6 +249,16 @@ await mynth.image.generate({
 });
 ```
 
+`magic_prompt` also takes `{ creativity }`, which sets how far the rewrite can go beyond what you wrote. `"none"` refines faithfully without inventing scenes, which is what `true` does. `"balanced"` adds grounded variety, and `"high"` explores wider creative angles. Image edits always use `"none"`, and a creative rewrite that fails falls back to the faithful one.
+
+```ts
+await mynth.image.generate({
+  model: "black-forest-labs/flux-1-schnell",
+  prompt: "A flower",
+  magic_prompt: { creativity: "high" },
+});
+```
+
 ## Size Options
 
 `size` supports:

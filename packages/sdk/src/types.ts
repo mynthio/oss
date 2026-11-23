@@ -399,12 +399,32 @@ export namespace MynthSDKTypes {
     | "auto";
 
   /**
+   * How far Magic Prompt can go beyond what you wrote. `"none"` refines
+   * faithfully without inventing scenes, `"balanced"` adds grounded variety,
+   * and `"high"` explores wider creative angles. Image edits stay on `"none"`.
+   */
+  export type ImageGenerationRequestMagicPromptCreativity = "none" | "balanced" | "high";
+
+  /** The structured form of `magic_prompt`. `creativity` defaults to `"none"`. */
+  export type ImageGenerationRequestMagicPromptStructured = {
+    creativity?: ImageGenerationRequestMagicPromptCreativity;
+  };
+
+  /**
+   * Rewrites your prompt for the target model. `true` enables faithful
+   * refinement (`{ creativity: "none" }`); `false` or omitted disables it.
+   */
+  export type ImageGenerationRequestMagicPrompt =
+    | boolean
+    | ImageGenerationRequestMagicPromptStructured;
+
+  /**
    * Image generation request parameters (API wire format).
    */
   export type ImageGenerationRequest = {
     prompt: ImageGenerationRequestPrompt;
     negative_prompt?: string;
-    magic_prompt?: boolean;
+    magic_prompt?: ImageGenerationRequestMagicPrompt;
     model?: ImageGenerationModel;
     size?: ImageGenerationRequestSize;
     count?: number;

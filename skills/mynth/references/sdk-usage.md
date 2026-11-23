@@ -52,7 +52,7 @@ await mynth.image.generate({
   count: 2, // 1-20, default 1
   output: { format: "webp" }, // png | jpg | webp; default: the provider's format
   negative_prompt: "text, watermark",
-  magic_prompt: true, // Mynth-side prompt enhancement; or { creativity: "none" | "balanced" | "high" }
+  magic_prompt: true, // Mynth-side prompt enhancement; or { creativity: "none" | "balanced" | "high" } (beta)
   inputs: ["https://example.com/reference.jpg"], // needs a model with img->img; max 20
   rating: true, // rate generated images; see image-rating.md
   destination: "my-bucket", // deliver to user storage; see destinations.md

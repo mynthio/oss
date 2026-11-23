@@ -27,7 +27,7 @@ Always send `model`. When it is omitted the API uses `"auto"`, which is experime
 
 Optional fields: `negative_prompt`, `magic_prompt`, `inputs`, `rating` (see [image-rating.md](image-rating.md)), `destination` (see [destinations.md](destinations.md)), `metadata`, `generate_public_access_token`.
 
-`magic_prompt` is `true` (a faithful rewrite) or `{ "creativity": "none" | "balanced" | "high" }`. `"balanced"` and `"high"` let the rewrite go further on text-to-image, and requests with input images always use `"none"`.
+`magic_prompt` is `true` (a faithful rewrite) or `{ "creativity": "none" | "balanced" | "high" }`; creativity is in beta and free for now. `"balanced"` and `"high"` let the rewrite go further on text-to-image, and requests with input images always use `"none"`.
 
 Every field name is snake_case, and a field the endpoint does not define answers `400 validation_error` naming it. `count` is a whole number from 1 to 20.
 

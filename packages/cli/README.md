@@ -63,23 +63,23 @@ mynth image generate -p "A neon koi pond" --magic-prompt --format png
 mynth image generate -p "A flower" --magic-prompt-creativity high
 ```
 
-| Flag                        | Purpose                                                                                                                                                     |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `-p, --prompt`              | Prompt.                                                                                                                                                     |
-| `-n, --negative`            | Negative prompt.                                                                                                                                            |
-| `--magic-prompt`            | Let Mynth expand the prompt before generating. Off by default.                                                                                              |
-| `--magic-prompt-creativity` | `none`, `balanced` or `high`: how far the rewrite can go beyond your prompt. Implies `--magic-prompt`, whose rewrite is `none`. Image edits stay on `none`. |
-| `-m, --model`               | Model ID. Defaults to `auto`. See `mynth models list`.                                                                                                      |
-| `-s, --size`                | Preset or aspect ratio: `square`, `landscape`, `16:9`, `16:9_4k`, `auto`, …                                                                                 |
-| `-c, --count`               | Images per request.                                                                                                                                         |
-| `-f, --format`              | `png`, `jpg`, or `webp`.                                                                                                                                    |
-| `-i, --input`               | Input image as `[role:]path-or-url`, repeatable. Roles: `auto`, `source`, `reference`.                                                                      |
-| `-o, --output-dir`          | Download the results into this directory.                                                                                                                   |
-| `--destination`             | Deliver to a configured storage destination. Defaults to `MYNTH_DESTINATION`.                                                                               |
-| `--content-rating`          | Classify each image `sfw`/`nsfw`. Use `--level` for custom levels.                                                                                          |
-| `--webhook-url`             | Deliver this task's events to a URL (repeatable).                                                                                                           |
-| `--no-registered-webhooks`  | Skip the webhooks registered on the account for this task.                                                                                                  |
-| `--metadata`                | Inline JSON attached to the task.                                                                                                                           |
+| Flag                        | Purpose                                                                                                                                                                    |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-p, --prompt`              | Prompt.                                                                                                                                                                    |
+| `-n, --negative`            | Negative prompt.                                                                                                                                                           |
+| `--magic-prompt`            | Let Mynth expand the prompt before generating. Off by default.                                                                                                             |
+| `--magic-prompt-creativity` | `none`, `balanced` or `high`: how far the rewrite can go beyond your prompt. Implies `--magic-prompt`, whose rewrite is `none`. Requests with input images stay on `none`. |
+| `-m, --model`               | Model ID. Defaults to `auto`. See `mynth models list`.                                                                                                                     |
+| `-s, --size`                | Preset or aspect ratio: `square`, `landscape`, `16:9`, `16:9_4k`, `auto`, …                                                                                                |
+| `-c, --count`               | Images per request.                                                                                                                                                        |
+| `-f, --format`              | `png`, `jpg`, or `webp`.                                                                                                                                                   |
+| `-i, --input`               | Input image as `[role:]path-or-url`, repeatable. Roles: `auto`, `source`, `reference`.                                                                                     |
+| `-o, --output-dir`          | Download the results into this directory.                                                                                                                                  |
+| `--destination`             | Deliver to a configured storage destination. Defaults to `MYNTH_DESTINATION`.                                                                                              |
+| `--content-rating`          | Classify each image `sfw`/`nsfw`. Use `--level` for custom levels.                                                                                                         |
+| `--webhook-url`             | Deliver this task's events to a URL (repeatable).                                                                                                                          |
+| `--no-registered-webhooks`  | Skip the webhooks registered on the account for this task.                                                                                                                 |
+| `--metadata`                | Inline JSON attached to the task.                                                                                                                                          |
 
 Local paths passed to `-i` are uploaded first; `https://` inputs are used as-is.
 

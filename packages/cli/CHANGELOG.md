@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.29](https://github.com/mynthio/oss/compare/cli-v0.0.28...cli-v0.0.29) (2026-11-23)
+
+
+### Features
+
+* **tan-ai:** magic prompt creativity levels (beta), plus beta notes ([#164](https://github.com/mynthio/oss/issues/164)) ([21e42b9](https://github.com/mynthio/oss/commit/21e42b95f93c018d8cd6152ce9013b9c4f8c8ebb))
+
 ## [0.0.28](https://github.com/mynthio/oss/compare/cli-v0.0.27...cli-v0.0.28) (2026-11-23)
 
 

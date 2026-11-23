@@ -44,6 +44,18 @@ const DRY_RUN_INPUT_URL = "https://dry-run.mynth.io/input";
 
 type InputRole = (typeof INPUT_ROLES)[number];
 
+const MAGIC_PROMPT_CREATIVITY = ["none", "balanced", "high"] as const;
+
+type MagicPromptCreativity = (typeof MAGIC_PROMPT_CREATIVITY)[number];
+
+/** `--magic-prompt` sends `true`; a creativity level sends the structured form, as the API takes it. */
+const magicPrompt = (options: GenerateOptions) =>
+  options.magicPromptCreativity !== undefined
+    ? { creativity: options.magicPromptCreativity }
+    : options.magicPrompt === true
+      ? true
+      : undefined;
+
 type ParsedInput = {
   readonly role?: InputRole;
   readonly value: string;
@@ -56,6 +68,7 @@ type GenerateOptions = JsonFlag &
     readonly prompt: string;
     readonly negative?: string;
     readonly magicPrompt?: boolean;
+    readonly magicPromptCreativity?: MagicPromptCreativity;
     readonly model?: string;
     readonly size?: string;
     readonly count?: number;
@@ -97,6 +110,7 @@ const buildRequest = async (
   uploadedByPath: ReadonlyMap<string, string>,
 ): Promise<Record<string, unknown>> => {
   const levels = await resolveLevels(options);
+  const magic = magicPrompt(options);
   const rating =
     levels !== undefined
       ? { mode: "custom", levels }
@@ -117,7 +131,7 @@ const buildRequest = async (
     prompt: options.prompt,
     ...(options.model !== undefined ? { model: options.model } : {}),
     ...(options.negative !== undefined ? { negative_prompt: options.negative } : {}),
-    ...(options.magicPrompt === true ? { magic_prompt: true } : {}),
+    ...(magic !== undefined ? { magic_prompt: magic } : {}),
     ...(options.size !== undefined ? { size: options.size } : {}),
     ...(options.count !== undefined ? { count: options.count } : {}),
     ...(options.format !== undefined ? { output: { format: options.format } } : {}),
@@ -147,6 +161,12 @@ export const generateCommand = (app: App): Command => {
     .requiredOption("-p, --prompt <text>", "Text prompt describing the image to generate")
     .option("-n, --negative <text>", "Negative prompt: elements to exclude")
     .option("--magic-prompt", "Let Mynth expand the prompt before generating")
+    .addOption(
+      new Option(
+        "--magic-prompt-creativity <level>",
+        'How far Magic Prompt can go beyond the prompt; implies --magic-prompt. Image edits stay on "none"',
+      ).choices(MAGIC_PROMPT_CREATIVITY),
+    )
     .option("-m, --model <id>", 'Model ID (e.g. "black-forest-labs/flux.2-pro"). Default: auto')
     .option(
       "-s, --size <size>",

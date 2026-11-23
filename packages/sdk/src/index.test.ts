@@ -170,6 +170,26 @@ describe("MynthImage", () => {
     });
   });
 
+  test("generateAsync sends magic_prompt as given, boolean or structured", async () => {
+    // Arrange
+    const fetchMock = vi
+      .fn()
+      .mockImplementation(async () => jsonResponse({ data: { task_id: "task-123" } }));
+    vi.stubGlobal("fetch", fetchMock);
+    const image = new MynthImage({ apiKey: "mak_test", baseUrl: "https://api.test" });
+
+    // Act
+    await image.generateAsync({ prompt: "a flower", magic_prompt: true });
+    await image.generateAsync({ prompt: "a flower", magic_prompt: { creativity: "high" } });
+    await image.generateAsync({ prompt: "a flower", magic_prompt: {} });
+
+    // Assert
+    const bodies = fetchMock.mock.calls.map(
+      ([, init]) => JSON.parse(String(init?.body)).magic_prompt,
+    );
+    expect(bodies).toEqual([true, { creativity: "high" }, {}]);
+  });
+
   test("generate forwards the abort signal to the create request", async () => {
     // Arrange
     const fetchMock = vi

@@ -139,6 +139,7 @@ const result = await generateImage({
 Notes:
 
 - `magicPrompt` maps to Mynth's `magic_prompt`. The enhanced prompt comes back as `images[*].revisedPrompt`
+- `magicPrompt` also takes `{ creativity: "none" | "balanced" | "high" }` (beta, free for now). `true` is `"none"`, and requests with input images always use `"none"`
 - `negativePrompt` maps to Mynth's `negative_prompt`
 - `size` overrides the top-level `size`. Use it for structured sizes: aspect ratios with an optional `scale: "4k"`, or `{ type: "auto" }`
 - Top-level `size` takes shorthand strings: `"auto"` and presets such as `"square"`, `"16:9"` or `"16:9_4k"`

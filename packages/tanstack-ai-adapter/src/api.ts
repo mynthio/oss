@@ -111,7 +111,7 @@ export interface ImageGenerationRequest {
   prompt: string;
   model: string;
   negative_prompt?: string;
-  magic_prompt?: boolean;
+  magic_prompt?: boolean | { creativity?: "none" | "balanced" | "high" };
   size?: MynthImageSize;
   count?: number;
   output?: MynthImageOutput;

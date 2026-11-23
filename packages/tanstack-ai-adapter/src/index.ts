@@ -58,6 +58,8 @@ export type {
   MynthImageCommonOptions,
   MynthImageInputOptions,
   MynthImageMagicNegativePromptOptions,
+  MynthImageMagicPrompt,
+  MynthImageMagicPromptCreativity,
   MynthImageModelInputModalitiesByName,
   MynthImageModelProviderOptionsByName,
   MynthImageModelSizeByName,

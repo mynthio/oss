@@ -46,12 +46,25 @@ export type MynthImageBaseSize =
 // ============================================================================
 
 /**
+ * How far Magic Prompt can go beyond what you wrote (beta). `"none"` refines
+ * faithfully without inventing scenes, `"balanced"` adds grounded variety, and
+ * `"high"` explores wider creative angles. Requests with input images stay on `"none"`.
+ */
+export type MynthImageMagicPromptCreativity = "none" | "balanced" | "high";
+
+/** `true` is a faithful rewrite (`{ creativity: "none" }`); the object sets a creativity level. */
+export type MynthImageMagicPrompt = boolean | { creativity?: MynthImageMagicPromptCreativity };
+
+/**
  * Mynth-specific options every model accepts. Shared TanStack fields such as
  * prompt, numberOfImages and shorthand size stay at the top level.
  */
 export interface MynthImageCommonOptions {
-  /** Enable Mynth-side prompt enhancement. The enhanced prompt comes back as `revisedPrompt`. */
-  magicPrompt?: boolean;
+  /**
+   * Enable Mynth-side prompt enhancement, sent as `magic_prompt`: `true`, or
+   * `{ creativity }` (beta). The enhanced prompt comes back as `revisedPrompt`.
+   */
+  magicPrompt?: MynthImageMagicPrompt;
   /** Output format */
   output?: MynthImageOutput;
   /** Ask Mynth for a public access token for this task. Sent as `generate_public_access_token`. */
@@ -86,12 +99,12 @@ export interface MynthImageNativeNegativePromptOptions {
 
 /**
  * Models without a native negative prompt only use one to steer magic prompt,
- * so `negativePrompt` requires `magicPrompt: true`.
+ * so `negativePrompt` requires magic prompt on (`true` or `{ creativity }`).
  */
 export type MynthImageMagicNegativePromptOptions =
   | { negativePrompt?: never }
   | {
-      magicPrompt: true;
+      magicPrompt: true | { creativity?: MynthImageMagicPromptCreativity };
       /** Negative prompt that magic prompt steers the enhanced prompt away from. */
       negativePrompt?: string;
     };

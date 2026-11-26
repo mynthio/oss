@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.37](https://github.com/mynthio/oss/compare/tan-ai-v0.0.36...tan-ai-v0.0.37) (2026-11-26)
+
+
+### Features
+
+* **tan-ai:** magic prompt creativity levels (beta), plus beta notes ([#164](https://github.com/mynthio/oss/issues/164)) ([21e42b9](https://github.com/mynthio/oss/commit/21e42b95f93c018d8cd6152ce9013b9c4f8c8ebb))
+
 ## [0.0.36](https://github.com/mynthio/oss/compare/tan-ai-v0.0.35...tan-ai-v0.0.36) (2026-10-21)
 
 

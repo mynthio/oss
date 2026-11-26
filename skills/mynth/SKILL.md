@@ -95,6 +95,7 @@ The docs are the source of truth for paths and fields. Every page is markdown at
 - Next.js webhook handling: `@mynthio/sdk/next`
 - TanStack Start webhook handling: `@mynthio/sdk/tanstack-start`
 - Convex webhook handling: `@mynthio/sdk/convex`
+- The agent itself generates media, with no app code: the remote MCP server at `https://api.mynth.io/mcp` (OAuth sign-in or a `mak_` key). Setup: https://mynth.io/docs/sdks/agents/mcp.md
 
 ## Core Flow
 

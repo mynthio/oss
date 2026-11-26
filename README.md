@@ -15,6 +15,16 @@ Open-source packages by [Mynth](https://mynth.io).
 
 Install the CLI with `npm install -g @mynthio/cli`, or run it once with `npx @mynthio/cli --help`.
 
+## MCP server
+
+Mynth also runs a remote MCP server at `https://api.mynth.io/mcp`. There is nothing to install: point your MCP client at the URL and sign in with your Mynth account, or send a `mak_` API key as a Bearer token. For example, in Claude Code:
+
+```bash
+claude mcp add --transport http mynth https://api.mynth.io/mcp
+```
+
+Setup for other clients and the tool list: [mynth.io/docs/sdks/agents/mcp](https://mynth.io/docs/sdks/agents/mcp).
+
 ## Examples
 
 | Example                                                                         | Description                                                          |

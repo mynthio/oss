@@ -2,5 +2,5 @@
   "packages/sdk": "0.0.58",
   "packages/tanstack-ai-adapter": "0.0.36",
   "packages/cli": "0.0.29",
-  "packages/ai-sdk-provider": "0.0.1"
+  "packages/ai-sdk-provider": "0.0.2"
 }
